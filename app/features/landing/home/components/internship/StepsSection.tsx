@@ -75,7 +75,7 @@ export function StepsSection() {
 
                 {/* Right Image/Mockup */}
                 <div className="flex-1 relative">
-                    <div className="relative z-10 rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl max-w-md mx-auto rotate-3 hover:rotate-0 transition-all duration-500">
+                    <div className="relative z-10 rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl w-full mx-auto rotate-3 hover:rotate-0 transition-all duration-500">
                         {/* Mockup content mimicking an app screen */}
                         <div className="flex flex-col gap-6">
                             <div>

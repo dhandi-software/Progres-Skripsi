@@ -59,7 +59,7 @@ export function GamificationSection() {
                     <motion.div 
                         animate={{ y: [0, -15, 0] }}
                         transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                        className="relative z-10 bg-white border-2 border-zinc-100 p-8 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.08)] max-w-md w-full"
+                        className="relative z-10 bg-white border-2 border-zinc-100 p-8 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.08)] w-full"
                     >
                         <div className="flex items-center justify-between mb-8">
                             <div>

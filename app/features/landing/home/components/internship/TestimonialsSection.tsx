@@ -57,7 +57,7 @@ export function TestimonialsSection() {
                     <div className="absolute bottom-0 left-20 w-32 h-32 bg-orange-50 rounded-full -z-10" />
                     
                     {/* Testimonial Card Slider */}
-                    <div className="relative w-full max-w-xl" ref={containerRef}>
+                    <div className="relative w-full" ref={containerRef}>
                         <motion.div 
                             className="relative z-10 bg-white p-8 rounded-[20px] shadow-[0px_8px_30px_rgba(0,0,0,0.08)] border border-zinc-100 cursor-grab active:cursor-grabbing"
                             drag="x"

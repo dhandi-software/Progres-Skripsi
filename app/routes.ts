@@ -11,7 +11,7 @@ export default [
 
     layout("routes/landing/landing-layout.tsx", [
         route("/", "routes/landing/Home.tsx"),
-        route("index", "routes/landing/index.tsx"),
+        // route("index", "routes/landing/index.tsx"),
         route("guide", "routes/landing/Guide.tsx"),
         route("requirements", "routes/landing/Requirements.tsx"),
         route("schedule", "routes/landing/Schedule.tsx"),
@@ -20,40 +20,40 @@ export default [
         route("search", "routes/search.tsx"),
     ]),
     // Writer
-    layout("routes/writer/writer-layout.tsx", [
-        ...prefix("writer", [
-            index("routes/writer/dashboard.tsx"),
-            route("draft", "routes/writer/draft.tsx"),
-            route("upload", "routes/writer/Writter.tsx"),
-            route("video", "routes/writer/video.tsx"),
-            route("media", "routes/writer/media.tsx"),
-            route("edit-profile", "routes/writer/edit-profile.tsx"),
-        ]),
-    ]),
+    // layout("routes/writer/writer-layout.tsx", [
+    //     ...prefix("writer", [
+    //         index("routes/writer/dashboard.tsx"),
+    //         route("draft", "routes/writer/draft.tsx"),
+    //         route("upload", "routes/writer/Writter.tsx"),
+    //         route("video", "routes/writer/video.tsx"),
+    //         route("media", "routes/writer/media.tsx"),
+    //         route("edit-profile", "routes/writer/edit-profile.tsx"),
+    //     ]),
+    // ]),
     // Editor
-    layout("routes/Editor/editor-layout.tsx", [
-        ...prefix("editor", [
-            index("routes/Editor/pending.tsx"),
-            route("media", "routes/Editor/media.tsx"),
-            route("edit-article/:articleId", "routes/Editor/edit-article.$articleId.tsx"),
-            route("edit-profile", "routes/Editor/edit-profile.tsx"),
-        ]),
-    ]),
+    // layout("routes/Editor/editor-layout.tsx", [
+    //     ...prefix("editor", [
+    //         index("routes/Editor/pending.tsx"),
+    //         route("media", "routes/Editor/media.tsx"),
+    //         route("edit-article/:articleId", "routes/Editor/edit-article.$articleId.tsx"),
+    //         route("edit-profile", "routes/Editor/edit-profile.tsx"),
+    //     ]),
+    // ]),
     // Admin
-    layout("routes/admin/admin-layout.tsx", [
-        ...prefix("admin", [
-            index("routes/admin/dashboard.tsx"),
-            route("upload", "routes/admin/Writter.tsx"),
-            route("advertisement", "routes/admin/advertisement.tsx"),
-            route("create-account", "routes/admin/create-account.tsx"),
-            route("manage-account", "routes/admin/manage-account.tsx"),
-            route("account-detail/:id", "routes/admin/account-detail.$id.tsx"),
-            route("log", "routes/admin/log-activity.tsx"),
-            route("create", "routes/admin/create.tsx"),
-            route("article", "routes/admin/articles.tsx"),
-            route("media", "routes/admin/media.tsx"),
-            route("edit/:id", "routes/admin/edit.$id.tsx"),
-            route("draft", "routes/admin/draft.tsx"),
-        ]),
-    ]),
+    // layout("routes/admin/admin-layout.tsx", [
+    //     ...prefix("admin", [
+    //         index("routes/admin/dashboard.tsx"),
+    //         route("upload", "routes/admin/Writter.tsx"),
+    //         route("advertisement", "routes/admin/advertisement.tsx"),
+    //         route("create-account", "routes/admin/create-account.tsx"),
+    //         route("manage-account", "routes/admin/manage-account.tsx"),
+    //         route("account-detail/:id", "routes/admin/account-detail.$id.tsx"),
+    //         route("log", "routes/admin/log-activity.tsx"),
+    //         route("create", "routes/admin/create.tsx"),
+    //         route("article", "routes/admin/articles.tsx"),
+    //         route("media", "routes/admin/media.tsx"),
+    //         route("edit/:id", "routes/admin/edit.$id.tsx"),
+    //         route("draft", "routes/admin/draft.tsx"),
+    //     ]),
+    // ]),
 ] satisfies RouteConfig;
