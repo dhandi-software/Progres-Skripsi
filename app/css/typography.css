@@ -1,0 +1,157 @@
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist-VariableFont_wght.ttf') format('woff2');
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('/fonts/GeistMono-VariableFont_wght.ttf') format('woff2');
+}
+
+@font-face {
+  font-family: 'Eurostile';
+  src: url('/fonts/Eurostar-Regular.ttf') format('woff2');
+}
+
+@theme inline {
+  /* Font */
+  --font-geist: 'Geist';
+  --font-geist-mono: 'Geist Mono';
+  --font-eurostile: 'Eurostile';
+
+  /* Text Primitive (font sizes) */
+  --text-6xl: 3.75rem;
+  --text-5xl: 3rem;
+  --text-4xl: 2.25rem;
+  --text-3xl: 1.875rem;
+  --text-2xl: 1.5rem;
+  --text-xl: 1.25rem;
+  --text-lg: 1.125rem;
+  --text-md: 1rem;
+  --text-sm: 0.875rem;
+  --text-xs: 0.75rem;
+
+  /* Font Weights */
+  --font-weight-heading: 700;
+  --font-weight-subheading: 600;
+  --font-weight-paragraph: 400;
+  --font-weight-label: 500;
+  --font-weight-caption: 500;
+  --font-weight-desc: 400;
+  --font-weight-number-semibold: 600;
+  --font-weight-number: 400;
+  --font-weight-table-heading: 500;
+  --font-weight-table-content: 400;
+
+  /* Heading */
+  --text-heading-h1: var(--text-4xl);
+  --text-heading-h1--font-weight: var(--font-weight-heading);
+  --text-heading-h1--line-height: theme(lineHeight.4xl);
+
+  --text-heading-h2: var(--text-3xl);
+  --text-heading-h2--font-weight: var(--font-weight-heading);
+  --text-heading-h2--line-height: theme(lineHeight.3xl);
+
+  --text-heading-h3: var(--text-2xl);
+  --text-heading-h3--font-weight: var(--font-weight-heading);
+  --text-heading-h3--line-height: theme(lineHeight.2xl);
+
+  --text-heading-h4: var(--text-xl);
+  --text-heading-h4--font-weight: var(--font-weight-heading);
+  --text-heading-h4--line-height: theme(lineHeight.xl);
+
+  /* SubHeading */
+  --text-subheading-h1: var(--text-4xl);
+  --text-subheading-h1--font-weight: var(--font-weight-subheading);
+  --text-subheading-h1--line-height: theme(lineHeight.4xl);
+
+  --text-subheading-h2: var(--text-3xl);
+  --text-subheading-h2--font-weight: var(--font-weight-subheading);
+  --text-subheading-h2--line-height: theme(lineHeight.3xl);
+
+  --text-subheading-h3: var(--text-2xl);
+  --text-subheading-h3--font-weight: var(--font-weight-subheading);
+  --text-subheading-h3--line-height: theme(lineHeight.2xl);
+
+  --text-subheading-h4: var(--text-xl);
+  --text-subheading-h4--font-weight: var(--font-weight-subheading);
+  --text-subheading-h4--line-height: theme(lineHeight.xl);
+
+  --text-subheading-h5: var(--text-lg);
+  --text-subheading-h5--font-weight: var(--font-weight-subheading);
+  --text-subheading-h5--line-height: theme(lineHeight.xl);
+
+  /* Paragraph */
+  --text-paragraph-lg: var(--text-lg);
+  --text-paragraph-lg--font-weight: var(--font-weight-paragraph);
+  --text-paragraph-lg--line-height: theme(lineHeight.lg);
+
+  --text-paragraph: var(--text-md);
+  --text-paragraph--font-weight: var(--font-weight-paragraph);
+  --text-paragraph--line-height: theme(lineHeight.md);
+
+  --text-paragraph-sm: var(--text-sm);
+  --text-paragraph-sm--font-weight: var(--font-weight-paragraph);
+  --text-paragraph-sm--line-height: theme(lineHeight.sm);
+
+  /* Label */
+  --text-label-lg: var(--text-md);
+  --text-label-lg--font-weight: var(--font-weight-label);
+  --text-label-lg--line-height: theme(lineHeight.sm);
+
+  --text-label: var(--text-sm);
+  --text-label--font-weight: var(--font-weight-label);
+  --text-label--line-height: theme(lineHeight.xs);
+
+  --text-label-sm: var(--text-xs);
+  --text-label-sm--font-weight: var(--font-weight-label);
+  --text-label-sm--line-height: theme(lineHeight.xs);
+
+  /* Captions */
+  --text-caption: var(--text-sm);
+  --text-caption--font-weight: var(--font-weight-caption);
+  --text-caption--line-height: theme(lineHeight.sm);
+
+  --text-caption-sm: var(--text-xs);
+  --text-caption-sm--font-weight: var(--font-weight-caption);
+  --text-caption-sm--line-height: theme(lineHeight.xs);
+
+  /* Description */
+  --text-desc: var(--text-sm);
+  --text-desc--font-weight: var(--font-weight-desc);
+  --text-desc--line-height: theme(lineHeight.sm);
+
+  --text-desc-sm: var(--text-xs);
+  --text-desc-sm--font-weight: var(--font-weight-desc);
+  --text-desc-sm--line-height: theme(lineHeight.xs);
+
+  /* Number */
+  --text-number-lg: var(--text-6xl);
+  --text-number-lg--font-weight: var(--font-weight-number-semibold);
+  --text-number-lg--line-height: var(--text-6xl);
+
+  --text-number-md: var(--text-sm);
+  --text-number-md--font-weight: var(--font-weight-number-semibold);
+  --text-number-md--line-height: theme(lineHeight.xs);
+
+  --text-number: var(--text-md);
+  --text-number--font-weight: var(--font-weight-number);
+  --text-number--line-height: theme(lineHeight.md);
+
+  --text-number-sm: var(--text-xs);
+  --text-number-sm--font-weight: var(--font-weight-number);
+  --text-number-sm--line-height: theme(lineHeight.sm);
+
+  /* Table */
+  --text-table-heading-lg: var(--text-md);
+  --text-table-heading-lg--font-weight: var(--font-weight-table-heading);
+  --text-table-heading-lg--line-height: theme(lineHeight.md);
+
+  --text-table-heading: var(--text-sm);
+  --text-table-heading--font-weight: var(--font-weight-table-heading);
+  --text-table-heading--line-height: theme(lineHeight.sm);
+
+  --text-table-content: var(--text-sm);
+  --text-table-content--font-weight: var(--font-weight-table-content);
+  --text-table-content--line-height: theme(lineHeight.sm);
+}
