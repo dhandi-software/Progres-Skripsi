@@ -11,7 +11,7 @@ export function StepsSection() {
                 {/* Left Content */}
                 <div className="flex-1 space-y-10">
                     <div className="space-y-4">
-                        <h2 className="text-4xl font-bold text-zinc-950 leading-tight">
+                        <h2 className="text-4xl font-bold text-zinc-950 leading-tight font-geist">
                             Langkah Mudah Memulai <br/>
                             Kerja Praktek Anda
                         </h2>

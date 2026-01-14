@@ -14,7 +14,7 @@ export function GamificationSection() {
                         <span>GAMIFIKASI BIMBINGAN</span>
                     </div>
                     <div className="space-y-4">
-                        <h2 className="text-4xl md:text-5xl font-bold text-zinc-950 leading-tight font-['Plus_Jakarta_Sans']">
+                        <h2 className="text-4xl md:text-5xl font-bold text-zinc-950 leading-tight font-geist">
                             Monitoring Progress <br />
                             <span className="text-orange-600">Lebih Menyenangkan</span>
                         </h2>

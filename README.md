@@ -1,7 +1,8 @@
-# 📰 MNI Portal Berita
+# 🎓 Kerja Praktek Universitas Pancasila
 
-Ini adalah aplikasi web modular yang dibangun dengan **React**, **TypeScript**, dan **React Router v7**.  
-Struktur folder menggunakan pendekatan feature-based sehingga mudah diskalakan, serta sudah mendukung **lokalisasi**, **middleware**, dan **reusable components**.
+Portal resmi untuk pengelolaan dan informasi Kerja Praktek (KP) bagi mahasiswa Teknik Informatika Universitas Pancasila. Aplikasi ini memudahkan mahasiswa dalam mendaftar, memantau status KP, serta mengakses informasi penting lainnya.
+
+Dibangun dengan **React**, **TypeScript**, dan **React Router v7** dengan arsitektur modular yang rapi dan mudah dikembangkan.
 
 ---
 
@@ -13,16 +14,19 @@ Struktur folder menggunakan pendekatan feature-based sehingga mudah diskalakan, 
 npm install
 # or
 yarn install
+```
 
+### 🧪 Run the App
 
-🧪 Run the App
-
+```bash
 npm run dev
 # or
 yarn dev
+```
 
-🔨 Build for Production
+### 🔨 Build for Production
 
+```bash
 npm run build
 # or
 yarn build
@@ -30,80 +34,41 @@ yarn build
 
 ### 🌐 Tech Stack
 
-    ⚛️ React
-
-    🔀 React Router v7
-
-    🧠 TypeScript
-
-    🌍 i18n (English & Indonesian support)
-
-    🧪 Testing support (Jest / Vitest - optional)
-
-    🧩 Modular architecture
+- ⚛️ **React**
+- 🔀 **React Router v7**
+- 🧠 **TypeScript**
+- 🎨 **Tailwind CSS** (via Shadcn/UI)
+- 🧩 **Modular Architecture**
 
 ### 🗂️ Project Structure
 
-````bash
-mni-portal-berita/
-├── .react-router/              # Optional: Router configs/meta
-├── app/
-│   ├── components/             # Global/shared UI components
-│   ├── features/               # Feature-based modules
-│   │   ├── berita/             # Modul berita/artikel
-│   │   │   ├── __tests__/      # Unit/integration tests
-│   │   │   ├── components/     # Komponen khusus berita
-│   │   │   ├── models/         # Domain models (types/interfaces)
-│   │   │   ├── services/       # API/data logic berita
-│   │   ├── home/               # Modul halaman utama
-│   │   │   ├── __tests__/
-│   │   │   ├── components/
-│   │   │   ├── models/
-│   │   │   ├── services/
-│   ├── lib/
-│   │   └── utils.ts            # Global utility functions
-│   ├── locales/                # i18n folder
-│   │   ├── en/                 # English translations
-│   │   ├── id/                 # Indonesian translations
-│   ├── middleware/             # Custom middleware (auth, logging, dll.)
-│   ├── routes/                 # React Router v7 route files
-│   └── root.tsx                # App entry
-│   └── routes.tsx              # Setup routes
+Hanya menampilkan struktur folder utama yang relevan dengan sistem Kerja Praktek (mengecualikan modul legacy).
 
+```bash
+skripsi-fe/
+├── app/
+│   ├── components/             # Komponen UI global (Button, Card, dll)
+│   ├── features/               # Modul fungsional aplikasi
+│   │   ├── landing/            # Fitur halaman depan (Landing Page)
+│   │   │   ├── home/           # Komponen Beranda, FAQ, Guide, Schedule
+│   │   │   ├── Article/        # Komponen Artikel/Berita
+│   │   │   └── ...
+│   │   └── ...
+│   ├── routes/                 # File Rute (Pages)
+│   │   ├── admin/              # Dashboard Admin
+│   │   ├── writer/             # Dashboard Penulis/Dosen
+│   │   ├── landing/            # Halaman Publik (Home, FAQ, Requirements)
+│   │   ├── login/              # Halaman Login
+│   │   └── ...
+│   ├── lib/
+│   │   └── utils.ts            # Fungsi utilitas global
+│   └── root.tsx                # Entry point aplikasi
+└── ...
+```
 
 ### 🧭 Routing
 
-This project uses React Router v7 manually defined in the routes/ folder and linked to components from features.
+Project ini menggunakan **React Router v7**. Semua rute didefinisikan dalam folder `app/routes/` yang secara otomatis memetakan URL ke komponen halaman yang sesuai.
 
-```bash
-Example:
-
-// routes/event.tsx
-import { EventPage } from "~/features/events/components/EventPage";
-````
-
-### 🌍 Localization
-
-    All translation files are under /locales
-
-    Supports English (en) and Indonesian (id)
-
-    Translation files are separated by:
-
-        index.ts
-
-        error.ts
-
-        translation.ts
-
-🧪 Testing
-
-Tests are colocated in **tests** folders inside each feature module:
-
-```bash
-features/
-└── events/
-    └── __tests__/
-```
-
-Supports tools like Jest, Vitest, or your preferred test runner.
+---
+**Catatan Penting**: Folder seperti `Mining`, `Nickel`, atau module lain yang tidak relevan dengan sistem Kerja Praktek adalah legacy code dan tidak digunakan dalam flow utama aplikasi ini.

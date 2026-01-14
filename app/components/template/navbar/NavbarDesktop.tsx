@@ -21,7 +21,7 @@ export function NavbarDesktop() {
     ];
 
     return (
-        <div className="flex justify-center w-full border-b mt-sm">
+        <div className="flex justify-center w-full mt-sm">
             <NavigationMenu>
                 <NavigationMenuList className="gap-8">
                     {links.map((link) => (

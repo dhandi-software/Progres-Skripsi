@@ -13,8 +13,10 @@ export default function LandingLayout() {
 
     return (
         <>
-            <Header isMobile={isMobile} />
-            {!isArticlePage && <Navbar />}
+            <div className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-all border-b border-border/40">
+                <Header isMobile={isMobile} />
+                {!isArticlePage && <Navbar />}
+            </div>
             <main>
                 <Outlet
                     context={{ isMobile: isMobile } satisfies ContextType}

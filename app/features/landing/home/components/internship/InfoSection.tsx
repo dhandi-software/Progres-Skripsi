@@ -30,7 +30,7 @@ export function InfoSection() {
             <div className="container px-4 md:px-6 mx-auto">
                 <div className="text-center w-full mx-auto mb-16">
                     <span className="text-orange-600 font-bold tracking-wider uppercase text-sm mb-2 block">Fitur Unggulan</span>
-                    <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground font-['Plus_Jakarta_Sans']">
+                    <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground font-geist">
                         Modul Sistem <span className="text-orange-500">Terpadu</span>
                     </h2>
                     <p className="text-lg text-muted-foreground leading-relaxed">

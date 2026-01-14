@@ -15,7 +15,7 @@ export function CtaSection() {
                 <div className="absolute inset-0 bg-gradient-to-r from-zinc-900 via-zinc-900/90 to-zinc-900/80 z-0" />
 
                 <div className="relative z-10 w-full px-6 py-16 space-y-8 flex flex-col items-center">
-                    <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight font-['Plus_Jakarta_Sans']">
+                    <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight font-geist">
                         Siap Memulai Karir <br />{" "}
                         <span className="text-orange-500">Profesional</span>{" "}
                         Anda?

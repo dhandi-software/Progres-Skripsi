@@ -13,7 +13,7 @@ export function PopularPositionsSection() {
             <div className="container mx-auto px-4 md:px-6">
                 <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
                     <div className="space-y-3 w-full">
-                        <h2 className="text-4xl font-bold text-zinc-950 font-['Plus_Jakarta_Sans'] leading-tight">
+                        <h2 className="text-4xl font-bold text-zinc-950 font-geist leading-tight">
                             Bidang Peminatan <br className="hidden md:block"/>
                             <span className="text-orange-500">Populer</span>
                         </h2>

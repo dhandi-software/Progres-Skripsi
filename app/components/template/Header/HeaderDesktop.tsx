@@ -5,7 +5,7 @@ import { Button } from "~/components/ui/button";
 
 export default function HeaderDesktop() {
     return (
-        <header className={cn("w-full pt-6 bg-background border-b border-border-subtle pb-6")}>
+        <header className={cn("w-full pt-6 bg-transparent pb-6")}>
             <div className="mx-auto w-full max-w-[90rem]">
                 <div className="flex items-center justify-between px-4xl min-h-[4.25rem]">
                     <div className="flex items-center flex-1">
@@ -18,9 +18,9 @@ export default function HeaderDesktop() {
                                 alt="Logo Universitas Pancasila" 
                                 className="h-12 w-auto"
                             />
-                            <div className="flex flex-col">
-                                <span className="text-lg font-bold text-zinc-950 leading-none">Sistem Informasi</span>
-                                <span className="text-sm font-medium text-orange-600 leading-none">Kerja Praktek</span>
+                            <div className="flex flex-col font-geist">
+                                <span className="text-2xl font-bold text-zinc-950 leading-none tracking-tight">Sistem Informasi</span>
+                                <span className="text-base font-medium text-orange-600 leading-none tracking-wide">Kerja Praktek</span>
                             </div>
                         </Link>
                     </div>

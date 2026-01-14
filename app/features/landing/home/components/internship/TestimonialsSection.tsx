@@ -42,7 +42,7 @@ export function TestimonialsSection() {
                 
                 {/* Left Text */}
                 <div className="flex-1 space-y-6 w-full min-w-[300px]">
-                    <h2 className="text-4xl font-bold text-zinc-950 leading-tight">
+                    <h2 className="text-4xl font-bold text-zinc-950 leading-tight font-geist">
                         Pengalaman <br/> Mahasiswa
                     </h2>
                     <p className="text-gray-500 text-base font-medium">
