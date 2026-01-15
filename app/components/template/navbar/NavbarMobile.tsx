@@ -17,7 +17,7 @@ export function NavbarMobile() {
         { href: "/", label: "Home" },
         { href: "/guide", label: "Panduan" },
         { href: "/requirements", label: "Persyaratan" },
-        { href: "/schedule", label: "Jadwal" },
+        { href: "/format", label: "Format" },
         { href: "/faq", label: "FAQ" },
     ];
 

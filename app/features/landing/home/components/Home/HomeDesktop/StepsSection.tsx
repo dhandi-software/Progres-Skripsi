@@ -86,7 +86,7 @@ export function StepsSection() {
                                    </div>
                                    <div className="flex flex-col justify-center">
                                       <span className="font-bold text-lg">Disetujui</span>
-                                      <span className="text-slate-500 text-sm">Proposal diterima industri</span>
+                                     
                                    </div>
                                 </div>
                             </div>

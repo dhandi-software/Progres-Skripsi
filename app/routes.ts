@@ -14,7 +14,7 @@ export default [
         // route("index", "routes/landing/index.tsx"),
         route("guide", "routes/landing/Guide.tsx"),
         route("requirements", "routes/landing/Requirements.tsx"),
-        route("schedule", "routes/landing/Schedule.tsx"),
+        route("format", "routes/landing/Format.tsx"),
         route("faq", "routes/landing/FAQ.tsx"),
         route("article/:slug", "routes/landing/article.tsx"),
         route("search", "routes/search.tsx"),

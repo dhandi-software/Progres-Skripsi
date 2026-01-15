@@ -1,11 +1,11 @@
-import { NewHeroSection } from "../components/internship/NewHeroSection";
-import { AboutSection } from "../components/internship/AboutSection";
-import { StepsSection } from "../components/internship/StepsSection";
-import { PopularPositionsSection } from "../components/internship/PopularPositionsSection";
-import { CtaSection } from "../components/internship/CtaSection";
-import { TestimonialsSection } from "../components/internship/TestimonialsSection";
-import { InfoSection } from "../components/internship/InfoSection";
-import { GamificationSection } from "../components/internship/GamificationSection";
+import { NewHeroSection } from "~/features/landing/home/components/Home/HomeDesktop/NewHeroSection";
+import { AboutSection } from "~/features/landing/home/components/Home/HomeDesktop/AboutSection";
+import { StepsSection } from "~/features/landing/home/components/Home/HomeDesktop/StepsSection";
+import { PopularPositionsSection } from "~/features/landing/home/components/Home/HomeDesktop/PopularPositionsSection";
+import { CtaSection } from "~/features/landing/home/components/Home/HomeDesktop/CtaSection";
+import { TestimonialsSection } from "~/features/landing/home/components/Home/HomeDesktop/TestimonialsSection";
+import { InfoSection } from "~/features/landing/home/components/Home/HomeDesktop/InfoSection";
+import { GamificationSection } from "~/features/landing/home/components/Home/HomeDesktop/GamificationSection";
 
 export function HomeDesktop() {
     return (
