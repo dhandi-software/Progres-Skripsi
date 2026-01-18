@@ -1,13 +1,13 @@
 import React, { createContext, useState, useEffect, type ReactNode } from "react";
-import { authApi } from "~/api/auth";
-import type { User, LoginRequest } from "~/api/types";
+import { authService } from "~/services/authService";
+import type { User, LoginCredentials } from "~/types/auth";
 import { useNavigate, useLocation } from "react-router";
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (data: LoginRequest) => Promise<void>;
+  login: (data: LoginCredentials) => Promise<void>;
   logout: () => void;
 }
 
@@ -22,12 +22,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initializeAuth = async () => {
       const token = localStorage.getItem("jwt");
-      if (token) {
+      const savedUser = localStorage.getItem("user");
+      
+      if (token && savedUser) {
         try {
-          const userData = await authApi.me();
-          setUser({ ...userData, token });
+            setUser(JSON.parse(savedUser));
         } catch (error) {
-          console.error("Failed to fetch user", error);
+          console.error("Failed to parse user", error);
           setUser(null);
         }
       }
@@ -37,35 +38,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initializeAuth();
   }, []);
 
-  const login = async (data: LoginRequest) => {
+  const login = async (data: LoginCredentials) => {
     setIsLoading(true);
     try {
-      const response = await authApi.login(data);
+        // Map email to username if needed, backend expects 'username'
+        // But for this use case, we will assume the form sends 'email' or 'username' correctly.
+        // If the backend expects 'username' but the form uses 'email', we might need to adjust.
+        // Let's assume the user enters 'username' in the email field for now, or we map it.
+        const payload = {
+            username: data.email, // using email field as username for now as per backend mock
+            password: data.password
+        };
 
-      if (response.status === "success" && response.data) {
-        const { token, role } = response.data;
+      const response = await authService.login(payload);
+
+      if (response.token && response.user) {
+        const { token, user } = response;
 
         localStorage.setItem("jwt", token);
+        localStorage.setItem("user", JSON.stringify(user));
 
-        setUser(response.data);
-
-        sessionStorage.setItem("justLoggedIn", "true");
+        setUser(user);
 
         const from = (location.state as any)?.from?.pathname || null;
 
         if (from) {
           navigate(from, { replace: true });
-        } else if (role === "admin") {
-          navigate("/admin");
-        } else if (role === "writer") {
-          navigate("/writer");
-        } else if (role === "editor") {
-          navigate("/editor");
         } else {
-          navigate("/");
+            // Redirect based on role
+            switch (user.role) {
+                case 'kaprodi':
+                    navigate("/kaprodi/dashboard");
+                    break;
+                case 'dosen_pembimbing':
+                    navigate("/dospem/dashboard");
+                    break;
+                case 'staf_univ':
+                    navigate("/staf/dashboard");
+                    break;
+                case 'mahasiswa':
+                    navigate("/mahasiswa");
+                    break;
+                case 'admin':
+                    navigate("/admin");
+                    break;
+                default:
+                    navigate("/");
+            }
         }
-      } else {
-        console.error("Login response success is false or data missing");
       }
     } catch (error) {
       console.error("Login failed", error);
@@ -76,17 +96,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    // Clear state FIRST before navigating to prevent infinite loop
     localStorage.removeItem("jwt");
+    localStorage.removeItem("user");
     setUser(null);
-
-    try {
-      await authApi.logout();
-    } catch (error) {
-      console.error("Logout failed on server", error);
-    }
-
-    // Navigate AFTER state is cleared
     navigate("/login", { replace: true });
   };
 

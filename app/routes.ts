@@ -39,6 +39,19 @@ export default [
     //         route("edit-profile", "routes/Editor/edit-profile.tsx"),
     //     ]),
     // ]),
+
+    // Mahasiswa
+    layout("routes/mahasiswa/layout.tsx", [
+        ...prefix("mahasiswa", [
+            index("routes/mahasiswa/dashboard.tsx"),
+            route("download", "routes/mahasiswa/download.tsx"),
+            route("pengajuan", "routes/mahasiswa/pengajuan.tsx"),
+            route("bimbingan", "routes/mahasiswa/bimbingan.tsx"),
+            route("chat", "routes/mahasiswa/chat.tsx"),
+            route("acara", "routes/mahasiswa/acara.tsx"),
+            route("penilaian", "routes/mahasiswa/penilaian.tsx"),
+        ]),
+    ]),
     // Admin
     // layout("routes/admin/admin-layout.tsx", [
     //     ...prefix("admin", [
