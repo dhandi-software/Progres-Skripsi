@@ -40,73 +40,106 @@ export function LoginMobile() {
     };
 
     return (
-        <main>
-            <div className="flex justify-center pt-2xl pb-[2.5rem]">
+        <main className="relative min-h-screen w-full overflow-hidden font-geist">
+             {/* Full Screen Background */}
+             <div className="absolute inset-0 z-0">
                 <img
-                    src="/images/MNI.svg"
-                    alt="Media Nikel Indonesia"
-                    className="w-[12.5rem] h-[4.125rem]"
+                    src="/images/Background.svg"
+                    alt="Background"
+                    className="h-full w-full object-cover"
                 />
+                <div className="absolute inset-0 bg-black/20" />
             </div>
-            <div className="flex justify-center gap-[3.125rem] items-center">
-                <div className="p-2xl flex flex-col gap-lg rounded-[0.5rem] text-center">
-                    <h1 className="text-subheading-h5">Welcome back to Media Nikel Indonesia Management System!</h1>
-                    {loginError && (
-                        <div className="text-red-500 text-sm text-center">{loginError}</div>
-                    )}
-                    <form onSubmit={handleSubmit} className="flex flex-col gap-lg">
 
+            <div className="relative z-10 flex min-h-screen flex-col items-center justify-center p-4">
+                <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl animate-in fade-in slide-in-from-bottom-10 duration-500">
+                    
+                    {/* Header: Logo & Title */}
+                    <div className="mb-6 flex flex-col items-center text-center">
+                         <div className="mb-4 rounded-xl bg-gradient-to-br from-[#119DA4] to-[#FDE789] p-4 shadow-lg">
+                            <img 
+                                src="https://upload.wikimedia.org/wikipedia/id/thumb/4/46/Logo_Universitas_Pancasila.png/250px-Logo_Universitas_Pancasila.png" 
+                                alt="Logo Universitas Pancasila" 
+                                className="h-16 w-auto mix-blend-multiply"
+                            />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-xl font-bold text-zinc-900 leading-tight tracking-tight">Sistem Informasi</span>
+                            <span className="text-base font-semibold text-[#119DA4] leading-tight tracking-wide">Kerja Praktek</span>
+                        </div>
+                         <h2 className="mt-4 text-base font-medium text-zinc-600">Welcome Back!</h2>
+                    </div>
+
+                    {loginError && (
+                         <div className="mb-6 rounded-lg bg-red-50 p-3 text-center text-sm font-medium text-red-600 border border-red-100 flex items-center justify-center gap-2">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+                            {loginError}
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                         <TextField
-                            label="Email"
-                            placeholder="Enter your email"
+                            label="Email Address"
+                            placeholder="username@student.univpancasila.ac.id"
                             value={email}
                             variant="vertical"
                             onChange={(e) => setEmail(e.target.value)}
                             error={errors.email}
+                            className="bg-zinc-50 focus:bg-white transition-colors"
                         />
-                        <TextField
-                            label="Password"
-                            placeholder="Enter your password"
-                            value={password}
-                            type="password"
-                            variant="vertical"
-                            onChange={(e) => setPassword(e.target.value)}
-                            error={errors.password}
-                        />
-                        <div className="flex justify-between">
-                            <div className="flex items-center gap-[0.625rem]">
-                                <Checkbox
-                                    id="remember"
-                                    checked={rememberMe}
-                                    onCheckedChange={(checked) =>
-                                        setRememberMe(checked === true)
-                                    }
-                                />
-                                <Label
-                                    htmlFor="remember"
-                                    className="text-sm font-normal text-gray-900 cursor-pointer"
+                        <div className="flex flex-col gap-1">
+                            <TextField
+                                label="Password"
+                                placeholder="••••••••"
+                                value={password}
+                                type="password"
+                                variant="vertical"
+                                onChange={(e) => setPassword(e.target.value)}
+                                error={errors.password}
+                                className="bg-zinc-50 focus:bg-white transition-colors"
+                            />
+                             <div className="flex justify-end mt-1">
+                                <Link
+                                    to="/forgot-password"
+                                    className="text-xs font-medium text-[#119DA4] hover:text-[#0e8389] hover:underline transition-colors"
                                 >
-                                    Remember me
-                                </Label>
+                                    Forgot password?
+                                </Link>
                             </div>
-                            <Link
-                                to="/forgot-password"
-                                className="text-sm text-blue-600 hover:text-blue-700 hover:underline text-right"
-                            >
-                                Forgot your password?
-                            </Link>
                         </div>
-                        <div className="flex justify-end">
-                            <Button
-                                type="submit"
-                                size="sm"
-                                className="w-[6.25rem] bg-brand-primary-muted-foreground hover:bg-brand-primary-muted-foreground/80"
-                                disabled={isLoading}
+
+                        <div className="flex items-center gap-2">
+                            <Checkbox
+                                id="remember-mobile"
+                                checked={rememberMe}
+                                onCheckedChange={(checked) =>
+                                    setRememberMe(checked === true)
+                                }
+                               className="border-gray-300 data-[state=checked]:bg-[#119DA4] data-[state=checked]:border-[#119DA4] rounded"
+                            />
+                            <Label
+                                htmlFor="remember-mobile"
+                                className="text-sm font-normal text-zinc-600 cursor-pointer select-none"
                             >
-                                {isLoading ? "Loading..." : "Login"}
-                            </Button>
+                                Remember me
+                            </Label>
                         </div>
+                        
+                        <Button
+                            type="submit"
+                            size="lg"
+                            className="w-full mt-2 h-11 bg-[#119DA4] hover:bg-[#0e8389] text-white font-medium shadow-lg shadow-[#119DA4]/20 transition-all active:scale-[0.98] rounded-xl text-sm"
+                            disabled={isLoading}
+                        >
+                            {isLoading ? "Signing in..." : "Sign In"}
+                        </Button>
                     </form>
+
+                     <div className="mt-8 text-center">
+                        <p className="text-[10px] text-zinc-400">
+                            © {new Date().getFullYear()} Universitas Pancasila. All rights reserved.
+                        </p>
+                    </div>
                 </div>
             </div >
         </main >
