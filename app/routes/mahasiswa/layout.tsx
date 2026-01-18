@@ -110,12 +110,12 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className="border-r border-[#E5E5E5] bg-white">
-      <SidebarContent className="h-screen bg-[#FAFAFA] flex flex-col py-8 px-6">
+    <Sidebar className="border-r border-[#E5E5E5] bg-white overflow-y-hidden">
+      <SidebarContent className="bg-[#FAFAFA] flex flex-col py-8 px-6">
         {/* Logo Section */}
         <div className="mb-8 px-2">
           <img
-            src="https://upload.wikimedia.org/wikipedia/id/thumb/4/46/Logo_Universitas_Pancasila.png/250px-Logo_Universitas_Pancasila.png"
+            src="https://uppress.univpancasila.ac.id/wp-content/uploads/2023/05/UP4.png"
             alt="Logo"
             className="h-16 w-auto object-contain"
           />
@@ -186,9 +186,9 @@ export default function MahasiswaLayout() {
     <ProtectedRoute>
       <RoleGuard allowedRoles={["mahasiswa"]}>
         <SidebarProvider isMobile={isMobile}>
-          <div className="flex w-full min-h-screen bg-neutral-50">
+          <div className="flex w-full h-screen overflow-hidden bg-neutral-50">
             <AppSidebar />
-            <main className="flex-1 w-full max-w-[100vw] overflow-x-hidden pb-12">
+            <main className="flex-1 w-full h-full overflow-y-auto pb-12">
                {/* Mobile Trigger or Header could be added here if needed, usually SidebarProvider handles basic mobile trigger logic but visual one might be needed */}
               <Outlet context={{ isMobile }} />
             </main>
