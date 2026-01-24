@@ -4,6 +4,8 @@ Portal resmi untuk pengelolaan dan informasi Kerja Praktek (KP) bagi mahasiswa T
 
 Dibangun dengan **React**, **TypeScript**, dan **React Router v7** dengan arsitektur modular yang rapi dan mudah dikembangkan.
 
+📄 **[Lihat Dokumentasi Fitur Lengkap](./FEATURES.md)** (termasuk Live Chat)
+
 ---
 
 ## 🚀 Getting Started

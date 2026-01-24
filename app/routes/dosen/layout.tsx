@@ -1,4 +1,4 @@
-// Mahasiswa Layout
+// Dosen Layout
 import { useLocation, useNavigate } from "react-router";
 import {
   LayoutDashboard,
@@ -9,7 +9,6 @@ import {
   MessageCircle,
   Calendar,
   Award,
-  ChevronDown
 } from "lucide-react";
 import { Outlet, useRouteLoaderData } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
@@ -31,13 +30,13 @@ type MenuKey =
   | "logout";
 
 const pathToKey = (pathname: string): MenuKey | undefined => {
-  if (pathname.startsWith("/mahasiswa/download")) return "download";
-  if (pathname.startsWith("/mahasiswa/pengajuan")) return "pengajuan";
-  if (pathname.startsWith("/mahasiswa/bimbingan")) return "bimbingan";
-  if (pathname.startsWith("/mahasiswa/chat")) return "chat";
-  if (pathname.startsWith("/mahasiswa/acara")) return "acara";
-  if (pathname.startsWith("/mahasiswa/penilaian")) return "penilaian";
-  if (pathname === "/mahasiswa" || pathname.startsWith("/mahasiswa/"))
+  if (pathname.startsWith("/dosen/download")) return "download";
+  if (pathname.startsWith("/dosen/pengajuan")) return "pengajuan";
+  if (pathname.startsWith("/dosen/bimbingan")) return "bimbingan";
+  if (pathname.startsWith("/dosen/chat")) return "chat";
+  if (pathname.startsWith("/dosen/acara")) return "acara";
+  if (pathname.startsWith("/dosen/penilaian")) return "penilaian";
+  if (pathname === "/dosen" || pathname.startsWith("/dosen/"))
     return "dashboard";
   return undefined;
 };
@@ -47,43 +46,43 @@ const menuItems = [
     key: "dashboard" as MenuKey,
     title: "Dashboard",
     icon: LayoutDashboard,
-    url: "/mahasiswa",
+    url: "/dosen",
   },
   {
     key: "download" as MenuKey,
     title: "Download",
     icon: Download,
-    url: "/mahasiswa/download",
+    url: "/dosen/download",
   },
   {
     key: "pengajuan" as MenuKey,
     title: "Pengajuan Formulir",
     icon: FileText,
-    url: "/mahasiswa/pengajuan",
+    url: "/dosen/pengajuan",
   },
   {
     key: "bimbingan" as MenuKey,
     title: "Bimbingan",
     icon: Users,
-    url: "/mahasiswa/bimbingan",
+    url: "/dosen/bimbingan",
   },
   {
     key: "chat" as MenuKey,
     title: "Chat",
     icon: MessageCircle,
-    url: "/mahasiswa/chat",
+    url: "/dosen/chat",
   },
   {
     key: "acara" as MenuKey,
     title: "Acara",
     icon: Calendar,
-    url: "/mahasiswa/acara",
+    url: "/dosen/acara",
   },
   {
     key: "penilaian" as MenuKey,
     title: "Penilaian",
     icon: Award,
-    url: "/mahasiswa/penilaian",
+    url: "/dosen/penilaian",
   },
 ];
 
@@ -93,7 +92,7 @@ export function AppSidebar() {
   const { logout } = useAuth();
   const { setOpenMobile, isMobile } = useSidebar();
   const rootData = useRouteLoaderData("root") as { isMobile: boolean };
-  const _isMobile = rootData?.isMobile ?? isMobile;
+  // const _isMobile = rootData?.isMobile ?? isMobile; // Unused variable
   const active = pathToKey(location.pathname) ?? "dashboard";
 
   const handleNavigate = (key: MenuKey) => {
@@ -180,16 +179,15 @@ export function AppSidebar() {
   );
 }
 
-export default function MahasiswaLayout() {
+export default function DosenLayout() {
   const { isMobile } = useRouteLoaderData<ContextType>("root") as ContextType;
   return (
     <ProtectedRoute>
-      <RoleGuard allowedRoles={["mahasiswa"]}>
+      <RoleGuard allowedRoles={["dosen", "dosen_pembimbing"]}>
         <SidebarProvider isMobile={isMobile}>
           <div className="flex w-full h-screen overflow-hidden bg-neutral-50">
             <AppSidebar />
             <main className="flex-1 w-full h-full overflow-y-auto pb-12">
-               {/* Mobile Trigger or Header could be added here if needed, usually SidebarProvider handles basic mobile trigger logic but visual one might be needed */}
               <Outlet context={{ isMobile }} />
             </main>
           </div>

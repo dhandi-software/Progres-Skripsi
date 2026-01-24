@@ -359,7 +359,7 @@ function SidebarHeader({ className, ...props }: React.ComponentProps<"div">) {
             <div className="flex flex-row gap-x-sm items-center">
                 <img
                     className="w-2xl h-[2.023rem]"
-                    src="/icons/ic_logo_primary.svg"
+                    src="/icons/ic_logo_primary.png"
                     loading="lazy"
                     alt="logo"
                 />

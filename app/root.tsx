@@ -38,6 +38,7 @@ export const links: Route.LinksFunction = () => [
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap",
     },
+    { rel: "icon", href: "/logo_up.png" },
 ];
 
 export async function loader({ context, request }: Route.LoaderArgs) {

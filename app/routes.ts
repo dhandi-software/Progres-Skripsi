@@ -52,6 +52,19 @@ export default [
             route("penilaian", "routes/mahasiswa/penilaian.tsx"),
         ]),
     ]),
+
+    // Dosen
+    layout("routes/dosen/layout.tsx", [
+        ...prefix("dosen", [
+            index("routes/dosen/dashboard.tsx"),
+            route("download", "routes/dosen/download.tsx"),
+            route("pengajuan", "routes/dosen/pengajuan.tsx"),
+            route("bimbingan", "routes/dosen/bimbingan.tsx"),
+            route("chat", "routes/dosen/chat.tsx"),
+            route("acara", "routes/dosen/acara.tsx"),
+            route("penilaian", "routes/dosen/penilaian.tsx"),
+        ]),
+    ]),
     // Admin
     // layout("routes/admin/admin-layout.tsx", [
     //     ...prefix("admin", [

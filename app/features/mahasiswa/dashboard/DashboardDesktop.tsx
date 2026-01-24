@@ -21,7 +21,7 @@ export function DashboardDesktop() {
                     <h1 className="text-3xl font-bold mb-2">
                         Selamat Datang, {user?.name || "Mahasiswa"}!
                     </h1>
-                    <p className="text-white/80 text-lg max-w-2xl">
+                    <p className="text-white/80 text-lg w-full">
                         Pantau progres Kerja Praktek kamu, ajukan bimbingan, dan
                         kelola dokumen administrasi dalam satu platform
                         terintegrasi.

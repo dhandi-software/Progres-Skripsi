@@ -2,3 +2,40 @@
 @import "./css/theme.css";
 @import "./css/light.css";
 @import "./css/dark.css";
+
+/* FORCE CUSTOM SCROLLBAR GLOBALLY */
+/* Standard (Firefox) */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #374045 transparent;
+}
+
+/* WebKit (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #374045;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #4a555c;
+}
+
+/* Specific class overrides if needed */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 5px !important;
+    height: 5px !important;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: #374045 !important;
+    border-radius: 4px !important;
+}

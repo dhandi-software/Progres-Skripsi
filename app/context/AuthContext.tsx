@@ -65,16 +65,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (from) {
           navigate(from, { replace: true });
         } else {
+            // Normalize role to lowercase for consistent checking
+            const role = user.role.toLowerCase();
+
             // Redirect based on role
-            switch (user.role) {
+            switch (role) {
                 case 'kaprodi':
-                    navigate("/kaprodi/dashboard");
+                    navigate("/kaprodi"); // Updated to simplified path
                     break;
+                case 'dosen': 
                 case 'dosen_pembimbing':
-                    navigate("/dospem/dashboard");
+                    navigate("/dosen"); // Fixed path to match routes.ts
                     break;
+                case 'staf':
                 case 'staf_univ':
-                    navigate("/staf/dashboard");
+                    navigate("/staf");
                     break;
                 case 'mahasiswa':
                     navigate("/mahasiswa");
@@ -83,6 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     navigate("/admin");
                     break;
                 default:
+                    console.warn("Unknown role, redirecting to home:", role);
                     navigate("/");
             }
         }

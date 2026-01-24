@@ -14,7 +14,14 @@ export function RoleGuard({ allowedRoles, children }: RoleGuardProps) {
     return <div>Loading...</div>;
   }
 
-  if (!user || !allowedRoles.includes(user.role)) {
+  if (!user) {
+    return <Navigate to="/" replace />;
+  }
+
+  const userRole = user.role.toLowerCase();
+  const allowed = allowedRoles.map(r => r.toLowerCase());
+
+  if (!allowed.includes(userRole)) {
     return <Navigate to="/" replace />;
   }
 

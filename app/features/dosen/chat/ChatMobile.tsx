@@ -5,7 +5,7 @@ import { useChat } from "~/hooks/useChat";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "~/components/ui/button";
 
-export function ChatMobile({ title }: { title: string }) {
+export function ChatMobile() {
     const {
         contacts,
         activeContact,
