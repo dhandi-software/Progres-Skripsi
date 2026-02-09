@@ -15,7 +15,8 @@ export function ChatDesktop({ title }: { title: string }) {
         resetUnreadCount,
         markAsRead,
         deleteMessage,
-        deleteMessageForMe
+        deleteMessageForMe,
+        editMessage
     } = useChat();
 
     const handleSelectContact = (contact: any) => {
@@ -24,7 +25,7 @@ export function ChatDesktop({ title }: { title: string }) {
     };
 
     return (
-        <div className="flex h-[calc(100vh-4rem)] w-full overflow-hidden bg-white rounded-lg shadow-sm border mt-4">
+        <div className="flex h-full pb-[4px] overflow-hidden">
             <ChatSidebar
                 contacts={contacts}
                 activeContact={activeContact}
@@ -36,6 +37,7 @@ export function ChatDesktop({ title }: { title: string }) {
                 messages={messages}
                 currentUser={user}
                 onSendMessage={sendMessage}
+                onEditMessage={editMessage}
                 isLoadingHistory={isLoadingHistory}
                 onMarkAsRead={markAsRead}
                 onDeleteMessage={deleteMessage}

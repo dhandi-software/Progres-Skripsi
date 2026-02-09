@@ -13,7 +13,7 @@ export function StepsSection() {
                     <div className="space-y-4">
                         <h2 className="text-4xl font-bold text-zinc-950 leading-tight font-geist">
                             Langkah Mudah Memulai <br/>
-                            Kerja Praktek Anda
+                            Kerja Praktik Anda
                         </h2>
                         <p className="text-gray-500 text-lg font-medium">
                             Kami membantu Anda menemukan tempat magang yang tepat dengan proses yang terstruktur.
@@ -31,12 +31,12 @@ export function StepsSection() {
                             {
                                 id: 2,
                                 title: "Langkah 2: Pengajuan Proposal",
-                                desc: "Ajukan proposal topik kerja praktek Anda melalui sistem. Proposal akan direview oleh koordinator KP dan calon dosen pembimbing."
+                                desc: "Ajukan proposal topik kerja Praktik Anda melalui sistem. Proposal akan direview oleh koordinator KP dan calon dosen pembimbing."
                             },
                             {
                                 id: 3,
                                 title: "Langkah 3: Pelaksanaan & Laporan",
-                                desc: "Lakukan kegiatan kerja praktek, isi logbook harian, dan susun laporan akhir untuk disidangkan sebagai syarat kelulusan mata kuliah."
+                                desc: "Lakukan kegiatan kerja Praktik, isi logbook harian, dan susun laporan akhir untuk disidangkan sebagai syarat kelulusan mata kuliah."
                             }
                         ].map((step, idx) => (
                             <div 

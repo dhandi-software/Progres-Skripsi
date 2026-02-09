@@ -1,7 +1,7 @@
 export interface User {
     id: string;
     email: string;
-    role: "admin" | "writer" | "editor" | "mahasiswa" | "dosen" | "kaprodi" | "staf";
+    role: "admin" | "writer" | "editor" | "mahasiswa" | "dosen" | "dosen_pembimbing" | "kaprodi" | "staf" | "staf_univ";
     token: string;
     refresh_token?: string;
     last_login?: string;

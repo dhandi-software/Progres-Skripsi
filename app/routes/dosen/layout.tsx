@@ -180,6 +180,7 @@ export function AppSidebar() {
 }
 
 export default function DosenLayout() {
+  const location = useLocation();
   const { isMobile } = useRouteLoaderData<ContextType>("root") as ContextType;
   return (
     <ProtectedRoute>
@@ -187,7 +188,10 @@ export default function DosenLayout() {
         <SidebarProvider isMobile={isMobile}>
           <div className="flex w-full h-screen overflow-hidden bg-neutral-50">
             <AppSidebar />
-            <main className="flex-1 w-full h-full overflow-y-auto pb-12">
+            <main className={cn(
+              "flex-1 w-full h-full overflow-y-auto",
+              location.pathname.includes("/chat") ? "pb-0" : "pb-12"
+            )}>
               <Outlet context={{ isMobile }} />
             </main>
           </div>

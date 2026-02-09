@@ -181,6 +181,7 @@ export function AppSidebar() {
 }
 
 export default function MahasiswaLayout() {
+  const location = useLocation();
   const { isMobile } = useRouteLoaderData<ContextType>("root") as ContextType;
   return (
     <ProtectedRoute>
@@ -188,7 +189,10 @@ export default function MahasiswaLayout() {
         <SidebarProvider isMobile={isMobile}>
           <div className="flex w-full h-screen overflow-hidden bg-neutral-50">
             <AppSidebar />
-            <main className="flex-1 w-full h-full overflow-y-auto pb-12">
+            <main className={cn(
+              "flex-1 w-full h-full overflow-y-auto",
+              location.pathname.includes("/chat") ? "pb-0" : "pb-12"
+            )}>
                {/* Mobile Trigger or Header could be added here if needed, usually SidebarProvider handles basic mobile trigger logic but visual one might be needed */}
               <Outlet context={{ isMobile }} />
             </main>

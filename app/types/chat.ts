@@ -17,6 +17,7 @@ export interface Message {
   isPublic?: boolean;
   isRead: boolean;
   isDeleted: boolean;
+  isEdited?: boolean;
   replyToId?: number | null;
   parent?: {
     id: number;

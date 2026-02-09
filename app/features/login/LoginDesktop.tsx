@@ -72,10 +72,10 @@ export function LoginDesktop() {
                             </div>
                             <div className="flex flex-col gap-2 text-white">
                                 <span className="text-3xl font-bold leading-tight tracking-tight drop-shadow-sm">Sistem Informasi</span>
-                                <span className="text-xl font-semibold text-white/90 leading-tight tracking-wide drop-shadow-sm">Kerja Praktek</span>
+                                <span className="text-xl font-semibold text-white/90 leading-tight tracking-wide drop-shadow-sm">Kerja Praktik</span>
                             </div>
                             <p className="mt-6 text-sm text-white/90 w-full leading-relaxed font-medium drop-shadow-sm">
-                                Platform terintegrasi untuk pengelolaan administrasi dan monitoring kerja praktek mahasiswa Universitas Pancasila.
+                                Platform terintegrasi untuk pengelolaan administrasi dan monitoring kerja Praktik mahasiswa Universitas Pancasila.
                             </p>
                         </div>
                     </div>

@@ -65,7 +65,7 @@ export function LoginMobile() {
                         </div>
                         <div className="flex flex-col">
                             <span className="text-xl font-bold text-zinc-900 leading-tight tracking-tight">Sistem Informasi</span>
-                            <span className="text-base font-semibold text-[#119DA4] leading-tight tracking-wide">Kerja Praktek</span>
+                            <span className="text-base font-semibold text-[#119DA4] leading-tight tracking-wide">Kerja Praktik</span>
                         </div>
                          <h2 className="mt-4 text-base font-medium text-zinc-600">Welcome Back!</h2>
                     </div>

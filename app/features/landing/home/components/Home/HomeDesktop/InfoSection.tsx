@@ -34,7 +34,7 @@ export function InfoSection() {
                         Modul Sistem <span className="text-orange-500">Terpadu</span>
                     </h2>
                     <p className="text-lg text-muted-foreground leading-relaxed">
-                        Solusi komprehensif untuk mendigitalisasi seluruh alur kerja Kerja Praktek, 
+                        Solusi komprehensif untuk mendigitalisasi seluruh alur kerja Kerja Praktik, 
                         dari administrasi awal hingga pelaporan akhir.
                     </p>
                 </div>

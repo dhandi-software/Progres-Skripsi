@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react";
 
 const testimonials = [
     {
-        quote: "Sistem ini sangat membantu saya dalam mencari tempat kerja praktek yang sesuai dengan minat. Proses administrasi menjadi jauh lebih efisien dan transparan.",
+        quote: "Sistem ini sangat membantu saya dalam mencari tempat kerja Praktik yang sesuai dengan minat. Proses administrasi menjadi jauh lebih efisien dan transparan.",
         name: "Rina Anjani",
         role: "Mahasiswa Teknik Informatika",
         img: "https://i.pravatar.cc/150?img=32"

@@ -19,14 +19,14 @@ export function HeroSection() {
                     transition={{ duration: 0.6 }}
                 >
                     <span className="inline-block py-1 px-3 rounded-full bg-brand-primary/10 text-brand-primary text-sm font-semibold mb-6">
-                        Sistem Informasi Kerja Praktek
+                        Sistem Informasi Kerja Praktik
                     </span>
                     <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-foreground mb-6">
                         Mulai Perjalanan <br />
                         <span className="text-brand-primary">Karir Profesionalmu</span>
                     </h1>
                     <p className="max-w-[700px] text-lg text-muted-foreground mb-8 mx-auto leading-relaxed">
-                        Platform terintegrasi untuk pengelolaan Kerja Praktek. 
+                        Platform terintegrasi untuk pengelolaan Kerja Praktik. 
                         Memudahkan Mahasiswa, Dosen, dan Staff Administrasi dalam satu ekosistem digital.
                     </p>
 

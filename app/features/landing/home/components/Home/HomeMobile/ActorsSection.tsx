@@ -34,7 +34,7 @@ export function ActorsSection() {
                         Ekosistem Pengguna
                     </h2>
                     <p className="text-lg text-muted-foreground">
-                        Siapa saja yang terlibat dalam Sistem Kerja Praktek?
+                        Siapa saja yang terlibat dalam Sistem Kerja Praktik?
                     </p>
                 </div>
 

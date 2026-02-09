@@ -18,7 +18,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 
 export function meta({ }: Route.MetaArgs) {
     return [
-        { title: "Kerja Praktek" },
-        { name: "description", content: "Welcome to Kerja Praktek Teknik Informatika" },
+        { title: "Kerja Praktik" },
+        { name: "description", content: "Welcome to Kerja Praktik Teknik Informatika" },
     ];
 }

@@ -11,14 +11,14 @@ export function AboutSection() {
                         <div className="self-stretch flex flex-col justify-start items-start gap-8 z-10">
                             <div className="self-stretch flex flex-col justify-start items-start gap-4">
                                 <div className="self-stretch justify-start text-zinc-950 text-[2rem] md:text-[2.5rem] lg:text-[3.25rem] font-extrabold font-geist leading-tight">
-                                    Platform Kerja Praktek
+                                    Platform Kerja Praktik
                                     <span className="block text-zinc-400 mt-2">Teknik Informatika</span>
                                 </div>
                             </div>
                             
                             <div className="self-stretch justify-start text-slate-600 text-lg md:text-xl font-normal font-geist leading-relaxed">
                                 <p className="mb-6">
-                                    Sistem Informasi Kerja Praktek (SIKP) adalah inisiatif digital Universitas Pancasila untuk memodernisasi proses magang mahasiswa.
+                                    Sistem Informasi Kerja Praktik (SIKP) adalah inisiatif digital Universitas Pancasila untuk memodernisasi proses magang mahasiswa.
                                 </p>
                                 <p>
                                     Platform ini menghubungkan dua pilar utama: <strong>Mahasiswa</strong> dan <strong>Dosen Pembimbing</strong>. Kami memastikan setiap tahapan berjalan transparan dan efisien.

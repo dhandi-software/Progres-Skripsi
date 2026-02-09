@@ -22,7 +22,7 @@ export function CtaSection() {
                     </h2>
                     <p className="text-zinc-300 text-lg md:text-xl font-medium w-full">
                         Bergabunglah dengan ratusan mahasiswa lainnya yang telah
-                        sukses menyelesaikan Kerja Praktek dan terhubung dengan
+                        sukses menyelesaikan Kerja Praktik dan terhubung dengan
                         industri.
                     </p>
                     <Link

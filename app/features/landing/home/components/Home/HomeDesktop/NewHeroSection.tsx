@@ -101,7 +101,7 @@ export function NewHeroSection() {
                 <div className="flex flex-col gap-8 items-start w-full z-20 text-white">
                     <h1 className="text-5xl md:text-6xl lg:text-[4.5rem] font-bold leading-[1.1] tracking-tight font-geist">
                         Sistem Kerja <br />
-                        Praktek{" "}
+                        Praktik{" "}
                         <span className="text-orange-500">
                             Terpadu
                         </span>
@@ -109,7 +109,7 @@ export function NewHeroSection() {
 
                     <p className="text-xl md:text-2xl text-gray-200 font-medium leading-relaxed w-full">
                         Platform digital terintegrasi untuk pengelolaan
-                        administrasi dan monitoring kerja praktek mahasiswa
+                        administrasi dan monitoring kerja Praktik mahasiswa
                         Teknik Informatika.
                     </p>
 

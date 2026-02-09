@@ -1,4 +1,4 @@
-import { ChevronDown, Reply, Trash2, Info } from "lucide-react";
+import { ChevronDown, Reply, Trash2, Info, Pencil } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,14 +11,15 @@ interface MessageActionMenuProps {
   isMe: boolean;
   onReply: () => void;
   onDelete: () => void;
+  onEdit?: () => void;
   onInfo?: () => void;
 }
 
-export function MessageActionMenu({ isMe, onReply, onDelete, onInfo }: MessageActionMenuProps) {
+export function MessageActionMenu({ isMe, onReply, onDelete, onEdit, onInfo }: MessageActionMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-[#00000030] rounded-full data-[state=open]:opacity-100 h-6 w-6 flex items-center justify-center border-none custom-trigger">
-        <ChevronDown size={18} className="text-[#8696a0]" />
+        <ChevronDown size={18} className="text-[#aebac1]" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align={isMe ? "end" : "start"} className="w-40 bg-[#233138] border-[#233138] text-[#e9edef]">
         <DropdownMenuItem onClick={onReply} className="hover:bg-[#182229] cursor-pointer">
@@ -26,6 +27,13 @@ export function MessageActionMenu({ isMe, onReply, onDelete, onInfo }: MessageAc
           <span>Balas</span>
         </DropdownMenuItem>
         
+        {isMe && onEdit && (
+            <DropdownMenuItem onClick={onEdit} className="hover:bg-[#182229] cursor-pointer">
+              <Pencil size={14} className="mr-2" />
+              <span>Edit</span>
+            </DropdownMenuItem>
+        )}
+
         {isMe && (
             <DropdownMenuItem onClick={onInfo} className="hover:bg-[#182229] cursor-pointer">
             <Info size={14} className="mr-2" />

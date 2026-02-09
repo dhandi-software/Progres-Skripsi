@@ -20,7 +20,7 @@ export default function HeaderDesktop() {
                             />
                             <div className="flex flex-col font-geist">
                                 <span className="text-2xl font-bold text-zinc-950 leading-none tracking-tight">Sistem Informasi</span>
-                                <span className="text-base font-medium text-orange-600 leading-none tracking-wide">Kerja Praktek</span>
+                                <span className="text-base font-medium text-orange-600 leading-none tracking-wide">Kerja Praktik</span>
                             </div>
                         </Link>
                     </div>

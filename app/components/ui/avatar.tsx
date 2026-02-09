@@ -24,6 +24,7 @@
  * ```
  */
 
+import * as React from "react";
 import { Root, Image, Fallback } from "@radix-ui/react-avatar";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "~/lib/utils";
@@ -67,27 +68,53 @@ export interface AvatarProps extends VariantProps<typeof avatarVariants> {
 /**
  * Avatar - Main container that renders an image with fallback.
  */
+/**
+ * AvatarRoot - The main container
+ */
+export const AvatarRoot = React.forwardRef<
+  React.ElementRef<typeof Root>,
+  React.ComponentPropsWithoutRef<typeof Root> & VariantProps<typeof avatarVariants>
+>(({ className, size, shape, ...props }, ref) => (
+  <Root
+    ref={ref}
+    data-slot="avatar"
+    className={cn(
+      "relative flex shrink-0 overflow-hidden",
+      avatarVariants({ size, shape }),
+      className
+    )}
+    {...props}
+  />
+));
+AvatarRoot.displayName = "AvatarRoot";
+
+/**
+ * Avatar - Main container that renders an image with fallback.
+ * Keeps existing behavior for backward compatibility.
+ */
 export default function Avatar({
   className,
   size,
   shape,
   src,
   fallback,
+  children,
   ...props
-}: React.ComponentProps<typeof Root> & AvatarProps) {
+}: React.ComponentProps<typeof Root> & AvatarProps & { children?: React.ReactNode }) {
   return (
-    <Root
-      data-slot="avatar"
-      className={cn(
-        "relative flex shrink-0 overflow-hidden",
-        avatarVariants({ size, shape }),
-        className
-      )}
+    <AvatarRoot
+      className={className}
+      size={size}
+      shape={shape}
       {...props}
     >
-      <AvatarImage src={src} />
-      <AvatarFallback>{fallback}</AvatarFallback>
-    </Root>
+      {children || (
+        <>
+            <AvatarImage src={src} />
+            <AvatarFallback>{fallback}</AvatarFallback>
+        </>
+      )}
+    </AvatarRoot>
   );
 }
 
@@ -95,14 +122,14 @@ export default function Avatar({
  * AvatarImage - Displays the avatar image.
  * Automatically hides if the image fails to load.
  */
-function AvatarImage({
+export function AvatarImage({
   className,
   ...props
 }: React.ComponentProps<typeof Image>) {
   return (
     <Image
       data-slot="avatar-image"
-      className={cn(className)}
+      className={cn("aspect-square h-full w-full", className)}
       {...props}
     />
   );
@@ -112,7 +139,7 @@ function AvatarImage({
  * AvatarFallback - Content shown when image fails to load.
  * Useful for initials, icons, or placeholder graphics.
  */
-function AvatarFallback({
+export function AvatarFallback({
   className,
   ...props
 }: React.ComponentProps<typeof Fallback>) {
@@ -128,4 +155,4 @@ function AvatarFallback({
   );
 }
 
-export { Avatar };
+

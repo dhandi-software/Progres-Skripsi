@@ -22,7 +22,7 @@ export function DashboardDesktop() {
                         Selamat Datang, {user?.name || "Mahasiswa"}!
                     </h1>
                     <p className="text-white/80 text-lg w-full">
-                        Pantau progres Kerja Praktek kamu, ajukan bimbingan, dan
+                        Pantau progres Kerja Praktik kamu, ajukan bimbingan, dan
                         kelola dokumen administrasi dalam satu platform
                         terintegrasi.
                     </p>

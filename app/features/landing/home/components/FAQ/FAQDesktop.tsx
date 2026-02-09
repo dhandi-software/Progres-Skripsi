@@ -21,8 +21,8 @@ export default function FAQDesktop() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="border rounded-xl p-6 bg-card hover:shadow-md transition-shadow">
-          <h3 className="font-semibold text-lg mb-3 text-foreground">Berapa lama durasi minimal Kerja Praktek?</h3>
-          <p className="text-muted-foreground leading-relaxed">Durasi minimal pelaksanaan Kerja Praktek adalah 1 bulan atau setara dengan 160 jam kerja efektif di perusahaan.</p>
+          <h3 className="font-semibold text-lg mb-3 text-foreground">Berapa lama durasi minimal Kerja Praktik?</h3>
+          <p className="text-muted-foreground leading-relaxed">Durasi minimal pelaksanaan Kerja Praktik adalah 1 bulan atau setara dengan 160 jam kerja efektif di perusahaan.</p>
         </div>
         <div className="border rounded-xl p-6 bg-card hover:shadow-md transition-shadow">
           <h3 className="font-semibold text-lg mb-3 text-foreground">Apakah boleh KP di perusahaan startup?</h3>

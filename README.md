@@ -1,6 +1,6 @@
-# 🎓 Kerja Praktek Universitas Pancasila
+# 🎓 Kerja Praktik Universitas Pancasila
 
-Portal resmi untuk pengelolaan dan informasi Kerja Praktek (KP) bagi mahasiswa Teknik Informatika Universitas Pancasila. Aplikasi ini memudahkan mahasiswa dalam mendaftar, memantau status KP, serta mengakses informasi penting lainnya.
+Portal resmi untuk pengelolaan dan informasi Kerja Praktik (KP) bagi mahasiswa Teknik Informatika Universitas Pancasila. Aplikasi ini memudahkan mahasiswa dalam mendaftar, memantau status KP, serta mengakses informasi penting lainnya.
 
 Dibangun dengan **React**, **TypeScript**, dan **React Router v7** dengan arsitektur modular yang rapi dan mudah dikembangkan.
 
@@ -44,7 +44,7 @@ yarn build
 
 ### 🗂️ Project Structure
 
-Hanya menampilkan struktur folder utama yang relevan dengan sistem Kerja Praktek (mengecualikan modul legacy).
+Hanya menampilkan struktur folder utama yang relevan dengan sistem Kerja Praktik (mengecualikan modul legacy).
 
 ```bash
 skripsi-fe/
@@ -73,4 +73,4 @@ skripsi-fe/
 Project ini menggunakan **React Router v7**. Semua rute didefinisikan dalam folder `app/routes/` yang secara otomatis memetakan URL ke komponen halaman yang sesuai.
 
 ---
-**Catatan Penting**: Folder seperti `Mining`, `Nickel`, atau module lain yang tidak relevan dengan sistem Kerja Praktek adalah legacy code dan tidak digunakan dalam flow utama aplikasi ini.
+**Catatan Penting**: Folder seperti `Mining`, `Nickel`, atau module lain yang tidak relevan dengan sistem Kerja Praktik adalah legacy code dan tidak digunakan dalam flow utama aplikasi ini.

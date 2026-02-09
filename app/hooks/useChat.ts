@@ -13,22 +13,32 @@ export function useChat() {
   const [activeContact, setActiveContact] = useState<ChatContact | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-
   const [unreadCounts, setUnreadCounts] = useState<Record<number, number>>({});
+  
+  const activeContactRef = useRef<ChatContact | null>(null);
+
+  // Sync ref with state
+  useEffect(() => {
+    activeContactRef.current = activeContact;
+  }, [activeContact]);
 
   // Initialize socket
   useEffect(() => {
     if (!user) return;
 
+    // Prevent multiple connections if user didn't change (strict mode double mount safety handled by cleanup)
     const newSocket = io(SOCKET_URL);
     setSocket(newSocket);
 
     newSocket.emit("join", user.id);
 
     newSocket.on("receive_message", (message: Message) => {
+      // Use ref to get current active contact without re-triggering effect
+      const currentActive = activeContactRef.current;
+      
       // Play sound and show notification if message is not from self
       if (message.senderId !== user.id) {
-          const isChatOpen = activeContact?.id === message.senderId || (activeContact?.id === 0 && message.isPublic);
+          const isChatOpen = currentActive?.id === message.senderId || (currentActive?.id === 0 && message.isPublic);
           const isWindowFocused = document.hasFocus();
 
           if (!isChatOpen || !isWindowFocused) {
@@ -57,18 +67,19 @@ export function useChat() {
       }
 
       setMessages((prev) => {
+          const currentActive = activeContactRef.current;
           // Check if message belongs to current active conversation
           // Case 1: Public Chat
-          if (activeContact?.id === 0 && message.isPublic) {
+          if (currentActive?.id === 0 && message.isPublic) {
               return [...prev, message];
           }
           // Case 2: Private Chat
           if (
-            activeContact?.id !== 0 && 
+            currentActive?.id !== 0 && 
             !message.isPublic &&
             (
-                (message.senderId === activeContact?.id && message.receiverId === user.id) ||
-                (message.senderId === user.id && message.receiverId === activeContact?.id)
+                (message.senderId === currentActive?.id && message.receiverId === user.id) ||
+                (message.senderId === user.id && message.receiverId === currentActive?.id)
             )
           ) {
              return [...prev, message];
@@ -100,11 +111,11 @@ export function useChat() {
     
     // Also listen for my own messages sent from other tabs/devices or confirmed by server
     newSocket.on("message_sent", (message: Message) => {
-        // ... existing history update ...
+        const currentActive = activeContactRef.current;
        if (
-        activeContact &&
+        currentActive &&
         !message.isPublic && 
-        (message.receiverId === activeContact.id)
+        (message.receiverId === currentActive.id)
       ) {
          setMessages((prev) => {
              if (prev.find(m => m.id === message.id)) return prev;
@@ -134,7 +145,7 @@ export function useChat() {
     return () => {
       newSocket.disconnect();
     };
-  }, [user, activeContact]);
+  }, [user]); // Only depend on user, NOT activeContact
 
   const resetUnreadCount = (contactId: number) => {
       setUnreadCounts(prev => {
@@ -293,6 +304,61 @@ export function useChat() {
       setMessages(prev => prev.filter(msg => msg.id !== messageId));
   }, [socket, user]);
 
+  const editMessage = useCallback((messageId: number, newContent: string) => {
+      if (!socket) return;
+      socket.emit("edit_message", { messageId, newContent });
+
+      // Optimistic update for messages
+      setMessages(prev => prev.map(msg => 
+          msg.id === messageId ? { ...msg, content: newContent, isEdited: true } : msg
+      ));
+
+      // Optimistic update for contacts (preview)
+      setContacts(prev => prev.map(c => {
+          if (c.lastMessage?.id === messageId) {
+              return { 
+                  ...c, 
+                  lastMessage: { 
+                      ...c.lastMessage!, 
+                      content: newContent,
+                      isEdited: true
+                  } 
+              };
+          }
+          return c;
+      }));
+  }, [socket]);
+
+  // Listen for edits
+  useEffect(() => {
+    if (!socket) return;
+    
+    socket.on("message_edited", ({ messageId, newContent, isEdited }) => {
+        setMessages(prev => prev.map(msg => 
+            msg.id === parseInt(messageId) ? { ...msg, content: newContent, isEdited: true } : msg
+        ));
+
+         // Update sidebar preview if necessary
+        setContacts(prev => prev.map(c => {
+            if (c.lastMessage?.id === parseInt(messageId)) {
+                return { 
+                    ...c, 
+                    lastMessage: { 
+                        ...c.lastMessage, 
+                        content: newContent,
+                        isEdited: true
+                    } 
+                };
+            }
+            return c;
+        }));
+    });
+
+    return () => {
+        socket.off("message_edited");
+    }
+  }, [socket]);
+
   return {
     contacts,
     activeContact,
@@ -305,6 +371,7 @@ export function useChat() {
     resetUnreadCount,
     markAsRead,
     deleteMessage,
-    deleteMessageForMe
+    deleteMessageForMe,
+    editMessage
   };
 }
