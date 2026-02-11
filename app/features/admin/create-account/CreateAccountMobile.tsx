@@ -4,6 +4,7 @@ import { cn } from "~/lib/utils";
 import { useState } from "react";
 import { useSidebar } from "~/components/ui/sidebar";
 import { Toast } from "~/components/ui/toast";
+import { CustomSelect } from "~/components/ui/custom-select";
 
 export const CreateAccountMobile = () => {
   const { setOpenMobile } = useSidebar();
@@ -35,15 +36,38 @@ export const CreateAccountMobile = () => {
             <Menu className="w-6 h-6 text-[#0D0D12]" />
           </button>
           <h1 className="text-[1.25rem] font-bold text-[#0D0D12]">
-            Create New User Account
+            Create Account
           </h1>
         </div>
         <p className="text-[0.75rem] text-[#71717A] pl-9 leading-relaxed">
-          Create a new user account for the news portal management system. Select the appropriate access role.
+          Create new user account (Mahasiswa/Dosen).
         </p>
       </div>
 
       <div className="px-6 flex flex-col gap-6">
+
+        {/* Role Selection */}
+        <div className="flex flex-col gap-2">
+           <label className="text-[0.875rem] font-medium text-[#18181B]">Role</label>
+           <div className="flex gap-3">
+               {['Mahasiswa', 'Dosen'].map((role) => (
+                   <button
+                       key={role}
+                       type="button"
+                       onClick={() => handleRoleChange(role.toLowerCase())}
+                       className={cn(
+                           "flex-1 py-2 rounded-xl border transition-all text-[0.875rem] font-medium",
+                           formData.role === role.toLowerCase()
+                               ? "bg-[#D25026] text-white border-[#D25026]"
+                               : "bg-white text-[#71717A] border-gray-300"
+                       )}
+                   >
+                       {role}
+                   </button>
+               ))}
+           </div>
+        </div>
+
         {/* Email Field */}
         <div className="flex flex-col gap-2">
           <label className="text-[0.875rem] font-medium text-[#18181B]">Email</label>
@@ -52,9 +76,9 @@ export const CreateAccountMobile = () => {
             name="email"
             value={formData.email}
             onChange={handleInputChange}
-            placeholder="johndoe@gmail.com"
+             placeholder={formData.role === 'mahasiswa' ? "mahasiswa@student.univ.ac.id" : "dosen@univ.ac.id"}
             disabled={isLoading}
-            className="w-full px-4 py-3 rounded-xl border border-[#E4E4E7] focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50"
+            className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50"
           />
         </div>
 
@@ -68,12 +92,84 @@ export const CreateAccountMobile = () => {
             onChange={handleInputChange}
             placeholder="Enter name"
             disabled={isLoading}
-            className="w-full px-4 py-3 rounded-xl border border-[#E4E4E7] focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50"
+            className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50"
           />
-          <p className="text-[#71717A] text-[0.75rem] leading-snug">
-            Real name is permanent and cannot be changed after registration.
-          </p>
         </div>
+
+        {/* Conditional Fields: Mahasiswa */}
+        {formData.role === 'mahasiswa' && (
+            <>
+                <div className="flex flex-col gap-2">
+                    <label className="text-[0.875rem] font-medium text-[#18181B]">NIM</label>
+                    <input
+                        type="text"
+                        name="nim"
+                        value={formData.nim}
+                        onChange={handleInputChange}
+                        placeholder="NPM"
+                        disabled={isLoading}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50"
+                    />
+                </div>
+                 <div className="flex flex-col gap-2">
+                    <label className="text-[0.875rem] font-medium text-[#18181B]">Jurusan</label>
+                    <input
+                        type="text"
+                        name="jurusan"
+                        value={formData.jurusan}
+                        onChange={handleInputChange}
+                        placeholder="Jurusan"
+                        disabled={isLoading}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50"
+                    />
+                </div>
+                 <div className="flex flex-col gap-2">
+                    <label className="text-[0.875rem] font-medium text-[#18181B]">Tahun Masuk</label>
+                    <input
+                        type="text"
+                        name="tahunMasuk"
+                        value={formData.tahunMasuk}
+                        onChange={handleInputChange}
+                        placeholder="Tahun"
+                        disabled={isLoading}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50"
+                    />
+                </div>
+            </>
+        )}
+
+        {/* Conditional Fields: Dosen */}
+        {formData.role === 'dosen' && (
+            <>
+                <div className="flex flex-col gap-2">
+                    <label className="text-[0.875rem] font-medium text-[#18181B]">NIDN</label>
+                    <input
+                        type="text"
+                        name="nidn"
+                        value={formData.nidn}
+                        onChange={handleInputChange}
+                        placeholder="NIDN"
+                        disabled={isLoading}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50"
+                    />
+                </div>
+                 <div className="flex flex-col gap-2">
+                    <label className="text-[0.875rem] font-medium text-[#18181B]">Jabatan</label>
+                     <CustomSelect
+                        value={formData.jabatan}
+                        onChange={(value) => handleInputChange({ target: { name: "jabatan", value } } as any)}
+                        options={[
+                            { label: "Dosen Reguler", value: "Dosen Reguler" },
+                            { label: "Pejabat Prodi (Masekpro)", value: "Pejabat Prodi" },
+                            { label: "Koordinator KP", value: "Koordinator KP" },
+                            { label: "Dosen Pembimbing", value: "Dosen Pembimbing" },
+                        ]}
+                        placeholder="Select Jabatan"
+                        className="w-full px-4 py-3 h-auto"
+                    />
+                </div>
+            </>
+        )}
 
         {/* Password Field */}
         <div className="flex flex-col gap-2">
@@ -87,7 +183,7 @@ export const CreateAccountMobile = () => {
                 onChange={handleInputChange}
                 placeholder="Enter password"
                 disabled={isLoading}
-                className="w-full px-4 py-3 pr-12 rounded-xl border border-[#E4E4E7] focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50"
+                className="w-full px-4 py-3 pr-12 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50"
               />
               <button
                 type="button"
@@ -102,77 +198,10 @@ export const CreateAccountMobile = () => {
               type="button"
               onClick={generatePassword}
               disabled={isLoading}
-              className="w-full py-3.5 rounded-xl border border-[#E4E4E7] text-[0.8125rem] font-medium text-[#18181B] hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50"
+              className="w-full py-3.5 rounded-xl border border-gray-300 text-[0.8125rem] font-medium text-[#18181B] hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50"
             >
               Generate Password
             </button>
-          </div>
-
-          {/* Password Validation Checklist */}
-          <div className="mt-2 flex flex-col gap-2">
-            {[
-              { label: "Consists of at least 8 characters.", valid: passwordValidation.length },
-              { label: "Must begin with an uppercase letter [A-Z] followed by lowercase letters [a-z].", valid: passwordValidation.pattern },
-              { label: "Contains at least one number (0-9).", valid: passwordValidation.number },
-              { label: "Contains at least one symbol (e.g., !, @, #, $, %, &, *).", valid: passwordValidation.symbol },
-            ].map((item, idx) => (
-              <div key={idx} className="flex items-start gap-2.5 text-[0.75rem] leading-tight">
-                <div className={cn(
-                  "mt-0.5 transition-colors",
-                  item.valid ? "text-[#22C55E]" : "text-[#EF4444]"
-                )}>
-                  {item.valid ? <Check size={14} strokeWidth={3} /> : <X size={14} strokeWidth={3} />}
-                </div>
-                <span className={cn(
-                  "transition-colors",
-                  item.valid ? "text-[#22C55E]" : "text-[#71717A]"
-                )}>
-                  {item.label}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Role Field */}
-        <div className="flex flex-col gap-2">
-          <label className="text-[0.875rem] font-medium text-[#18181B]">Role</label>
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setIsRoleOpen(!isRoleOpen)}
-              disabled={isLoading}
-              className={cn(
-                "w-full px-4 py-3 rounded-xl border flex items-center justify-between bg-white transition-all text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50",
-                isRoleOpen ? "border-[#D25026] ring-2 ring-[#D25026]/10" : "border-[#E4E4E7]"
-              )}
-            >
-              <span className={cn(formData.role ? "text-[#18181B]" : "text-[#A1A1AA]")}>
-                {formData.role || "Select a role"}
-              </span>
-              <ChevronDown className={cn("text-[#A1A1AA] transition-transform duration-200", isRoleOpen && "rotate-180")} size={18} />
-            </button>
-
-            {isRoleOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-[#E4E4E7] rounded-xl shadow-lg overflow-hidden z-20">
-                {["Writer", "Editor"].map((role) => (
-                  <button
-                    key={role}
-                    type="button"
-                    onClick={() => {
-                      handleRoleChange(role);
-                      setIsRoleOpen(false);
-                    }}
-                    className={cn(
-                      "w-full px-4 py-3.5 text-left text-[0.875rem] transition-colors first:border-b first:border-[#F4F4F5]",
-                      formData.role === role ? "bg-[#F4F4F5] text-[#18181B]" : "hover:bg-gray-50 text-[#18181B]"
-                    )}
-                  >
-                    {role}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         </div>
 
@@ -180,7 +209,7 @@ export const CreateAccountMobile = () => {
         <div className="mt-4 flex justify-end gap-3">
           <button
             type="button"
-            className="px-6 py-2.5 rounded-xl border border-[#E4E4E7] text-[0.8125rem] font-medium text-[#18181B] hover:bg-gray-50 transition-all active:scale-95 shadow-sm disabled:opacity-50"
+            className="px-6 py-2.5 rounded-xl border border-gray-300 text-[0.8125rem] font-medium text-[#18181B] hover:bg-gray-50 transition-all active:scale-95 shadow-sm disabled:opacity-50"
             disabled={isLoading}
           >
             Cancel

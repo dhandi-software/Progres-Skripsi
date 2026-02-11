@@ -1,8 +1,7 @@
 import axios from "axios";
 
-const envUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
-const baseUrl = envUrl.replace(/\/$/, "");
-const API_URL = baseUrl.endsWith("/api/v1") ? baseUrl : `${baseUrl}/api/v1`;
+// Hardcode to port 5000 to fix connection issues
+const API_URL = "http://localhost:5000/api";
 
 export const client = axios.create({
     baseURL: API_URL,
