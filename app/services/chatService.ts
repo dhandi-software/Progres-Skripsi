@@ -1,5 +1,5 @@
 // TODO: Move API_URL to environment variable or shared config
-const API_URL = "http://localhost:5000/api";
+const API_URL = "http://localhost:5002/api";
 
 export const chatService = {
   async getContacts(userId: number) {

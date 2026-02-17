@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
-import { Plus, Pencil, Trash2, Filter, ChevronDown, Check } from "lucide-react";
+import { Plus, Pencil, Trash2, Filter, ChevronDown, Check, Download, FileText, Table } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { adminApi } from "~/api/admin";
 import { cn } from "~/lib/utils";
 import { Link, useSearchParams, useNavigate } from "react-router";
@@ -35,6 +37,7 @@ export default function UserListDesktop() {
 
   // Filter Dropdown State
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -211,6 +214,118 @@ export default function UserListDesktop() {
     },
   ];
 
+  const handleDownloadPDF = async () => {
+    const doc = new jsPDF();
+
+    // Helper to load image
+    const loadImage = (url: string): Promise<HTMLImageElement> => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.src = url;
+        img.crossOrigin = "Anonymous";
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+      });
+    };
+
+    try {
+      // Load Logo
+      const logoUrl = "https://upload.wikimedia.org/wikipedia/id/thumb/4/46/Logo_Universitas_Pancasila.png/250px-Logo_Universitas_Pancasila.png";
+      const img = await loadImage(logoUrl);
+      
+      // Calculate center position
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const centerX = pageWidth / 2;
+
+      // Add Logo
+      doc.addImage(img, "PNG", centerX - 10, 10, 20, 20);
+
+      // Add University Header
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.text("FAKULTAS TEKNIK", centerX, 38, { align: "center" });
+      doc.text("UNIVERSITAS PANCASILA", centerX, 44, { align: "center" });
+
+      // Line Separator
+      doc.setLineWidth(0.5);
+      doc.line(14, 48, pageWidth - 14, 48);
+
+      // Document Title
+      doc.setFontSize(12);
+      doc.text(`DATA ${activeTab === "mahasiswa" ? "MAHASISWA" : "DOSEN"}`, centerX, 55, { align: "center" });
+
+      // Info Section (Tahun Akademik & Tanggal Cetak)
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+
+      const now = new Date();
+      // Estimate Academic Year (Start roughly in August/September)
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth(); // 0-11
+      const academicYear = currentMonth >= 7 // August or later
+          ? `${currentYear}/${currentYear + 1}`
+          : `${currentYear - 1}/${currentYear}`;
+
+      // Date Formatting: "15 Februari 2026"
+      const dateString = now.toLocaleDateString("id-ID", {
+          day: "numeric",
+          month: "long",
+          year: "numeric"
+      });
+
+      // Left column info
+      doc.text(`Tahun Akademik : ${academicYear}`, 14, 65);
+      // Right column info (approximate X for alignment)
+      doc.text(`Tanggal Cetak  : ${dateString}`, pageWidth - 60, 65);
+
+
+      // Define columns and rows
+      const tableColumn = activeTab === "mahasiswa"
+        ? ["No", "Name", "NIM", "Email", "Jurusan", "Tahun Masuk"]
+        : ["No", "Name", "NIDN", "Email", "Jabatan"];
+
+      const tableRows = users.map((u, index) => {
+        const email = u.email || u.user?.email || "-";
+        if (activeTab === "mahasiswa") {
+          return [index + 1, u.nama, u.nim, email, u.jurusan, u.tahunMasuk];
+        } else {
+          return [index + 1, u.nama, u.nidn, email, u.jabatan];
+        }
+      });
+
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 70, // Start below the info section
+        theme: "striped",
+        styles: { fontSize: 9, cellPadding: 2 },
+        headStyles: {
+          fillColor: [210, 80, 38], // #D25026 Orange
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+          lineWidth: 0.1,
+          lineColor: [210, 80, 38],
+        },
+        bodyStyles: {
+          lineWidth: 0,
+        },
+        alternateRowStyles: {
+            fillColor: [255, 245, 240] // Very light orange/gray
+        },
+        columnStyles: {
+          0: { cellWidth: 10 }, // No
+          1: { cellWidth: 40 }, // Name
+          // ... auto for others
+        },
+      });
+
+      doc.save(`${activeTab}_data.pdf`);
+    } catch (error) {
+      console.error("Failed to generate PDF", error);
+      alert("Failed to generate PDF. check console for details.");
+    }
+  };
+
   return (
     <div className="p-8 w-full max-w-[1600px] mx-auto font-geist">
       <DeleteConfirmationModal 
@@ -229,15 +344,25 @@ export default function UserListDesktop() {
                  <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
                  <p className="text-gray-500 text-sm mt-1">Manage {activeTab === "mahasiswa" ? "Mahasiswa" : "Dosen"} accounts.</p>
             </div>
-             <Link
-                to={`/admin/create-account?role=${activeTab}`}
-                className="flex items-center gap-2 px-4 py-2 bg-pink-700 text-white rounded-lg text-sm font-medium hover:bg-pink-800 transition-colors shadow-sm"
-              >
-                <div className="bg-white/20 p-0.5 rounded">
-                   <Plus size={16} className="text-white" />
-                </div>
-                Create New {activeTab === "mahasiswa" ? "Mahasiswa" : "Dosen"}
-              </Link>
+             <div className="flex gap-3">
+                 <button
+                    onClick={handleDownloadPDF}
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"
+                 >
+                    <Download size={16} />
+                    Download PDF
+                 </button>
+
+                 <Link
+                    to={`/admin/create-account?role=${activeTab}`}
+                    className="flex items-center gap-2 px-4 py-2 bg-pink-700 text-white rounded-lg text-sm font-medium hover:bg-pink-800 transition-colors shadow-sm"
+                  >
+                    <div className="bg-white/20 p-0.5 rounded">
+                       <Plus size={16} className="text-white" />
+                    </div>
+                    Create New {activeTab === "mahasiswa" ? "Mahasiswa" : "Dosen"}
+                  </Link>
+             </div>
         </div>
 
         {/* Filter Bar */}
@@ -369,6 +494,7 @@ export default function UserListDesktop() {
             columns={columns}
             isLoading={loading}
             emptyMessage={`No ${activeTab} found matching your search.`}
+            onRowClick={(user) => navigate(`/admin/edit-account/${user.user?.id || user.userId || user.id}`)}
         />
 
         {/* Pagination */}

@@ -2,7 +2,7 @@ import { useCreateAccount } from "./UseCreateAccount";
 import { cn } from "~/lib/utils";
 import { useState } from "react";
 import { Toast } from "~/components/ui/toast";
-import { Check, ChevronDown, Eye, EyeOff, Loader2, X } from "lucide-react";
+import { Check, ChevronDown, Eye, EyeOff, Loader2, X, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router";
 import { CustomSelect } from "~/components/ui/custom-select";
 
@@ -27,10 +27,18 @@ export const CreateAccountDesktop = () => {
   return (
     <div className="p-6 md:p-8 w-full font-geist bg-white">
       <div className="mb-6 border-b border-gray-100 pb-4">
-        <h1 className="text-2xl font-bold text-[#18181B] leading-tight mb-2">
-          Create New User Account
-        </h1>
-        <p className="text-[#71717A] text-sm">
+        <div className="flex items-center gap-2 mb-2">
+            <button
+                onClick={handleCancel}
+                className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+                <ArrowLeft size={20} className="text-gray-500" />
+            </button>
+            <h1 className="text-2xl font-bold text-[#18181B] leading-tight">
+            Create New User Account
+            </h1>
+        </div>
+        <p className="text-[#71717A] text-sm ml-8">
           Select role and fill in the details to create a new account.
         </p>
       </div>

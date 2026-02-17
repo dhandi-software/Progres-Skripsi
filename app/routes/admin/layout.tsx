@@ -22,7 +22,7 @@ type MenuKey =
   | "logout";
 
 const pathToKey = (pathname: string): MenuKey | undefined => {
-  if (pathname.startsWith("/admin/users") || pathname.startsWith("/admin/create-account")) return "users";
+  if (pathname.startsWith("/admin/users") || pathname.startsWith("/admin/create-account") || pathname.startsWith("/admin/edit-account")) return "users";
   if (pathname === "/admin" || pathname.startsWith("/admin/"))
     return "dashboard";
   return undefined;

@@ -4,7 +4,7 @@ import { chatService } from "~/services/chatService";
 import type { Message, ChatContact, SendMessagePayload } from "~/types/chat";
 import { useAuth } from "~/hooks/useAuth";
 
-const SOCKET_URL = "http://localhost:5000";
+const SOCKET_URL = "http://localhost:5002";
 
 export function useChat() {
   const { user } = useAuth();

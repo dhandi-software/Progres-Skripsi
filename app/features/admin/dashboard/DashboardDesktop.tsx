@@ -27,15 +27,20 @@ export default function DashboardDesktop() {
         const fetchDashboardData = async () => {
             try {
                 // Fetch Counts
-                const [mhsRes, dosenRes, adminRes] = await Promise.all([
-                    adminApi.getUserCountByRole("mahasiswa"),
-                    adminApi.getUserCountByRole("dosen"),
-                    adminApi.getUserCountByRole("admin")
-                ]);
+                const statsRes = await adminApi.getDashboardStats();
+                // Fetch admin count separately or include in backend? 
+                // Backend implementation didn't include admin count. 
+                // I'll keep admin count separate or assume 0 for now as user didn't request it explicitly in "new" requirements, 
+                // but component expects it. I'll Fetch admin separately or leave it. 
+                // Let's fetch admin separately for now to be safe, or just 0 if not key.
+                // Actually, let's just keep the existing admin fetch if we want, or ignore.
+                // The user asked for "active student, total dosen". 
+                // I'll just use the new endpoint for mhs and dosen.
+                const adminRes = await adminApi.getUserCountByRole("admin");
 
                 setStatsData({
-                    totalMahasiswa: Number(mhsRes.data?.count || 0),
-                    totalDosen: Number(dosenRes.data?.count || 0),
+                    totalMahasiswa: Number(statsRes.activeStudent || 0),
+                    totalDosen: Number(statsRes.totalDosen || 0),
                     totalAdmin: Number(adminRes.data?.count || 0),
                 });
 

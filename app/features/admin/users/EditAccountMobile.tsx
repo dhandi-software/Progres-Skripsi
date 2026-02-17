@@ -1,122 +1,21 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router";
-import { adminApi } from "~/api/admin";
-import { ChevronDown, Eye, EyeOff, Save, ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, ChevronDown, Eye, EyeOff, Loader2, Save } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { CustomSelect } from "~/components/ui/custom-select";
-
-interface ToastProps {
-  title: string;
-  variant: "success" | "destructive" | "default";
-}
+import { useEditAccount } from "./UseEditAccount";
 
 export default function EditAccountMobile() {
-  const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
-
-  const [formData, setFormData] = useState({
-    email: "",
-    name: "",
-    password: "", // Optional
-    role: "mahasiswa",
-    // Specific fields
-    nim: "",
-    jurusan: "",
-    tahunMasuk: "",
-    nidn: "",
-    jabatan: "",
-  });
-
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [toastProps, setToastProps] = useState<ToastProps | null>(null);
-
-  const showToast = (title: string, variant: "success" | "destructive" | "default" = "success") => {
-    setToastProps({ title, variant });
-    setTimeout(() => setToastProps(null), 3000);
-  };
-
-  useEffect(() => {
-     if (id) {
-         fetchUser(id);
-     }
-  }, [id]);
-
-  const fetchUser = async (userId: string) => {
-      setInitialLoading(true);
-      try {
-          const res = await adminApi.getUserById(userId);
-          const user = res.data;
-          
-          setFormData({
-              email: user.email,
-              name: user.nama || "",
-              password: "", 
-              role: user.role,
-              nim: user.nim || "",
-              jurusan: user.jurusan || "",
-              tahunMasuk: user.tahunMasuk || "",
-              nidn: user.nidn || "",
-              jabatan: user.jabatan || ""
-          });
-      } catch (error) {
-          console.error("Failed to fetch user", error);
-          showToast("Failed to fetch user", "destructive");
-          navigate("/admin/users");
-      } finally {
-          setInitialLoading(false);
-      }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    
-    // Numeric validation for NIM and NIDN
-    if ((name === "nim" || name === "nidn") && value && !/^\d*$/.test(value)) {
-        return; 
-    }
-
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async () => {
-      setIsLoading(true);
-      try {
-          // Construct payload
-          const payload: any = {
-              email: formData.email,
-              name: formData.name,
-              role: formData.role,
-              // Add specific fields based on role
-              ...(formData.role === 'mahasiswa' ? {
-                  nim: formData.nim,
-                  jurusan: formData.jurusan,
-                  tahunMasuk: formData.tahunMasuk
-              } : {
-                  nidn: formData.nidn,
-                  jabatan: formData.jabatan
-              })
-          };
-
-          if (formData.password) {
-              payload.password = formData.password;
-          }
-
-          await adminApi.updateUser(id!, payload);
-          showToast("User updated successfully", "success");
-          
-          setTimeout(() => {
-              navigate(`/admin/users?tab=${formData.role}`);
-          }, 1000);
-
-      } catch (error: any) {
-          console.error("Update failed", error);
-          showToast(error.response?.data?.message || "Failed to update user", "destructive");
-      } finally {
-          setIsLoading(false);
-      }
-  };
+  const {
+      formData,
+      initialLoading,
+      isLoading,
+      showPassword,
+      toastProps,
+      handleInputChange,
+      togglePasswordVisibility,
+      generatePassword,
+      handleSubmit,
+      navigate
+  } = useEditAccount();
 
   if (initialLoading) {
       return (
@@ -260,7 +159,8 @@ export default function EditAccountMobile() {
              <h2 className="text-sm font-bold text-gray-900 mb-1">Security</h2>
              <div className="flex flex-col gap-2">
                  <label className="text-sm font-medium text-gray-700">New Password (Optional)</label>
-                 <div className="relative">
+                 <div className="flex gap-2">
+                     <div className="relative flex-1">
                      <input 
                         type={showPassword ? "text" : "password"}
                         name="password"
@@ -271,10 +171,18 @@ export default function EditAccountMobile() {
                      />
                      <button 
                         type="button"
-                        onClick={() => setShowPassword(!showPassword)}
+                        onClick={togglePasswordVisibility}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 p-1"
                      >
                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                     </button>
+                     </div>
+                     <button
+                        type="button"
+                        onClick={generatePassword}
+                        className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-medium hover:bg-gray-50 text-gray-700"
+                     >
+                        Generate
                      </button>
                  </div>
              </div>

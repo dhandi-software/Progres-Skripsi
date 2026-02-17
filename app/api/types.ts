@@ -512,3 +512,20 @@ export interface LogActivityFilterQuery {
     limit?: number;
     sort?: string;
 }
+
+export interface PengajuanPayload {
+    dosenId: string;
+    judul: string;
+    peminatan: string;
+    semester: string;
+    tahunAkademik: string;
+    sksDicapai: string;
+    sksNilaiD: string;
+    ipk: string;
+    batasStudi: string;
+}
+
+export interface PengajuanResponse {
+    message: string;
+    data: any;
+}

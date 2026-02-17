@@ -69,4 +69,13 @@ export const adminApi = {
         const response = await client.get<ApiResponse<any>>(`/admin/users/${id}`);
         return response.data;
     },
+
+    /**
+     * Get dashboard stats
+     * GET /admin/dashboard-stats
+     */
+     getDashboardStats: async (): Promise<ApiResponse<any>> => {
+        const response = await client.get<ApiResponse<any>>("/admin/dashboard-stats");
+        return response.data;
+    },
 };
