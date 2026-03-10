@@ -27,16 +27,21 @@ export interface Message {
 }
 
 export interface ChatContact {
-  id: number;
+  id: number | string;
+  realId?: number;
+  isGroup?: boolean;
   username: string;
   role: string;
   email: string;
   lastMessage?: Message; // Optional, for list display if needed
+  adminId?: number;
+  members?: { id: number; username: string; role: string }[];
 }
 
 export interface SendMessagePayload {
   senderId: number;
-  receiverId: number; // For public chat, this can be ignored or set to 0/null but our type says number. We'll handle logic in hook.
+  receiverId?: number; // Optional for group messages
+  roomId?: number;     // Used for group messages
   content?: string;
   attachmentUrl?: string;
   attachmentType?: 'image' | 'document' | 'none';

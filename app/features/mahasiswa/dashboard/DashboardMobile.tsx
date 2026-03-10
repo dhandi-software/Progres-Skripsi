@@ -1,5 +1,7 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "~/hooks/useAuth";
+import { pengajuanApi } from "~/api/pengajuan";
 import {
     BookOpen,
     Calendar,
@@ -12,6 +14,38 @@ import {
 export function DashboardMobile() {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const [profile, setProfile] = useState<any>(null);
+    const [showAllActivities, setShowAllActivities] = useState(false);
+
+    useEffect(() => {
+        pengajuanApi.getProfile().then(setProfile).catch(console.error);
+    }, []);
+
+    const getActivities = () => {
+        const activities: any[] = [];
+
+        // 1. Dokumen Belum Lengkap: Only show if NO pengajuan
+        if (!profile?.pengajuanJudul || profile.pengajuanJudul.length === 0) {
+            activities.push(
+                { title: "Upload Transkrip", time: "Kmrin", color: "text-orange-500" }
+            );
+        }
+        if (profile?.pengajuanJudul && profile.pengajuanJudul.length > 0) {
+            const p = profile.pengajuanJudul[0];
+            let dynActivity = null;
+            if (p.status === 'PENDING') {
+                dynActivity = { title: "Sedang Diproses", time: "Baru", color: "text-blue-500" };
+            } else if (p.status === 'APPROVED') {
+                dynActivity = { title: "Judul Disetujui", time: "Baru", color: "text-green-500" };
+            } else if (p.status === 'REJECTED') {
+                dynActivity = { title: "Judul Ditolak", time: "Baru", color: "text-red-500" };
+            }
+            if (dynActivity) {
+                activities.unshift(dynActivity);
+            }
+        }
+        return activities;
+    };
 
     return (
         <div className="p-4 space-y-6 font-geist pb-20">
@@ -59,15 +93,17 @@ export function DashboardMobile() {
 
             {/* Recent Activity */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="p-4 border-b border-gray-100 pb-2">
+                <div className="p-4 border-b border-gray-100 pb-2 flex justify-between items-center">
                     <h2 className="font-bold text-gray-800 text-lg">Aktivitas</h2>
+                    <button 
+                        onClick={() => setShowAllActivities(!showAllActivities)}
+                        className="text-sm text-orange-600 font-medium font-['Noto_Sans']"
+                    >
+                        {showAllActivities ? "Sembunyikan" : "Lihat Semua"}
+                    </button>
                 </div>
                 <div className="divide-y divide-gray-50">
-                    {[
-                        { title: "Judul Disetujui", time: "2h lalu", color: "text-green-500" },
-                        { title: "Jadwal Bimbingan", time: "10:00", color: "text-blue-500" },
-                        { title: "Upload Transkrip", time: "Kmrin", color: "text-orange-500" },
-                    ].map((item, i) => (
+                    {(showAllActivities ? getActivities() : getActivities().slice(0, 5)).map((item, i) => (
                         <div key={i} className="p-4 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className={`w-2 h-2 rounded-full bg-current ${item.color}`} />

@@ -1,5 +1,5 @@
 // Mahasiswa Layout
-import { useLocation, useNavigate } from "react-router";
+import { Outlet, useLocation, useNavigate, useRouteLoaderData } from "react-router";
 import {
   LayoutDashboard,
   LogOut,
@@ -8,16 +8,16 @@ import {
   Users,
   MessageCircle,
   Calendar,
-  Award,
-  ChevronDown
+  Award
 } from "lucide-react";
-import { Outlet, useRouteLoaderData } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
 import { RoleGuard } from "~/routes/RoleGuard";
 import { useAuth } from "~/hooks/useAuth";
 import type { ContextType } from "~/root";
+import { chatService } from "~/services/chatService";
+import React from "react";
 
-import { SidebarProvider, Sidebar, SidebarContent, useSidebar } from "~/components/ui/sidebar";
+import { SidebarProvider, Sidebar, SidebarContent, useSidebar, SidebarTrigger } from "~/components/ui/sidebar";
 import { cn } from "~/lib/utils";
 
 type MenuKey =
@@ -95,6 +95,23 @@ export function AppSidebar() {
   const rootData = useRouteLoaderData("root") as { isMobile: boolean };
   const _isMobile = rootData?.isMobile ?? isMobile;
   const active = pathToKey(location.pathname) ?? "dashboard";
+  const { user } = useAuth(); // Needed for ID
+  const [unreadCount, setUnreadCount] = React.useState(0);
+
+  React.useEffect(() => {
+    if (!user) return;
+    const fetchUnread = async () => {
+      try {
+        const data = await chatService.getUnreadCount(user.id);
+        setUnreadCount(data.count || 0);
+      } catch (error) {
+        console.error("Failed to fetch unread chat count:", error);
+      }
+    };
+    fetchUnread();
+    const intervalId = setInterval(fetchUnread, 30000);
+    return () => clearInterval(intervalId);
+  }, [user]);
 
   const handleNavigate = (key: MenuKey) => {
     const item = menuItems.find((item) => item.key === key);
@@ -157,6 +174,11 @@ export function AppSidebar() {
                       >
                         {item.title}
                       </span>
+                      {item.key === "chat" && unreadCount > 0 && (
+                        <div className="bg-[#00a884] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
+                          {unreadCount}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -193,7 +215,18 @@ export default function MahasiswaLayout() {
               "flex-1 w-full h-full overflow-y-auto",
               location.pathname.includes("/chat") ? "pb-0" : "pb-12"
             )}>
-               {/* Mobile Trigger or Header could be added here if needed, usually SidebarProvider handles basic mobile trigger logic but visual one might be needed */}
+              {/* Mobile Header with Hamburger Menu */}
+              {isMobile && !location.pathname.includes("/chat") && (
+                <div className="md:hidden flex items-center p-4 bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
+                  <SidebarTrigger className="p-2 -ml-2 text-gray-700" />
+                  <span className="ml-2 font-bold text-[#119DA4] text-lg tracking-tight">UP Akademik</span>
+                </div>
+              )}
+              {isMobile && location.pathname.includes("/chat") && (
+                <div className="md:hidden absolute top-4 left-4 z-50">
+                   <SidebarTrigger className="p-2 bg-white rounded-full shadow-md text-gray-700" />
+                </div>
+              )}
               <Outlet context={{ isMobile }} />
             </main>
           </div>

@@ -58,7 +58,8 @@ export default [
         ...prefix("dosen", [
             index("routes/dosen/dashboard.tsx"),
             route("download", "routes/dosen/download.tsx"),
-            route("pengajuan", "routes/dosen/pengajuan.tsx"),
+            route("peninjauan", "routes/dosen/peninjauan.tsx"),
+            route("peninjauan/:id", "routes/dosen/pengajuan.$id.tsx"),
             route("bimbingan", "routes/dosen/bimbingan.tsx"),
             route("chat", "routes/dosen/chat.tsx"),
             route("acara", "routes/dosen/acara.tsx"),

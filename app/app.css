@@ -7,7 +7,7 @@
 /* Standard (Firefox) */
 * {
     scrollbar-width: thin;
-    scrollbar-color: #374045 transparent;
+    scrollbar-color: rgba(0, 0, 0, 0.05) transparent;
 }
 
 /* WebKit (Chrome, Edge, Safari) */
@@ -21,12 +21,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-    background-color: #374045;
+    background-color: rgba(0, 0, 0, 0.05); /* Slightly visible */
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background-color: #4a555c;
+    background-color: rgba(0, 0, 0, 0.15); /* Darker on hover */
 }
 
 /* Specific class overrides if needed */
@@ -36,6 +36,10 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: #374045 !important;
+    background-color: rgba(0, 0, 0, 0.05) !important;
     border-radius: 4px !important;
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.15) !important;
 }

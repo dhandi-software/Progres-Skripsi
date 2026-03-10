@@ -1,5 +1,7 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "~/hooks/useAuth";
+import { pengajuanApi } from "~/api/pengajuan";
 import {
     BookOpen,
     Calendar,
@@ -7,11 +9,68 @@ import {
     Clock,
     FileText,
     TrendingUp,
+    XCircle,
 } from "lucide-react";
 
 export function DashboardDesktop() {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const [profile, setProfile] = useState<any>(null);
+    const [showAllActivities, setShowAllActivities] = useState(false);
+
+    useEffect(() => {
+        pengajuanApi.getProfile().then(setProfile).catch(console.error);
+    }, []);
+
+    const getActivities = () => {
+        const activities: any[] = [];
+        
+        // 1. Dokumen Belum Lengkap: Only show if NO pengajuan
+        if (!profile?.pengajuanJudul || profile.pengajuanJudul.length === 0) {
+            activities.push({
+                title: "Dokumen Belum Lengkap",
+                desc: "Silakan upload Transkrip Nilai terbaru.",
+                time: "Kemarin",
+                icon: FileText,
+                color: "text-orange-500",
+            });
+        }
+
+        if (profile?.pengajuanJudul && profile.pengajuanJudul.length > 0) {
+            const p = profile.pengajuanJudul[0];
+            let dynActivity = null;
+            if (p.status === 'PENDING') {
+                dynActivity = {
+                    title: "Pengajuan Sedang Diproses",
+                    desc: `Usulan judul "${p.judul}" sedang menunggu persetujuan.`,
+                    time: "Update terbaru",
+                    icon: Clock,
+                    color: "text-blue-500",
+                };
+            } else if (p.status === 'APPROVED') {
+                dynActivity = {
+                    title: "Pengajuan Judul Disetujui",
+                    desc: `Usulan judul "${p.judul}" telah disetujui.`,
+                    time: "Update terbaru",
+                    icon: CheckCircle,
+                    color: "text-green-500",
+                };
+            } else if (p.status === 'REJECTED') {
+                dynActivity = {
+                    title: "Pengajuan Judul Ditolak",
+                    desc: `Usulan judul "${p.judul}" ditolak.`,
+                    time: "Update terbaru",
+                    icon: XCircle,
+                    color: "text-red-500",
+                };
+            }
+            if (dynActivity) {
+                // Prepend so it appears first
+                activities.unshift(dynActivity);
+            }
+        }
+        return activities;
+    };
 
     return (
         <div className="p-6 lg:p-10 space-y-8 font-geist">
@@ -88,41 +147,22 @@ export function DashboardDesktop() {
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 {/* Recent Activity / Notifications */}
                 <div className="lg:col-span-2 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="p-6 border-b border-gray-100 flex justify-between items-center">
                         <h2 className="text-xl font-bold text-gray-800">
                             Aktivitas Terkini
                         </h2>
-                        <button className="text-sm text-[#119DA4] font-medium hover:underline">
-                            Lihat Semua
+                        <button 
+                            onClick={() => setShowAllActivities(!showAllActivities)}
+                            className="text-sm text-[#119DA4] font-medium hover:underline"
+                        >
+                            {showAllActivities ? "Sembunyikan" : "Lihat Semua"}
                         </button>
                     </div>
                     <div className="divide-y divide-gray-50">
-                        {[
-                            {
-                                title: "Pengajuan Judul Disetujui",
-                                desc: "Judul KP kamu telah disetujui oleh Kaprodi.",
-                                time: "2 Jam yang lalu",
-                                icon: CheckCircle,
-                                color: "text-green-500",
-                            },
-                            {
-                                title: "Jadwal Bimbingan Baru",
-                                desc: "Dosen pembimbing menetapkan jadwal bimbingan baru.",
-                                time: "Hari ini, 10:00",
-                                icon: Calendar,
-                                color: "text-blue-500",
-                            },
-                            {
-                                title: "Dokumen Belum Lengkap",
-                                desc: "Silakan upload Transkrip Nilai terbaru.",
-                                time: "Kemarin",
-                                icon: FileText,
-                                color: "text-orange-500",
-                            },
-                        ].map((item, i) => (
+                        {(showAllActivities ? getActivities() : getActivities().slice(0, 5)).map((item, i) => (
                             <div
                                 key={i}
                                 className="p-6 flex items-start gap-4 hover:bg-gray-50 transition-colors"
@@ -139,7 +179,7 @@ export function DashboardDesktop() {
                                     <p className="text-sm text-gray-500 mt-1">
                                         {item.desc}
                                     </p>
-                                    <span className="text-xs text-gray-400 mt-2 block flex items-center gap-1">
+                                    <span className="text-xs text-gray-400 mt-2 flex items-center gap-1">
                                         <Clock className="w-3 h-3" />{" "}
                                         {item.time}
                                     </span>

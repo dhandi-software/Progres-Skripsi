@@ -4,6 +4,6 @@ import { PengajuanDesktop, PengajuanMobile } from "~/features/mahasiswa/pengajua
 
 export default function PengajuanRoute() {
   const { isMobile } = useOutletContext<ContextType>();
-  return isMobile ? <PengajuanMobile title="Pengajuan" /> : <PengajuanDesktop title="Pengajuan" />;
+  return isMobile ? <PengajuanMobile /> : <PengajuanDesktop />;
 }
 

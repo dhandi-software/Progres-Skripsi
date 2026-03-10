@@ -9,6 +9,7 @@ export const authService = {
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include",
       body: JSON.stringify(credentials),
     });
 
@@ -18,5 +19,12 @@ export const authService = {
     }
 
     return response.json();
+  },
+
+  async logout(): Promise<void> {
+    await fetch(`${API_URL}/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    }).catch(err => console.error("Logout request failed:", err));
   },
 };

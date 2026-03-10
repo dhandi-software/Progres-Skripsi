@@ -23,6 +23,11 @@ export const pengajuanApi = {
         return response.data;
     },
 
+    getPengajuanById: async (id: number) => {
+        const response = await client.get(`/pengajuan/${id}`);
+        return response.data;
+    },
+
     updateStatus: async (id: number, status: 'APPROVED' | 'REJECTED', remarks?: string) => {
         const response = await client.put(`/pengajuan/${id}/status`, { status, remarks });
         return response.data;

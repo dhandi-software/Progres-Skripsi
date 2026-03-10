@@ -13,7 +13,7 @@ import { RoleGuard } from "~/routes/RoleGuard";
 import { useAuth } from "~/hooks/useAuth";
 import type { ContextType } from "~/root";
 
-import { SidebarProvider, Sidebar, SidebarContent, useSidebar } from "~/components/ui/sidebar";
+import { SidebarProvider, Sidebar, SidebarContent, useSidebar, SidebarTrigger } from "~/components/ui/sidebar";
 import { cn } from "~/lib/utils";
 
 type MenuKey =
@@ -148,6 +148,13 @@ export default function AdminLayout() {
               "flex-1 w-full h-full overflow-y-auto",
               "pb-12" // simplified
             )}>
+              {/* Mobile Header with Hamburger Menu */}
+              {isMobile && (
+                <div className="md:hidden flex items-center p-4 bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
+                  <SidebarTrigger className="p-2 -ml-2" />
+                  <span className="ml-2 font-bold text-[#119DA4] text-lg tracking-tight">Admin Panel</span>
+                </div>
+              )}
               <Outlet context={{ isMobile }} />
             </main>
           </div>

@@ -1,2 +1,4 @@
-export * from "./PengajuanDesktop";
-export * from "./PengajuanMobile";
+export * from "./PeninjauanDesktop";
+export * from "./PeninjauanMobile";
+export * from "./PeninjauanDetailDesktop";
+export * from "./PeninjauanDetailMobile";

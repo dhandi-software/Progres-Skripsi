@@ -4,8 +4,11 @@ import { ChatWindow } from "~/components/ui/chat-window";
 import { useChat } from "~/hooks/useChat";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "~/components/ui/button";
+import { CreateGroupModal } from "./CreateGroupModal";
 
 export function ChatMobile() {
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    
     const {
         contacts,
         activeContact,
@@ -17,7 +20,10 @@ export function ChatMobile() {
         unreadCounts,
         resetUnreadCount,
         markAsRead,
-        deleteMessage
+        deleteMessage,
+        deleteMessageForMe,
+        editMessage,
+        createGroup
     } = useChat();
 
     const [view, setView] = useState<"list" | "chat">("list");
@@ -41,6 +47,9 @@ export function ChatMobile() {
                     activeContact={activeContact}
                     onSelectContact={handleSelectContact}
                     unreadCounts={unreadCounts}
+                    currentUserRole={user?.role}
+                    currentUser={user}
+                    onCreateGroup={() => setIsCreateModalOpen(true)}
                 />
             ) : (
                 <div className="flex flex-col h-full">
@@ -49,13 +58,21 @@ export function ChatMobile() {
                         messages={messages}
                         currentUser={user}
                         onSendMessage={sendMessage}
+                        onEditMessage={editMessage}
                         isLoadingHistory={isLoadingHistory}
                         onBack={handleBack}
                         onMarkAsRead={markAsRead}
                         onDeleteMessage={deleteMessage}
+                        onDeleteMessageForMe={deleteMessageForMe}
                     />
                 </div>
             )}
+            <CreateGroupModal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                contacts={contacts}
+                onCreate={createGroup}
+            />
         </div>
     );
 }

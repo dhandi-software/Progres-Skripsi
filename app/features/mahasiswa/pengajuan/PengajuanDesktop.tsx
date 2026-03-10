@@ -3,6 +3,7 @@ import { pengajuanApi } from "~/api/pengajuan";
 import { CustomSelect } from "~/components/ui/custom-select";
 import { useNavigate } from "react-router";
 import { Loader2, Send } from "lucide-react";
+import { Toast } from "~/components/ui/toast";
 
 export function PengajuanDesktop() {
     const navigate = useNavigate();
@@ -21,6 +22,12 @@ export function PengajuanDesktop() {
     });
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const [isReadOnly, setIsReadOnly] = useState(false);
+    const [toastProps, setToastProps] = useState<{title: string, variant?: "success" | "destructive" | "default"} | null>(null);
+
+    const showToast = (title: string, variant: "success" | "destructive" | "default" = "success") => {
+        setToastProps({ title, variant });
+    };
 
     useEffect(() => {
         const fetchData = async () => {
@@ -29,6 +36,40 @@ export function PengajuanDesktop() {
                     pengajuanApi.getProfile(),
                     pengajuanApi.getDosenList()
                 ]);
+                
+                // Block duplicate active applications
+                if (profileRes.pengajuanJudul && profileRes.pengajuanJudul.length > 0) {
+                    const latestPengajuan = profileRes.pengajuanJudul[0];
+                    if (latestPengajuan.status !== 'REJECTED') {
+                        setIsReadOnly(true);
+                        setFormData({
+                            peminatan: latestPengajuan.peminatan || "",
+                            semester: latestPengajuan.semester || "",
+                            tahunAkademik: latestPengajuan.tahunAkademik || "",
+                            judul: latestPengajuan.judul || "",
+                            dosenId: latestPengajuan.dosenId?.toString() || "",
+                            sksDicapai: latestPengajuan.sksDicapai?.toString() || "",
+                            sksNilaiD: latestPengajuan.sksNilaiD?.toString() || "",
+                            ipk: latestPengajuan.ipk?.toString() || "",
+                            batasStudi: latestPengajuan.batasStudi || ""
+                        });
+                    }
+                } else if (profileRes.tahunMasuk) {
+                    // Smart Defaults for new applications
+                    const currentYear = new Date().getFullYear();
+                    const currentMonth = new Date().getMonth(); // 0-based
+                    const startYear = parseInt(profileRes.tahunMasuk);
+                    const diffYears = currentYear - startYear;
+                    const calculatedSemester = (diffYears * 2) + (currentMonth > 6 ? 1 : 0);
+                    const calculatedTahunAkademik = currentMonth > 6 ? `${currentYear}/${currentYear + 1}` : `${currentYear - 1}/${currentYear}`;
+                    
+                    setFormData(prev => ({
+                        ...prev,
+                        semester: calculatedSemester > 0 ? calculatedSemester.toString() : "1",
+                        tahunAkademik: calculatedTahunAkademik
+                    }));
+                }
+
                 setProfile(profileRes);
                 setDosenList(dosenRes);
             } catch (error) {
@@ -38,7 +79,7 @@ export function PengajuanDesktop() {
             }
         };
         fetchData();
-    }, []);
+    }, [navigate]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -54,13 +95,13 @@ export function PengajuanDesktop() {
         setSubmitting(true);
         try {
             await pengajuanApi.createPengajuan(formData);
-            alert("Pengajuan judul berhasil dikirim! Dosen pembimbing akan menerima notifikasi.");
-            // Reset or navigate
-            navigate("/mahasiswa/dashboard"); 
+            showToast("Pengajuan judul berhasil dikirim!", "success");
+            setTimeout(() => {
+                navigate("/mahasiswa/dashboard"); 
+            }, 1500);
         } catch (error) {
             console.error("Submission error", error);
-            alert("Gagal mengirim pengajuan. Silakan coba lagi.");
-        } finally {
+            showToast("Gagal mengirim pengajuan. Silakan coba lagi.", "destructive");
             setSubmitting(false);
         }
     };
@@ -74,7 +115,16 @@ export function PengajuanDesktop() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50/50 p-8 font-geist">
+        <div className="min-h-screen bg-gray-50/50 p-8 font-geist relative">
+            {toastProps && (
+                <div className="fixed top-4 right-4 z-50">
+                    <Toast
+                        title={toastProps.title}
+                        variant={toastProps.variant}
+                        onClose={() => setToastProps(null)}
+                    />
+                </div>
+            )}
             <div className="w-full mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 {/* Header Section matching the document */}
                 <div className="border-b-2 border-gray-800 p-6 flex items-center justify-between bg-white relative">
@@ -94,9 +144,13 @@ export function PengajuanDesktop() {
                         <h2 className="text-lg font-bold text-gray-800 uppercase tracking-widest">Permohonan Kerja Praktik</h2>
                     </div>
 
-                    {/* Right Side (Logo KM or similar placeholder based on image, using empty space for balance if no asset) */}
-                    <div className="w-24 h-24 flex flex-col items-center justify-center text-xs text-gray-400 border border-dashed border-gray-300 rounded-lg">
-                        <span className="text-center">Space for <br/> Department Logo</span>
+                    {/* Right Side Logo */}
+                    <div className="w-24 h-24 flex-shrink-0">
+                         <img 
+                            src="/images/LogoUpKebanggan.png" 
+                            alt="Logo Fakultas" 
+                            className="w-full h-full object-contain"
+                         />
                     </div>
                 </div>
 
@@ -120,6 +174,7 @@ export function PengajuanDesktop() {
                                     name="semester"
                                     value={formData.semester}
                                     onChange={handleInputChange}
+                                    disabled={isReadOnly}
                                     placeholder="e.g. 7 (Ganjil)"
                                     className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all"
                                     required
@@ -132,6 +187,7 @@ export function PengajuanDesktop() {
                                     name="tahunAkademik"
                                     value={formData.tahunAkademik}
                                     onChange={handleInputChange}
+                                    disabled={isReadOnly}
                                     placeholder="e.g. 2025/2026"
                                     className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all"
                                     required
@@ -167,14 +223,18 @@ export function PengajuanDesktop() {
 
                             <div className="flex flex-col gap-1.5">
                                 <label className="text-sm font-semibold text-gray-700">Peminatan</label>
-                                <input 
-                                    type="text" 
-                                    name="peminatan"
+                                <CustomSelect
+                                    options={[
+                                        { label: "Data Science", value: "Data Science" },
+                                        { label: "Artificial Intelligent", value: "Artificial Intelligent" },
+                                        { label: "Software Engineering", value: "Software Engineering" },
+                                        { label: "Network and Cyber Security", value: "Network and Cyber Security" }
+                                    ]}
                                     value={formData.peminatan}
-                                    onChange={handleInputChange}
-                                    placeholder="Bidang peminatan skripsi (e.g. AI, Software Engineering)"
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all"
-                                    required
+                                    onChange={(val) => handleSelectChange("peminatan", val)}
+                                    disabled={isReadOnly}
+                                    placeholder="Pilih Bidang Peminatan"
+                                    className="w-full"
                                 />
                             </div>
 
@@ -183,12 +243,25 @@ export function PengajuanDesktop() {
                                 <textarea 
                                     name="judul"
                                     value={formData.judul}
-                                    onChange={handleInputChange}
-                                    placeholder="Tuliskan usulan judul skripsi anda secara lengkap..."
+                                    disabled={isReadOnly}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        const words = value.trim().split(/\s+/).filter(word => word.length > 0);
+                                        // Allow deleting or if under the limit
+                                        if (words.length <= 20 || value.length < formData.judul.length) {
+                                            handleInputChange(e);
+                                        }
+                                    }}
+                                    placeholder="Tuliskan usulan judul kerja praktik..."
                                     rows={3}
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all resize-none"
                                     required
                                 />
+                                <div className="text-right flex justify-end w-full mt-1">
+                                    <span className={formData.judul.trim().split(/\s+/).filter(word => word.length > 0).length >= 20 ? "text-xs font-medium text-red-500" : "text-xs font-medium text-gray-400"}>
+                                        {formData.judul.trim().split(/\s+/).filter(word => word.length > 0).length} / 20 kata
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -200,6 +273,7 @@ export function PengajuanDesktop() {
                                 options={dosenList.map(d => ({ label: `${d.nama} (${d.appointment || d.jabatan})`, value: d.id.toString() }))}
                                 value={formData.dosenId}
                                 onChange={(val) => handleSelectChange("dosenId", val)}
+                                disabled={isReadOnly}
                                 placeholder="Pilih Dosen Pembimbing"
                                 className="w-full"
                             />
@@ -217,6 +291,7 @@ export function PengajuanDesktop() {
                                         name="sksDicapai"
                                         value={formData.sksDicapai}
                                         onChange={handleInputChange}
+                                        disabled={isReadOnly}
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all pr-12"
                                         required
                                     />
@@ -232,6 +307,7 @@ export function PengajuanDesktop() {
                                         name="sksNilaiD"
                                         value={formData.sksNilaiD}
                                         onChange={handleInputChange}
+                                        disabled={isReadOnly}
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all pr-12"
                                         required
                                     />
@@ -247,6 +323,7 @@ export function PengajuanDesktop() {
                                     name="ipk"
                                     value={formData.ipk}
                                     onChange={handleInputChange}
+                                    disabled={isReadOnly}
                                     placeholder="e.g. 3.50"
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all"
                                     required
@@ -260,7 +337,8 @@ export function PengajuanDesktop() {
                                     name="batasStudi"
                                     value={formData.batasStudi}
                                     onChange={handleInputChange}
-                                    placeholder="e.g. Semester 14 (2028/2029)"
+                                    disabled={isReadOnly}
+                                    placeholder="Sisa masa studi e.g. 2030"
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all"
                                     required
                                 />
@@ -269,23 +347,29 @@ export function PengajuanDesktop() {
                     </div>
 
                     <div className="pt-8 flex justify-end">
-                        <button 
-                            type="submit" 
-                            disabled={submitting}
-                            className="flex items-center gap-2 px-8 py-3 bg-[#D25026] text-white font-bold rounded-xl hover:bg-[#B9441F] transition-all active:scale-95 shadow-lg shadow-[#D25026]/20 disabled:opacity-70 disabled:cursor-not-allowed"
-                        >
-                            {submitting ? (
-                                <>
-                                    <Loader2 className="animate-spin" size={20} />
-                                    Mengirim...
-                                </>
-                            ) : (
-                                <>
-                                    <Send size={20} />
-                                    Kirim Permohonan
-                                </>
-                            )}
-                        </button>
+                        {isReadOnly ? (
+                            <div className="px-8 py-3 bg-gray-100 text-gray-500 font-bold rounded-xl border border-gray-200">
+                                Pengajuan Anda sedang dalam proses
+                            </div>
+                        ) : (
+                            <button 
+                                type="submit" 
+                                disabled={submitting}
+                                className="flex items-center gap-2 px-8 py-3 bg-[#D25026] text-white font-bold rounded-xl hover:bg-[#B9441F] transition-all active:scale-95 shadow-lg shadow-[#D25026]/20 disabled:opacity-70 disabled:cursor-not-allowed"
+                            >
+                                {submitting ? (
+                                    <>
+                                        <Loader2 className="animate-spin" size={20} />
+                                        Mengirim...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Send size={20} />
+                                        Kirim Permohonan
+                                    </>
+                                )}
+                            </button>
+                        )}
                     </div>
                 </form>
             </div>

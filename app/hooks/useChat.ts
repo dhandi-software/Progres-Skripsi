@@ -13,7 +13,8 @@ export function useChat() {
   const [activeContact, setActiveContact] = useState<ChatContact | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-  const [unreadCounts, setUnreadCounts] = useState<Record<number, number>>({});
+  const [unreadCounts, setUnreadCounts] = useState<Record<string | number, number>>({});
+  const [toastProps, setToastProps] = useState<{title: string, variant: 'default'|'destructive', description?: string} | null>(null);
   
   const activeContactRef = useRef<ChatContact | null>(null);
 
@@ -42,9 +43,6 @@ export function useChat() {
           const isWindowFocused = document.hasFocus();
 
           if (!isChatOpen || !isWindowFocused) {
-              // const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"); 
-              // audio.play().catch(e => console.log("Audio play failed", e));
-
               if (Notification.permission === "granted") {
                   const title = message.isPublic 
                       ? `Pesan Baru di Ruang Publik: ${message.sender?.username}` 
@@ -63,6 +61,21 @@ export function useChat() {
                   ...prev,
                   [contactIdToUpdate]: (prev[contactIdToUpdate] || 0) + 1
               }));
+              
+              // In-App Toast Notification
+              if (!isChatOpen) {
+                  const senderName = message.sender?.username || 'Seseorang';
+                  const titleStr = message.isPublic ? `Pesan di Publik dari ${senderName}` : `Pesan baru dari ${senderName}`;
+                  const previewStr = message.content || (message.attachmentUrl ? "Mengirim lampiran" : "Pesan baru");
+                  
+                  setToastProps({
+                       title: titleStr,
+                       description: previewStr,
+                       variant: "default",
+                  });
+                  // auto dismiss toast
+                  setTimeout(() => setToastProps(null), 4000);
+              }
           }
       }
 
@@ -147,7 +160,7 @@ export function useChat() {
     };
   }, [user]); // Only depend on user, NOT activeContact
 
-  const resetUnreadCount = (contactId: number) => {
+  const resetUnreadCount = (contactId: number | string) => {
       setUnreadCounts(prev => {
           const newCounts = { ...prev };
           delete newCounts[contactId];
@@ -155,34 +168,38 @@ export function useChat() {
       });
   };
 
-  // Fetch contacts and add Public Room
-  useEffect(() => {
+  const fetchContacts = useCallback(async () => {
     if (!user) return;
-    chatService.getContacts(user.id).then((response) => {
-        // Handle both old array format (fallback) and new object format
+    try {
+        const response = await chatService.getContacts(user.id);
         const data = Array.isArray(response) ? response : response.users;
         const lastPublicMsg = !Array.isArray(response) ? response.lastPublicMessage : undefined;
 
-        // Add Public Room as a fake contact
         const publicRoom: ChatContact = {
-            id: 0, // Special ID for public room
+            id: 0,
             username: "Ruang Publik",
-            role: "Grup", // Custom role for display
+            role: "Grup",
             email: "",
             lastMessage: lastPublicMsg
         };
-        // Ensure data is array before spreading
         const validContacts = Array.isArray(data) ? data : [];
         setContacts([publicRoom, ...validContacts]);
-    }).catch(console.error);
+    } catch (error) {
+        console.error(error);
+    }
   }, [user]);
+
+  // Fetch contacts and add Public Room
+  useEffect(() => {
+    fetchContacts();
+  }, [fetchContacts]);
 
   // Fetch history when active contact changes
   useEffect(() => {
-    if (!user || !activeContact) return;
+    if (!user || activeContact === null) return;
 
     setIsLoadingHistory(true);
-    const targetId = activeContact.id === 0 ? 'public' : activeContact.id;
+    const targetId = activeContact.id === 0 ? 'public' : activeContact.id as number | string;
     
     chatService.getChatHistory(user.id, targetId)
       .then(setMessages)
@@ -264,9 +281,14 @@ export function useChat() {
       }
     }
 
+    const isGroup = typeof activeContact.id === 'string' && activeContact.id.startsWith('group_');
+    const targetPayload = isGroup 
+         ? { roomId: activeContact.realId } 
+         : { receiverId: activeContact.id === 0 ? 0 : (activeContact.id as number) };
+
     const payload: SendMessagePayload & { replyToId?: number } = {
       senderId: user.id,
-      receiverId: activeContact.id === 0 ? 0 : activeContact.id,
+      ...targetPayload,
       content: content || undefined,
       attachmentUrl: attachmentUrl || undefined,
       attachmentType: attachmentType === "none" ? undefined : attachmentType,
@@ -359,6 +381,30 @@ export function useChat() {
     }
   }, [socket]);
 
+  const createGroup = useCallback(async (name: string, participantIds: number[]) => {
+      if (!user) return;
+      try {
+          const newRoom = await chatService.createGroup(name, participantIds, user.id);
+          // Refetch contacts entirely to get the new group in the sidebar
+          await fetchContacts();
+          
+          // Set active contact immediately to the newly generated group
+          const groupContact: ChatContact = {
+              id: `group_${newRoom.id}`,
+              realId: newRoom.id,
+              isGroup: true,
+              username: newRoom.name,
+              role: "group",
+              email: ""
+          };
+          setActiveContact(groupContact);
+          
+      } catch (e) {
+          console.error('Failed to create group:', e);
+          throw e; // Let the caller handle the layout error if needed
+      }
+  }, [user, fetchContacts]);
+
   return {
     contacts,
     activeContact,
@@ -372,6 +418,9 @@ export function useChat() {
     markAsRead,
     deleteMessage,
     deleteMessageForMe,
-    editMessage
+    editMessage,
+    createGroup,
+    toastProps,
+    setToastProps
   };
 }
