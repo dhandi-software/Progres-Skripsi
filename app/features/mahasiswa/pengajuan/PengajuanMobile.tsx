@@ -54,6 +54,20 @@ export function PengajuanMobile() {
                             ipk: latestPengajuan.ipk?.toString() || "",
                             batasStudi: latestPengajuan.batasStudi || ""
                         });
+                    } else if (profileRes.tahunMasuk) {
+                        // Apply Smart Defaults for resubmission
+                        const currentYear = new Date().getFullYear();
+                        const currentMonth = new Date().getMonth(); // 0-based
+                        const startYear = parseInt(profileRes.tahunMasuk);
+                        const diffYears = currentYear - startYear;
+                        const calculatedSemester = (diffYears * 2) + (currentMonth > 6 ? 1 : 0);
+                        const calculatedTahunAkademik = currentMonth > 6 ? `${currentYear}/${currentYear + 1}` : `${currentYear - 1}/${currentYear}`;
+                        
+                        setFormData(prev => ({
+                            ...prev,
+                            semester: calculatedSemester > 0 ? calculatedSemester.toString() : "1",
+                            tahunAkademik: calculatedTahunAkademik
+                        }));
                     }
                 } else if (profileRes.tahunMasuk) {
                     // Smart Defaults for new applications

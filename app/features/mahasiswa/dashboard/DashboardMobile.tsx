@@ -9,6 +9,7 @@ import {
     Clock,
     FileText,
     TrendingUp,
+    XCircle,
 } from "lucide-react";
 
 export function DashboardMobile() {
@@ -72,6 +73,29 @@ export function DashboardMobile() {
                     </button>
                 </div>
             </div>
+
+            {/* Notification Banner for Rejected Applications Mobile */}
+            {profile?.pengajuanJudul && profile.pengajuanJudul.length > 0 && profile.pengajuanJudul[0].status === 'REJECTED' && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 shadow-sm relative overflow-hidden animate-in fade-in slide-in-from-top-2 duration-500">
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 bg-red-100 rounded-full text-red-600 shrink-0">
+                            <XCircle className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-red-800 font-bold text-sm">Pengajuan Ditolak</h3>
+                            <p className="text-red-600 text-[10px] mt-1 pr-2 leading-relaxed">
+                                Usulan "{profile.pengajuanJudul[0].judul}" tidak disetujui. Silakan ajukan ulang formulir.
+                            </p>
+                            <button 
+                                onClick={() => navigate("/mahasiswa/pengajuan")}
+                                className="mt-3 px-4 py-2 bg-red-600 hover:bg-red-700 active:bg-red-800 transition-colors text-white text-xs font-bold rounded-lg shadow-sm w-full"
+                            >
+                                Ajukan Kembali
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Status Summary (Compact) */}
             <div className="grid grid-cols-2 gap-3">

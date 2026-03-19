@@ -91,6 +91,27 @@ export function DashboardDesktop() {
                 <div className="absolute right-20 bottom-0 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
             </div>
 
+            {/* Notification Banner for Rejected Applications */}
+            {profile?.pengajuanJudul && profile.pengajuanJudul.length > 0 && profile.pengajuanJudul[0].status === 'REJECTED' && (
+                <div className="bg-red-50 border border-red-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-red-100 rounded-full text-red-600">
+                            <XCircle className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="text-red-800 font-bold text-lg">Pengajuan Judul Ditolak</h3>
+                            <p className="text-red-600 text-sm mt-1 mb-0">Usulan judul "{profile.pengajuanJudul[0].judul}" tidak disetujui. Silakan perbaiki dan ajukan ulang formulir.</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => navigate("/mahasiswa/pengajuan")}
+                        className="w-full sm:w-auto px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-colors shadow-sm whitespace-nowrap"
+                    >
+                        Ajukan Kembali
+                    </button>
+                </div>
+            )}
+
             {/* Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
