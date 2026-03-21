@@ -100,12 +100,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    try {
-      await authService.logout();
-    } catch(e) { console.error(e) }
+    // Optimistic UI update: clear local state immediately
     localStorage.removeItem("user");
     setUser(null);
     navigate("/login", { replace: true });
+
+    // Fire and forget the backend logout
+    try {
+      authService.logout().catch(e => console.error(e));
+    } catch(e) { console.error(e) }
   };
 
   const value = React.useMemo(() => ({

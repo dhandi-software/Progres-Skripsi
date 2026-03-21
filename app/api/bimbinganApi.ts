@@ -23,8 +23,12 @@ export const bimbinganApi = {
     },
 
     // New Dosen endpoint for assigning tasks
-    assignBimbinganTask: async (mahasiswaId: number, topik: string) => {
-        const response = await client.post("/bimbingan/assign-task", { mahasiswaId, topik });
+    assignBimbinganTask: async (mahasiswaId: number, topik: string, jadwalBimbingan?: Date) => {
+        const response = await client.post("/bimbingan/assign-task", { 
+            mahasiswaId, 
+            topik,
+            jadwalBimbingan: jadwalBimbingan ? jadwalBimbingan.toISOString() : undefined
+        });
         return response.data;
     },
 
@@ -35,9 +39,11 @@ export const bimbinganApi = {
     },
 
     // Upload draft by Mahasiswa
-    uploadDraftMahasiswa: async (id: number, file: File) => {
+    uploadDraftMahasiswa: async (id: number, file: File, keteranganProgres?: string) => {
         const formData = new FormData();
         formData.append("file", file);
+        if (keteranganProgres) formData.append("keteranganProgres", keteranganProgres);
+        
         const response = await client.post(`/bimbingan/upload-mahasiswa/${id}`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
@@ -53,6 +59,26 @@ export const bimbinganApi = {
         const response = await client.post(`/bimbingan/upload-dosen/${id}`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
+        return response.data;
+    },
+
+    // Get History of Bimbingan Versions
+    getBimbinganHistory: async (mahasiswaId: number, topik: string) => {
+        const response = await client.get(`/bimbingan/history/${mahasiswaId}/${encodeURIComponent(topik)}`);
+        return response.data;
+    },
+
+    // Annotations CRUD
+    createAnnotation: async (data: any) => {
+        const response = await client.post('/bimbingan/annotations', data);
+        return response.data;
+    },
+    getAnnotations: async (bimbinganId: number) => {
+        const response = await client.get(`/bimbingan/annotations/${bimbinganId}`);
+        return response.data;
+    },
+    deleteAnnotation: async (id: number) => {
+        const response = await client.delete(`/bimbingan/annotations/${id}`);
         return response.data;
     }
 };

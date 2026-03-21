@@ -48,6 +48,7 @@
     "react-day-picker": "^9.11.3",
     "react-dom": "^19.1.0",
     "react-i18next": "^15.6.1",
+    "react-pdf-highlighter": "^6.1.0",
     "react-router": "^7.7.1",
     "remix-i18next": "^7.2.1",
     "socket.io-client": "^4.8.3",
