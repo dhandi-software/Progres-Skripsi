@@ -184,6 +184,17 @@ export function useChat() {
         };
         const validContacts = Array.isArray(data) ? data : [];
         setContacts([publicRoom, ...validContacts]);
+
+        const initialUnread: Record<string | number, number> = {};
+        if (!Array.isArray(response) && response.publicUnreadCount) {
+            initialUnread[0] = response.publicUnreadCount;
+        }
+        validContacts.forEach((c: any) => {
+            if (c.unreadCount) {
+                initialUnread[c.id] = c.unreadCount;
+            }
+        });
+        setUnreadCounts(initialUnread);
     } catch (error) {
         console.error(error);
     }

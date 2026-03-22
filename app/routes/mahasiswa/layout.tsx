@@ -15,6 +15,7 @@ import { RoleGuard } from "~/routes/RoleGuard";
 import { useAuth } from "~/hooks/useAuth";
 import type { ContextType } from "~/root";
 import { chatService } from "~/services/chatService";
+import { bimbinganApi } from "~/api/bimbinganApi";
 import React from "react";
 
 import { SidebarProvider, Sidebar, SidebarContent, useSidebar, SidebarTrigger } from "~/components/ui/sidebar";
@@ -97,19 +98,35 @@ export function AppSidebar() {
   const active = pathToKey(location.pathname) ?? "dashboard";
   const { user } = useAuth(); // Needed for ID
   const [unreadCount, setUnreadCount] = React.useState(0);
+  const [bimbinganBadgeCount, setBimbinganBadgeCount] = React.useState(0);
 
   React.useEffect(() => {
     if (!user) return;
-    const fetchUnread = async () => {
+    const fetchData = async () => {
       try {
         const data = await chatService.getUnreadCount(user.id);
         setUnreadCount(data.count || 0);
+
+        const tasks = await bimbinganApi.getBimbinganByMahasiswa(user.id);
+        if (tasks && Array.isArray(tasks)) {
+            const grouped = tasks.reduce((acc: any, task: any) => {
+                if (!acc[task.topik] || task.versi > acc[task.topik].versi) acc[task.topik] = task;
+                return acc;
+            }, {});
+            const uniqueTasks: any[] = Object.values(grouped);
+            const active = uniqueTasks.find((t: any) => t.status !== 'APPROVED');
+            if (active && (active.status === 'ASSIGNED' || active.status === 'REVISION')) {
+                setBimbinganBadgeCount(1);
+            } else {
+                setBimbinganBadgeCount(0);
+            }
+        }
       } catch (error) {
-        console.error("Failed to fetch unread chat count:", error);
+        console.error("Failed to fetch sidebar counts:", error);
       }
     };
-    fetchUnread();
-    const intervalId = setInterval(fetchUnread, 30000);
+    fetchData();
+    const intervalId = setInterval(fetchData, 30000);
     return () => clearInterval(intervalId);
   }, [user]);
 
@@ -174,6 +191,11 @@ export function AppSidebar() {
                       >
                         {item.title}
                       </span>
+                      {item.key === "bimbingan" && bimbinganBadgeCount > 0 && (
+                        <div className="bg-[#D25026] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
+                          {bimbinganBadgeCount}
+                        </div>
+                      )}
                       {item.key === "chat" && unreadCount > 0 && (
                         <div className="bg-[#00a884] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
                           {unreadCount}

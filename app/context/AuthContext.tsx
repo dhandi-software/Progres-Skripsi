@@ -103,7 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Optimistic UI update: clear local state immediately
     localStorage.removeItem("user");
     setUser(null);
-    navigate("/login", { replace: true });
+    navigate("/", { replace: true });
 
     // Fire and forget the backend logout
     try {

@@ -95,7 +95,11 @@ const SharedPdfViewerComponent: React.FC<SharedPdfViewerProps> = ({
     };
 
     const handleScrollChange = useCallback(() => {}, []);
-    const handleScrollRef = useCallback(() => {}, []);
+    
+    const scrollViewerTo = useRef<any>(null);
+    const handleScrollRef = useCallback((scrollTo: any) => {
+        scrollViewerTo.current = scrollTo;
+    }, []);
 
     return (
         <div className="flex flex-col md:flex-row h-[70vh] w-full border border-gray-200 rounded-xl overflow-hidden bg-gray-50 shadow-inner">
@@ -184,7 +188,11 @@ const SharedPdfViewerComponent: React.FC<SharedPdfViewerProps> = ({
                     <div className="text-gray-400 text-xs italic text-center mt-10">Belum ada coretan/anotasi</div>
                 ) : (
                     highlights.map((h, i) => (
-                        <div key={h.id || i} className="p-3 bg-orange-50/50 border border-orange-100 rounded-xl relative group">
+                        <div 
+                            key={h.id || i} 
+                            onClick={() => scrollViewerTo.current && scrollViewerTo.current(h)}
+                            className="p-3 bg-orange-50/50 border border-orange-100 rounded-xl relative group cursor-pointer hover:bg-orange-100/50 transition-colors"
+                        >
                             {h.content?.text && (
                                 <blockquote className="border-l-2 border-orange-400 pl-2 text-xs text-gray-500 italic mb-2 line-clamp-3">
                                     "{h.content.text}"
@@ -195,7 +203,10 @@ const SharedPdfViewerComponent: React.FC<SharedPdfViewerProps> = ({
                             </div>
                             {!readOnly && onDeleteHighlight && (
                                 <button 
-                                    onClick={() => onDeleteHighlight(h.id)}
+                                    onClick={(e) => { 
+                                        e.stopPropagation();
+                                        onDeleteHighlight(h.id); 
+                                    }}
                                     className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-all"
                                 >
                                     <Trash2 className="w-3.5 h-3.5" />

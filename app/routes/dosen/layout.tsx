@@ -1,6 +1,7 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router";
 import { pengajuanApi } from "~/api/pengajuan";
+import { bimbinganApi } from "~/api/bimbinganApi";
 import {
   LayoutDashboard,
   LogOut,
@@ -100,6 +101,7 @@ export function AppSidebar() {
   // Fetch pending pengajuan count and unread chat count
   const [pendingCount, setPendingCount] = React.useState(0);
   const [unreadCount, setUnreadCount] = React.useState(0);
+  const [bimbinganBadgeCount, setBimbinganBadgeCount] = React.useState(0);
 
   React.useEffect(() => {
     const fetchPendingCount = async () => {
@@ -124,14 +126,37 @@ export function AppSidebar() {
       }
     };
 
+    const fetchBimbinganBadge = async () => {
+      try {
+        const students = await bimbinganApi.getDosenBimbinganStudents();
+        let count = 0;
+        if (students && Array.isArray(students)) {
+            students.forEach((student: any) => {
+                const bimbinganList = student.mahasiswa?.bimbingan || [];
+                if (bimbinganList.length > 0) {
+                    const activeTask = bimbinganList[0];
+                    if (activeTask.status === 'SUBMITTED' || activeTask.status === 'REVISION') {
+                        count++;
+                    }
+                }
+            });
+        }
+        setBimbinganBadgeCount(count);
+      } catch (error) {
+        console.error("Failed to fetch bimbingan badge:", error);
+      }
+    };
+
     // Initial fetch
     fetchPendingCount();
     fetchUnread();
+    fetchBimbinganBadge();
     
     // Setup interval to periodically check (optional, but good for real-time feel)
     const intervalId = setInterval(() => {
         fetchPendingCount();
         fetchUnread();
+        fetchBimbinganBadge();
     }, 30000); // Check every 30s
     return () => clearInterval(intervalId);
   }, [user]);
@@ -200,6 +225,11 @@ export function AppSidebar() {
                         </span>
                       </div>
                       
+                      {item.key === "bimbingan" && bimbinganBadgeCount > 0 && (
+                        <div className="bg-[#D25026] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
+                          {bimbinganBadgeCount}
+                        </div>
+                      )}
                       {item.key === "peninjauan" && pendingCount > 0 && (
                         <div className="bg-[#D25026] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
                           {pendingCount}

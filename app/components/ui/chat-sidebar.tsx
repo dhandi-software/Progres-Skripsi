@@ -73,11 +73,16 @@ export function ChatSidebar({ contacts, activeContact, onSelectContact, unreadCo
         if (!currentUser) return "DA";
         const name = currentUser.dosen?.nama || currentUser.mahasiswa?.nama || currentUser.username || "Dhandi Adam";
         
-        // If the resulting name is just numbers (NIMs), fallback to DA
         if (/^\d+$/.test(name)) return "DA";
         
         return name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
     };
+
+    const sortedFilteredContacts = [...filteredContacts].sort((a, b) => {
+        const timeA = a.lastMessage ? new Date(a.lastMessage.createdAt).getTime() : 0;
+        const timeB = b.lastMessage ? new Date(b.lastMessage.createdAt).getTime() : 0;
+        return timeB - timeA;
+    });
 
     return (
         <div className="w-80 border-r border-[#d1d7db] bg-white flex flex-col h-full">
@@ -125,13 +130,13 @@ export function ChatSidebar({ contacts, activeContact, onSelectContact, unreadCo
             </div>
             
             <div className="flex-1 overflow-y-auto custom-scrollbar">
-                {filteredContacts.length === 0 ? (
+                {sortedFilteredContacts.length === 0 ? (
                     <div className="p-8 text-center text-[#8696a0] text-sm">
                         {searchQuery ? "Kontak tidak ditemukan" : "Tidak ada kontak"}
                     </div>
                 ) : (
                     <div className="flex flex-col">
-                        {filteredContacts.map((contact) => {
+                        {sortedFilteredContacts.map((contact) => {
                             const unread = unreadCounts?.[contact.id] || 0;
                             const { initials, color, image } = getAvatarDetails(contact);
                             

@@ -32,9 +32,24 @@ export const bimbinganApi = {
         return response.data;
     },
 
+    // Edit an active assigned task
+    editBimbinganTask: async (id: number, topik: string, jadwalBimbingan?: Date) => {
+        const response = await client.put(`/bimbingan/edit-task/${id}`, {
+            topik,
+            jadwalBimbingan: jadwalBimbingan ? jadwalBimbingan.toISOString() : undefined
+        });
+        return response.data;
+    },
+
     // New Mahasiswa endpoint for currently active task
     getMahasiswaActiveTask: async () => {
         const response = await client.get("/bimbingan/mahasiswa-active-task");
+        return response.data;
+    },
+
+    // Get all tasks for Mahasiswa
+    getMahasiswaAllTasks: async () => {
+        const response = await client.get("/bimbingan/mahasiswa-all-tasks");
         return response.data;
     },
 

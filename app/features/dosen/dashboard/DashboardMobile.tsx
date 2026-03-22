@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useAuth } from "~/hooks/useAuth";
 import { useNavigate } from "react-router";
 import { pengajuanApi } from "~/api/pengajuan";
+import { bimbinganApi } from "~/api/bimbinganApi";
+import { chatService } from "~/services/chatService";
 import { 
     FileText, 
     CheckCircle, 
@@ -16,15 +18,64 @@ export function DashboardMobile() {
     const [activities, setActivities] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const [activeBimbinganCount, setActiveBimbinganCount] = useState(0);
+    const [unreadMessages, setUnreadMessages] = useState(0);
+
     useEffect(() => {
-        pengajuanApi.getPengajuanByDosen().then((data) => {
-            if (data && Array.isArray(data)) {
-                const sorted = data.sort((a: any, b: any) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
-                setActivities(sorted);
+        const fetchAll = async () => {
+            try {
+                let allActs: any[] = [];
+                // Pengajuan
+                const pengajuanData = await pengajuanApi.getPengajuanByDosen();
+                if (pengajuanData && Array.isArray(pengajuanData)) {
+                    allActs = pengajuanData.map(p => ({
+                        type: 'pengajuan',
+                        status: p.status,
+                        nama: p.mahasiswa?.nama || "Mahasiswa",
+                        judul: p.judul,
+                        tanggal: p.tanggal,
+                        raw: p
+                    }));
+                }
+
+                // Chat
+                if (user?.id) {
+                    const chatData = await chatService.getUnreadCount(user.id);
+                    setUnreadMessages(chatData.count || 0);
+                }
+
+                // Bimbingan
+                const bimbinganData = await bimbinganApi.getDosenBimbinganStudents();
+                if (bimbinganData && Array.isArray(bimbinganData)) {
+                    setActiveBimbinganCount(bimbinganData.length);
+                    bimbinganData.forEach((student: any) => {
+                        const bimbinganList = student.mahasiswa?.bimbingan || [];
+                        if (bimbinganList.length > 0) {
+                            const activeTask = bimbinganList[0];
+                            if (activeTask.status === 'SUBMITTED') {
+                                allActs.push({
+                                    type: 'bimbingan',
+                                    status: activeTask.status,
+                                    nama: student.mahasiswa?.nama || "Mahasiswa",
+                                    judul: `Telah mengupload tugas/revisi Bimbingan: ${activeTask.topik}`,
+                                    tanggal: activeTask.tanggal,
+                                    raw: activeTask
+                                });
+                            }
+                        }
+                    });
+                }
+                const sortedActs = allActs.sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
+                setActivities(sortedActs);
+
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
             }
-        }).catch(err => console.error(err))
-          .finally(() => setLoading(false));
-    }, []);
+        };
+        fetchAll();
+    }, [user?.id]);
 
     const getIconColor = (status: string) => {
         switch (status) {
@@ -34,7 +85,8 @@ export function DashboardMobile() {
         }
     };
 
-    const getStatusText = (status: string) => {
+    const getStatusText = (status: string, type: string) => {
+        if (type === 'bimbingan') return "Koreksi";
         switch (status) {
             case 'APPROVED': return "Disetujui";
             case 'PENDING': return "Pending";
@@ -42,8 +94,7 @@ export function DashboardMobile() {
         }
     };
 
-    const pendingCount = activities.filter(a => a.status === 'PENDING').length;
-    const approvedCount = activities.filter(a => a.status === 'APPROVED').length;
+    const pendingCount = activities.filter(a => a.type === 'pengajuan' && a.status === 'PENDING').length;
 
     return (
         <div className="p-4 space-y-6 font-geist pb-20">
@@ -77,14 +128,14 @@ export function DashboardMobile() {
                     <span className="text-gray-400 text-xs font-medium uppercase">Mhs Bimbingan</span>
                     <div className="flex items-center gap-2 mt-1">
                         <UsersIcon className="w-4 h-4 text-green-600" />
-                        <span className="text-lg font-bold text-gray-800">{approvedCount}</span>
+                        <span className="text-lg font-bold text-gray-800">{activeBimbinganCount}</span>
                     </div>
                 </div>
                 <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm" onClick={() => navigate("/dosen/chat")}>
                     <span className="text-gray-400 text-xs font-medium uppercase">Pesan Masuk</span>
                     <div className="flex items-center gap-2 mt-1">
                         <MessageSquare className="w-4 h-4 text-purple-600" />
-                        <span className="text-lg font-bold text-gray-800">Cek</span>
+                        <span className="text-lg font-bold text-gray-800">{unreadMessages || 0}</span>
                     </div>
                 </div>
             </div>
@@ -105,7 +156,7 @@ export function DashboardMobile() {
                                 <div className="flex items-center gap-2 mb-1">
                                     <div className={`w-2 h-2 rounded-full ${getIconColor(item.status)}`} />
                                     <span className="text-sm font-bold text-gray-900 truncate flex-1">
-                                        {item.mahasiswa?.nama || "Mahasiswa"}
+                                        {item.type === 'bimbingan' ? `Bimbingan Draf - ${item.nama}` : `Pengajuan Judul - ${item.nama}`}
                                     </span>
                                 </div>
                                 <span className="text-xs text-gray-500 line-clamp-1">{item.judul}</span>
@@ -114,7 +165,7 @@ export function DashboardMobile() {
                                          {new Date(item.tanggal).toLocaleDateString('id-ID', { month: 'short', day: 'numeric' })}
                                      </span>
                                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                         {getStatusText(item.status)}
+                                         {getStatusText(item.status, item.type)}
                                      </span>
                                 </div>
                             </div>

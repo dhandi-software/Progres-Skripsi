@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { pengajuanApi } from "~/api/pengajuan";
+import { bimbinganApi } from "~/api/bimbinganApi";
+import { chatService } from "~/services/chatService";
 import { useAuth } from "~/hooks/useAuth";
 import { useNavigate } from "react-router";
 import { 
@@ -18,15 +20,78 @@ export function DashboardDesktop({ title }: { title: string }) {
     const [activities, setActivities] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const [activeBimbinganCount, setActiveBimbinganCount] = useState(0);
+    const [thisWeekScheduleCount, setThisWeekScheduleCount] = useState(0);
+    const [unreadMessages, setUnreadMessages] = useState(0);
+
     useEffect(() => {
-        pengajuanApi.getPengajuanByDosen().then((data) => {
-            if (data && Array.isArray(data)) {
-                const sorted = data.sort((a: any, b: any) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
-                setActivities(sorted);
+        const fetchAll = async () => {
+            try {
+                let allActs: any[] = [];
+                // Pengajuan
+                const pengajuanData = await pengajuanApi.getPengajuanByDosen();
+                if (pengajuanData && Array.isArray(pengajuanData)) {
+                    allActs = pengajuanData.map(p => ({
+                        type: 'pengajuan',
+                        status: p.status,
+                        nama: p.mahasiswa?.nama || "Mahasiswa",
+                        judul: p.judul,
+                        tanggal: p.tanggal,
+                        raw: p
+                    }));
+                }
+
+                // Chat
+                if (user?.id) {
+                    const chatData = await chatService.getUnreadCount(user.id);
+                    setUnreadMessages(chatData.count || 0);
+                }
+
+                // Bimbingan
+                const bimbinganData = await bimbinganApi.getDosenBimbinganStudents();
+                if (bimbinganData && Array.isArray(bimbinganData)) {
+                    setActiveBimbinganCount(bimbinganData.length);
+                    // Calculate "Jadwal Minggu Ini"
+                    let scheduleCount = 0;
+                    const now = new Date();
+                    const oneWeekLater = new Date();
+                    oneWeekLater.setDate(now.getDate() + 7);
+                    
+                    bimbinganData.forEach((student: any) => {
+                        const bimbinganList = student.mahasiswa?.bimbingan || [];
+                        if (bimbinganList.length > 0) {
+                            const activeTask = bimbinganList[0];
+                            if (activeTask.jadwalBimbingan && activeTask.status !== 'APPROVED') {
+                                const jadwal = new Date(activeTask.jadwalBimbingan);
+                                if (jadwal >= now && jadwal <= oneWeekLater) {
+                                    scheduleCount++;
+                                }
+                            }
+                            if (activeTask.status === 'SUBMITTED') {
+                                allActs.push({
+                                    type: 'bimbingan',
+                                    status: activeTask.status,
+                                    nama: student.mahasiswa?.nama || "Mahasiswa",
+                                    judul: `Telah mengupload tugas/revisi Bimbingan: ${activeTask.topik}`,
+                                    tanggal: activeTask.tanggal,
+                                    raw: activeTask
+                                });
+                            }
+                        }
+                    });
+                    setThisWeekScheduleCount(scheduleCount);
+                }
+                const sortedActs = allActs.sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
+                setActivities(sortedActs);
+
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
             }
-        }).catch(err => console.error(err))
-          .finally(() => setLoading(false));
-    }, []);
+        };
+        fetchAll();
+    }, [user?.id]);
 
     const getIcon = (status: string) => {
         switch (status) {
@@ -44,7 +109,8 @@ export function DashboardDesktop({ title }: { title: string }) {
         }
     };
 
-    const getStatusText = (status: string) => {
+    const getStatusText = (status: string, type: string) => {
+        if (type === 'bimbingan') return "Menunggu Penilaian";
         switch (status) {
             case 'APPROVED': return "Telah Disetujui";
             case 'PENDING': return "Menunggu Peninjauan";
@@ -52,8 +118,37 @@ export function DashboardDesktop({ title }: { title: string }) {
         }
     };
 
-    const pendingCount = activities.filter(a => a.status === 'PENDING').length;
-    const approvedCount = activities.filter(a => a.status === 'APPROVED').length;
+    const pendingCount = activities.filter(a => a.type === 'pengajuan' && a.status === 'PENDING').length;
+    const statsConfig = [
+        {
+            title: "Menunggu Peninjauan",
+            value: `${pendingCount} Usulan`,
+            icon: Clock,
+            color: "text-blue-600",
+            bg: "bg-blue-50",
+        },
+        {
+            title: "Bimbingan Aktif",
+            value: `${activeBimbinganCount} Mhs`,
+            icon: UsersIcon,
+            color: "text-green-600",
+            bg: "bg-green-50",
+        },
+        {
+            title: "Jadwal 7 Hari Kedepan",
+            value: `${thisWeekScheduleCount} Sesi`,
+            icon: Calendar,
+            color: "text-orange-600",
+            bg: "bg-orange-50",
+        },
+        {
+            title: "Pesan Masuk",
+            value: `${unreadMessages} Baru`,
+            icon: MessageSquare,
+            color: "text-purple-600",
+            bg: "bg-purple-50",
+        },
+    ];
 
     return (
         <div className="p-6 lg:p-10 space-y-8 font-geist overflow-y-auto max-h-screen">
@@ -74,36 +169,7 @@ export function DashboardDesktop({ title }: { title: string }) {
 
             {/* Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[
-                    {
-                        title: "Menunggu Peninjauan",
-                        value: `${pendingCount} Usulan`,
-                        icon: Clock,
-                        color: "text-blue-600",
-                        bg: "bg-blue-50",
-                    },
-                    {
-                        title: "Bimbingan Aktif",
-                        value: `${approvedCount} Mhs`,
-                        icon: UsersIcon,
-                        color: "text-green-600",
-                        bg: "bg-green-50",
-                    },
-                    {
-                        title: "Jadwal Minggu Ini",
-                        value: "2 Sesi",
-                        icon: Calendar,
-                        color: "text-orange-600",
-                        bg: "bg-orange-50",
-                    },
-                    {
-                        title: "Pesan Masuk",
-                        value: "3 Baru",
-                        icon: MessageSquare,
-                        color: "text-purple-600",
-                        bg: "bg-purple-50",
-                    },
-                ].map((stat, i) => (
+                {statsConfig.map((stat, i) => (
                     <div
                         key={i}
                         className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
@@ -152,7 +218,7 @@ export function DashboardDesktop({ title }: { title: string }) {
                                     </div>
                                     <div className="flex-1">
                                         <h4 className="font-semibold text-gray-900">
-                                            Pengajuan Judul - {item.mahasiswa?.nama || "Mahasiswa"}
+                                            {item.type === 'bimbingan' ? `Bimbingan Draf - ${item.nama}` : `Pengajuan Judul - ${item.nama}`}
                                         </h4>
                                         <p className="text-sm text-gray-500 mt-1">
                                             {item.judul}
@@ -161,7 +227,7 @@ export function DashboardDesktop({ title }: { title: string }) {
                                             <Clock className="w-3 h-3" />{" "}
                                             {new Date(item.tanggal).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })} 
                                             <span className="mx-1">•</span>
-                                            {getStatusText(item.status)}
+                                            {getStatusText(item.status, item.type)}
                                         </span>
                                     </div>
                                 </div>

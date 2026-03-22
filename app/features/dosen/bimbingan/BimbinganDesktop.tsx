@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { bimbinganApi } from "~/api/bimbinganApi";
-import { Users, FileText, Send, Loader2, BookOpen, AlertCircle, FileStack, X, Upload, Download, Eye } from "lucide-react";
+import { Users, FileText, Send, Loader2, BookOpen, AlertCircle, FileStack, X, Upload, Download, Eye, Clock, CalendarIcon } from "lucide-react";
 import { CustomSelect } from "~/components/ui/custom-select";
 import { Toast } from "~/components/ui/toast";
-import { lazy, Suspense } from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
+import { Calendar } from "~/components/ui/calendar";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext } from "~/components/ui/pagination";
 
 // Use dynamic import for client-side only component
 const SharedPdfViewer = lazy(() => import('../../components/SharedPdfViewer.client').then(m => ({ default: m.SharedPdfViewer })));
@@ -51,8 +53,24 @@ export function BimbinganDesktop() {
     const [selectedSchedules, setSelectedSchedules] = useState<{[key: number]: string}>({});
     const [toastProps, setToastProps] = useState<{title: string, variant?: "success" | "destructive" | "default"} | null>(null);
 
+    // List Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 5;
+
+    const totalPages = Math.ceil(students.length / ITEMS_PER_PAGE);
+    const paginatedStudents = students.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+    // Detail View State
+    const [selectedStudent, setSelectedStudent] = useState<any>(null);
+    const [activeTab, setActiveTab] = useState<"aktif" | "riwayat">("aktif");
+    const [studentActiveTask, setStudentActiveTask] = useState<any>(null);
+    const [completedTasks, setCompletedTasks] = useState<any[]>([]);
+    const [studentLoading, setStudentLoading] = useState(false);
+    const [isEditingTask, setIsEditingTask] = useState(false);
+
     // Review Modal State
     const [reviewingTask, setReviewingTask] = useState<any>(null);
+    const [viewingTaskTopik, setViewingTaskTopik] = useState("");
     const [reviewFile, setReviewFile] = useState<File | null>(null);
     const [reviewCatatan, setReviewCatatan] = useState("");
     const [reviewStatus, setReviewStatus] = useState("REVISION");
@@ -79,6 +97,42 @@ export function BimbinganDesktop() {
         fetchStudents();
     }, []);
 
+    const fetchStudentTasks = async (mahasiswaId: number) => {
+        setStudentLoading(true);
+        try {
+            const tasks = await bimbinganApi.getBimbinganByMahasiswa(mahasiswaId);
+            const grouped = tasks.reduce((acc: any, task: any) => {
+                if (!acc[task.topik] || task.versi > acc[task.topik].versi) {
+                    acc[task.topik] = task;
+                }
+                return acc;
+            }, {});
+            const uniqueTasks: any[] = Object.values(grouped);
+            const active = uniqueTasks.find((t: any) => t.status !== 'APPROVED');
+            const completed = uniqueTasks.filter((t: any) => t.status === 'APPROVED');
+            
+            setStudentActiveTask(active || null);
+            setCompletedTasks(completed);
+
+            if (active) {
+                setHistory(tasks.filter((t: any) => t.topik === active.topik).sort((a: any, b: any) => b.versi - a.versi));
+            } else {
+                setHistory([]);
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setStudentLoading(false);
+        }
+    };
+
+    const handleStudentClick = (student: any) => {
+        setSelectedStudent(student);
+        setActiveTab("aktif");
+        setIsEditingTask(false);
+        fetchStudentTasks(student.mahasiswa.id);
+    };
+
     const handleAssign = async (mahasiswaId: number) => {
         const task = selectedTasks[mahasiswaId];
         const schedule = selectedSchedules[mahasiswaId];
@@ -93,16 +147,25 @@ export function BimbinganDesktop() {
 
         setAssigningId(mahasiswaId);
         try {
-            await bimbinganApi.assignBimbinganTask(mahasiswaId, task, new Date(schedule));
-            showToast("Tugas berhasil diberikan!", "success");
+            if (isEditingTask && studentActiveTask) {
+                await bimbinganApi.editBimbinganTask(studentActiveTask.id, task, new Date(schedule));
+                showToast("Target progres berhasil diperbarui!", "success");
+            } else {
+                await bimbinganApi.assignBimbinganTask(mahasiswaId, task, new Date(schedule));
+                showToast("Target progres berhasil diberikan!", "success");
+            }
             // Refresh list
             fetchStudents();
+            if (selectedStudent) {
+                fetchStudentTasks(selectedStudent.mahasiswa.id);
+            }
             // Clear selection
             setSelectedTasks(prev => ({ ...prev, [mahasiswaId]: "" }));
             setSelectedSchedules(prev => ({ ...prev, [mahasiswaId]: "" }));
+            setIsEditingTask(false);
         } catch (error) {
             console.error("Failed to assign:", error);
-            showToast("Gagal memberikan tugas", "destructive");
+            showToast(isEditingTask ? "Gagal memperbarui target" : "Gagal memberikan target", "destructive");
         } finally {
             setAssigningId(null);
         }
@@ -117,14 +180,15 @@ export function BimbinganDesktop() {
         { label: "Laporan Akhir (Finalisasi)", value: "Laporan Akhir (Finalisasi)" },
     ];
 
-    const handleOpenReview = async (task: any) => {
+    const handleOpenReview = async (task: any, isReadOnly: boolean = false) => {
         setReviewingTask(task);
         if (task.catatan && task.catatan !== "Task Assigned") {
             setReviewCatatan(task.catatan);
         } else {
             setReviewCatatan("");
         }
-        setReviewStatus("REVISION");
+        setViewingTaskTopik(task.topik);
+        setReviewStatus(isReadOnly ? task.status : "REVISION");
         setReviewFile(null);
         setAnnotations([]);
         
@@ -139,7 +203,10 @@ export function BimbinganDesktop() {
             });
             setAnnotations(formatted);
 
+            // Fetch history for modal sidebar timeline
             const dataHistory = await bimbinganApi.getBimbinganHistory(task.mahasiswaId, task.topik);
+            // Replace full task history locally so modal shows only for the topic
+            // Note: Since we only review one topic at a time, this aligns perfectly
             setHistory(dataHistory);
         } catch (error) {
             console.error(error);
@@ -179,6 +246,9 @@ export function BimbinganDesktop() {
             showToast("Hasil reviu berhasil disimpan!", "success");
             setReviewingTask(null);
             fetchStudents();
+            if (selectedStudent) {
+                fetchStudentTasks(selectedStudent.mahasiswa.id);
+            }
         } catch (error) {
             console.error(error);
             showToast("Gagal menyimpan reviu", "destructive");
@@ -219,136 +289,439 @@ export function BimbinganDesktop() {
             </div>
 
             {/* Main Content */}
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
-                            <Users className="w-5 h-5" />
+            {!selectedStudent ? (
+                <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+                                <Users className="w-5 h-5" />
+                            </div>
+                            <h2 className="text-lg font-bold text-gray-800">
+                                Daftar Mahasiswa Bimbingan ({students.length})
+                            </h2>
                         </div>
-                        <h2 className="text-lg font-bold text-gray-800">
-                            Daftar Mahasiswa Bimbingan ({students.length})
-                        </h2>
                     </div>
-                </div>
 
-                {students.length === 0 ? (
-                    <div className="p-12 text-center flex flex-col items-center">
-                        <Users className="w-16 h-16 text-gray-200 mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-1">Belum ada mahasiswa</h3>
-                        <p className="text-gray-500 text-sm ">
-                            Saat judul pengajuan disetujui, mahasiswa otomatis masuk ke daftar ini.
-                        </p>
-                    </div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500 font-semibold">
-                                    <th className="p-4 pl-6 w-1/4">Nama & NIM</th>
-                                    <th className="p-4 w-1/3">Judul Disetujui</th>
-                                    <th className="p-4 w-1/4">Target Saat Ini</th>
-                                    <th className="p-4 pr-6 text-right w-[200px]">Aksi Penugasan</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50">
-                                {students.map((pengajuan, idx) => {
-                                    const mhs = pengajuan.mahasiswa;
-                                    const bimbinganList = mhs.bimbingan || [];
-                                    const activeTask = bimbinganList.length > 0 ? bimbinganList[0] : null;
+                    {students.length === 0 ? (
+                        <div className="p-12 text-center flex flex-col items-center">
+                            <Users className="w-16 h-16 text-gray-200 mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 mb-1">Belum ada mahasiswa</h3>
+                            <p className="text-gray-500 text-sm ">
+                                Saat judul pengajuan disetujui, mahasiswa otomatis masuk ke daftar ini.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500 font-semibold">
+                                        <th className="p-4 pl-6 w-1/4">Nama & NIM</th>
+                                        <th className="p-4 w-1/3">Judul Disetujui</th>
+                                        <th className="p-4 w-1/4">Target Saat Ini</th>
+                                        <th className="p-4 pr-6 text-right w-[150px]">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {paginatedStudents.map((pengajuan, idx) => {
+                                        const mhs = pengajuan.mahasiswa;
+                                        const bimbinganList = mhs.bimbingan || [];
+                                        const activeTask = bimbinganList.length > 0 ? bimbinganList[0] : null;
 
-                                    return (
-                                        <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
-                                            <td className="p-4 pl-6 align-top">
-                                                <div className="font-bold text-gray-900">{mhs.nama}</div>
-                                                <div className="text-xs text-gray-500 font-mono mt-0.5">{mhs.nim}</div>
-                                            </td>
-                                            <td className="p-4 align-top">
-                                                <p className="text-sm font-medium text-gray-700 line-clamp-3 leading-relaxed">
-                                                    {pengajuan.judul}
-                                                </p>
-                                            </td>
-                                            <td className="p-4 align-top">
-                                                {activeTask ? (
-                                                    <div className="flex flex-col gap-1.5">
-                                                        <span className="inline-flex max-w-fit px-2.5 py-1 bg-orange-50 text-orange-700 border border-orange-100 rounded-md text-xs font-semibold shadow-sm">
-                                                            {activeTask.topik}
-                                                        </span>
-                                                        <div className="grid grid-cols-2 gap-2 mt-2 w-full text-[10px]">
-                                                            <div className="bg-gray-50 rounded p-1.5 border border-gray-100">
-                                                                <span className="text-gray-400 block mb-0.5">Pengajuan</span>
-                                                                <span className="font-bold text-gray-700">{getStatusPengajuan(activeTask.status)}</span>
+                                        return (
+                                            <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
+                                                <td className="p-4 pl-6 align-top">
+                                                    <div className="font-bold text-gray-900 flex items-center gap-2">
+                                                        {mhs.nama}
+                                                        {activeTask?.status === 'SUBMITTED' && (
+                                                            <span className="bg-red-100 text-red-700 text-[10px] px-2 py-0.5 rounded-md leading-none border border-red-200 uppercase font-bold tracking-wider animate-pulse">Perlu Reviu</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500 font-mono mt-0.5">{mhs.nim}</div>
+                                                </td>
+                                                <td className="p-4 align-top">
+                                                    <p className="text-sm font-medium text-gray-700 line-clamp-3 leading-relaxed">
+                                                        {pengajuan.judul}
+                                                    </p>
+                                                </td>
+                                                <td className="p-4 align-top">
+                                                    {activeTask ? (
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center shrink-0 border border-orange-100">
+                                                                <FileText className="w-5 h-5 text-orange-500" />
                                                             </div>
-                                                            <div className="bg-gray-50 rounded p-1.5 border border-gray-100">
-                                                                <span className="text-gray-400 block mb-0.5">Penilaian</span>
-                                                                <span className="font-bold text-gray-700">{getStatusPenilaian(activeTask.status)}</span>
-                                                            </div>
-                                                            <div className="bg-gray-50 rounded p-1.5 border border-gray-100">
-                                                                <span className="text-gray-400 block mb-0.5">Waktu Tersisa</span>
-                                                                <span className={`font-bold ${getTimeRemaining(activeTask.jadwalBimbingan).isLate ? 'text-red-600' : getTimeRemaining(activeTask.jadwalBimbingan).isWarning ? 'text-orange-600' : 'text-gray-700'}`}>
-                                                                    {getTimeRemaining(activeTask.jadwalBimbingan).text}
+                                                            <div className="flex flex-col">
+                                                                <span className="text-sm font-bold text-gray-900 leading-tight mb-1">{activeTask.topik}</span>
+                                                                <span className="text-xs text-gray-500 font-medium flex items-center gap-1.5">
+                                                                    <span className={`w-1.5 h-1.5 rounded-full ${activeTask.status === 'APPROVED' ? 'bg-green-500' : 'bg-orange-500'}`} />
+                                                                    {getStatusPenilaian(activeTask.status)}
                                                                 </span>
                                                             </div>
-                                                            <div className="bg-gray-50 rounded p-1.5 border border-gray-100">
-                                                                <span className="text-gray-400 block mb-0.5">Terakhir Diubah</span>
-                                                                <span className="font-bold text-gray-700">{new Date(activeTask.tanggal).toLocaleDateString('id-ID')}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-xs text-gray-400 italic bg-gray-50 py-1.5 px-3 border border-gray-100 rounded-md">Belum ada target aktif</span>
+                                                    )}
+                                                </td>
+                                                <td className="p-4 pr-6 align-top text-right">
+                                                    <button 
+                                                        onClick={() => handleStudentClick(pengajuan)}
+                                                        className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700 text-xs font-bold rounded-lg transition-all shadow-sm active:scale-95"
+                                                    >
+                                                        Lihat Detail
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                    {totalPages > 1 && !selectedStudent && (
+                        <div className="p-4 border-t border-gray-100 flex justify-end">
+                            <Pagination>
+                                <PaginationContent>
+                                    <PaginationItem>
+                                        <PaginationPrevious 
+                                            href="#" 
+                                            onClick={(e) => { e.preventDefault(); setCurrentPage(p => Math.max(1, p - 1)) }}
+                                            className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                                        />
+                                    </PaginationItem>
+                                    {Array.from({length: totalPages}).map((_, i) => (
+                                        <PaginationItem key={i}>
+                                            <PaginationLink 
+                                                href="#" 
+                                                isActive={currentPage === i + 1}
+                                                onClick={(e) => { e.preventDefault(); setCurrentPage(i + 1) }}
+                                            >
+                                                {i + 1}
+                                            </PaginationLink>
+                                        </PaginationItem>
+                                    ))}
+                                    <PaginationItem>
+                                        <PaginationNext 
+                                            href="#" 
+                                            onClick={(e) => { e.preventDefault(); setCurrentPage(p => Math.min(totalPages, p + 1)) }}
+                                            className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                                        />
+                                    </PaginationItem>
+                                </PaginationContent>
+                            </Pagination>
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="p-6 border-b border-gray-100 flex items-center gap-4 bg-white relative">
+                        <button 
+                            onClick={() => setSelectedStudent(null)}
+                            className="p-2 hover:bg-gray-100 text-gray-500 rounded-xl transition-colors shrink-0"
+                            title="Kembali ke daftar"
+                        >
+                            <span className="font-bold">&larr; Kembali</span>
+                        </button>
+                        <div className="h-8 w-px bg-gray-200 hidden sm:block"></div>
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900 leading-tight">Detail Bimbingan: {selectedStudent.mahasiswa.nama}</h2>
+                            <p className="text-sm text-gray-500 mt-1">{selectedStudent.mahasiswa.nim} — {selectedStudent.judul}</p>
+                        </div>
+                    </div>
+
+                    <div className="bg-white px-8 border-b border-gray-200 flex space-x-6">
+                        <button
+                            onClick={() => setActiveTab("aktif")}
+                            className={`py-4 text-sm font-bold border-b-2 transition-colors ${activeTab === 'aktif' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Target Aktif
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("riwayat")}
+                            className={`py-4 text-sm font-bold border-b-2 transition-colors ${activeTab === 'riwayat' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Riwayat Selesai
+                        </button>
+                    </div>
+
+                    <div className="p-8">
+                        {studentLoading ? (
+                            <div className="flex items-center justify-center py-12">
+                                <Loader2 className="animate-spin text-[#119DA4]" size={32} />
+                            </div>
+                        ) : activeTab === 'aktif' ? (
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                <div className="lg:col-span-2 space-y-6">
+                                    <h3 className="text-lg font-bold text-gray-800">Target Saat Ini</h3>
+                                    
+                                    {studentActiveTask ? (
+                                        <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                                            <div className="h-2 w-full bg-[#119DA4]"></div>
+                                            <div className="p-6">
+                                                <div className="flex items-start justify-between mb-6">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-12 h-12 bg-pink-100 rounded-xl flex items-center justify-center shrink-0">
+                                                            <FileText className="w-6 h-6 text-pink-500" />
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-xl font-bold text-gray-900">{studentActiveTask.topik}</div>
+                                                            <div className="text-sm text-gray-500 flex items-center gap-2 mt-1">
+                                                                <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-bold border border-blue-100">
+                                                                    Aktif
+                                                                </span>
+                                                                {new Date(studentActiveTask.tanggal).toLocaleDateString('id-ID', {day: 'numeric', month: 'short', year: 'numeric'})}
                                                             </div>
                                                         </div>
                                                     </div>
-                                                ) : (
-                                                    <span className="text-xs text-gray-400 italic">Belum ada tugas</span>
-                                                )}
-                                            </td>
-                                            <td className="p-4 pr-6 align-top">
-                                                <div className="flex flex-col gap-2 min-w-[200px]">
-                                                    {(!activeTask || activeTask.status === 'APPROVED') && (
-                                                        <>
-                                                            <CustomSelect 
-                                                                options={taskOptions}
-                                                                value={selectedTasks[mhs.id] || ""}
-                                                                onChange={(val) => setSelectedTasks(prev => ({...prev, [mhs.id]: val}))}
-                                                                placeholder="Pilih Bab"
-                                                                className="h-9 text-sm min-h-0 py-0"
-                                                            />
-                                                            <input 
-                                                                type="date"
-                                                                value={selectedSchedules[mhs.id] || ""}
-                                                                onChange={(e) => setSelectedSchedules(prev => ({...prev, [mhs.id]: e.target.value}))}
-                                                                className="h-9 text-sm w-full border border-gray-200 rounded-lg px-2 text-gray-700 outline-none focus:border-[#119DA4]"
-                                                            />
-                                                            <button 
-                                                                onClick={() => handleAssign(mhs.id)}
-                                                                disabled={assigningId === mhs.id || !selectedTasks[mhs.id] || !selectedSchedules[mhs.id]}
-                                                                className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#119DA4] hover:bg-[#0e868c] active:bg-[#0b6b70] disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
-                                                            >
-                                                                {assigningId === mhs.id ? (
-                                                                    <Loader2 size={14} className="animate-spin" />
-                                                                ) : (
-                                                                    <Send size={14} />
-                                                                )}
-                                                                Assign Tugas Baru
-                                                            </button>
-                                                        </>
-                                                    )}
+                                                </div>
 
-                                                    {activeTask && (activeTask.status === 'SUBMITTED' || activeTask.status === 'REVISION') && (
+                                                <h4 className="font-bold text-sm text-gray-700 mb-3 uppercase tracking-wider">Status & Waktu Pengumpulan</h4>
+                                                <div className="border border-gray-200 rounded-lg overflow-hidden mb-8">
+                                                    <table className="w-full text-sm text-left">
+                                                        <tbody className="divide-y divide-gray-200">
+                                                            <tr className="bg-gray-50/50">
+                                                                <th className="py-3 px-4 font-bold text-gray-700 w-[40%] border-r border-gray-200">Status Pengajuan</th>
+                                                                <td className="py-3 px-4 text-gray-900 bg-white font-medium">{getStatusPengajuan(studentActiveTask.status)}</td>
+                                                            </tr>
+                                                            <tr className="bg-gray-50/50">
+                                                                <th className="py-3 px-4 font-bold text-gray-700 w-[40%] border-r border-gray-200">Penilaian</th>
+                                                                <td className="py-3 px-4 text-gray-900 bg-white font-medium">{getStatusPenilaian(studentActiveTask.status)}</td>
+                                                            </tr>
+                                                            <tr className="bg-gray-50/50">
+                                                                <th className="py-3 px-4 font-bold text-gray-700 w-[40%] border-r border-gray-200">Batas Waktu</th>
+                                                                <td className="py-3 px-4 text-gray-900 bg-white font-medium">{studentActiveTask.jadwalBimbingan ? new Date(studentActiveTask.jadwalBimbingan).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute:'2-digit'}) : '-'}</td>
+                                                            </tr>
+                                                            <tr className="bg-gray-50/50">
+                                                                <th className="py-3 px-4 font-bold text-gray-700 w-[40%] border-r border-gray-200">Keterlambatan</th>
+                                                                <td className={`py-3 px-4 bg-white font-bold ${getTimeRemaining(studentActiveTask.jadwalBimbingan).isLate ? 'text-red-600' : 'text-gray-900'}`}>
+                                                                    {getTimeRemaining(studentActiveTask.jadwalBimbingan).text}
+                                                                </td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+
+                                                {/* File Approval UI */}
+                                                {(studentActiveTask.status === 'SUBMITTED' || studentActiveTask.status === 'REVISION') && (
+                                                    <div className="bg-blue-50 border border-blue-100 p-5 rounded-xl">
+                                                        <h4 className="font-bold text-sm text-blue-900 mb-2 flex items-center gap-2">
+                                                            <FileStack className="w-4 h-4" /> Dokumen Mahasiswa Memerlukan Reviu
+                                                        </h4>
+                                                        <p className="text-xs text-blue-700 mb-4 leading-relaxed">
+                                                            Mahasiswa telah mengumpulkan draf dengan keterangan: "{studentActiveTask.keteranganProgres}".<br/>
+                                                            Klik tombol di bawah ini untuk melihat dokumen aslinya dan memberikan anotasi reviu langsung di layar Anda.
+                                                        </p>
+                                                        <div className="flex gap-3">
+                                                            <button 
+                                                                onClick={() => handleOpenReview(studentActiveTask)}
+                                                                className="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-sm rounded-xl transition-all shadow-sm shadow-blue-500/30 flex justify-center items-center gap-2"
+                                                            >
+                                                                <FileStack className="w-4 h-4" /> Periksa & Berikan Reviu
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {studentActiveTask.status === 'ASSIGNED' && (
+                                                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg flex flex-col items-center gap-3 mt-4">
+                                                        <span className="text-sm text-gray-500 text-center italic">Menunggu mahasiswa mengunggah draf ke dalam sistem...</span>
                                                         <button 
-                                                            onClick={() => handleOpenReview(activeTask)}
-                                                            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
+                                                            onClick={() => {
+                                                                setSelectedTasks(prev => ({...prev, [selectedStudent.mahasiswa.id]: studentActiveTask.topik}));
+                                                                if (studentActiveTask.jadwalBimbingan) {
+                                                                    setSelectedSchedules(prev => ({...prev, [selectedStudent.mahasiswa.id]: studentActiveTask.jadwalBimbingan}));
+                                                                }
+                                                                setIsEditingTask(true);
+                                                            }} 
+                                                            className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg transition-colors shadow-sm"
                                                         >
-                                                            <FileStack size={14} />
-                                                            {activeTask.status === 'SUBMITTED' ? "Periksa & Reviu Dokumen" : "Reviu Ulang Dokumen"}
+                                                            Edit Target / Tenggat Waktu
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="bg-gray-50 border border-gray-200 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center">
+                                            <AlertCircle className="w-12 h-12 text-gray-300 mb-4" />
+                                            <h4 className="text-lg font-bold text-gray-900 mb-2">Tidak Ada Target Aktif</h4>
+                                            <p className="text-sm text-gray-500 mb-6 ">
+                                                Mahasiswa ini telah menyelesaikan semua target sebelumnya. Silakan berikan target progres bab baru di form sebelah kanan.
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <div className="bg-white border text-sm border-gray-200 rounded-2xl shadow-sm p-6 sticky top-8 text-left">
+                                        {studentActiveTask && !isEditingTask ? (
+                                            <>
+                                                <h3 className="font-bold text-gray-900 mb-4 text-base">Riwayat Versi Draf</h3>
+                                                <div className="space-y-5 relative before:absolute before:inset-0 before:ml-[13px] before:-translate-x-px before:h-full before:w-0.5 before:bg-gray-100 pl-1">
+                                                    {history.length > 0 ? history.map((item, index) => (
+                                                        <div key={item.id} className="relative flex items-start gap-4">
+                                                            <div className={`w-6 h-6 rounded-full border-[3px] border-white shadow-sm shrink-0 z-10 flex items-center justify-center ${item.status === 'APPROVED' ? 'bg-green-500' : item.status === 'REVISION' ? 'bg-orange-500' : 'bg-[#119DA4]'}`}>
+                                                                <div className="w-2 h-2 rounded-full bg-white"></div>
+                                                            </div>
+                                                            <div className="bg-gray-50/50 p-3 rounded-lg border border-gray-100 flex-1">
+                                                                <div className="flex justify-between items-start mb-1">
+                                                                    <div className="font-bold text-gray-800 text-sm">Versi {item.versi}</div>
+                                                                    <div className="text-[10px] text-gray-500 bg-white border border-gray-100 px-1.5 py-0.5 rounded-sm">{new Date(item.tanggal).toLocaleDateString('id-ID')}</div>
+                                                                </div>
+                                                                <p className="text-xs text-gray-500">
+                                                                    {item.status === 'ASSIGNED' ? "Target diberikan oleh Anda" :
+                                                                     item.status === 'SUBMITTED' ? "Draf diunggah mahasiswa" :
+                                                                     item.status === 'REVISION' ? <span className="text-orange-600 font-medium">Anda memberikan revisi</span> :
+                                                                     item.status === 'APPROVED' ? <span className="text-green-600 font-medium">Reviu disetujui ACC</span> : ""}
+                                                                </p>
+                                                                {item.fileMahasiswa && item.status !== 'ASSIGNED' && (
+                                                                    <a href={`http://localhost:5002${item.fileMahasiswa}`} target="_blank" rel="noreferrer" className="mt-2 text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 w-max bg-blue-50 px-2 py-1 rounded">
+                                                                        <Download className="w-3 h-3" /> Unduh PDF
+                                                                    </a>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )) : (
+                                                        <div className="text-xs text-gray-400 italic">Belum ada riwayat terekam</div>
+                                                    )}
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="flex items-center justify-between mb-4 mt-2">
+                                                    <h3 className="font-bold text-gray-900 text-base">{isEditingTask ? "Edit Target Saat Ini" : "Berikan Target Baru"}</h3>
+                                                    {isEditingTask && (
+                                                        <button onClick={() => {
+                                                            setIsEditingTask(false);
+                                                            setSelectedTasks(prev => ({...prev, [selectedStudent.mahasiswa.id]: ""}));
+                                                            setSelectedSchedules(prev => ({...prev, [selectedStudent.mahasiswa.id]: ""}));
+                                                        }} className="text-xs text-blue-600 hover:underline font-bold">Batalkan Edit</button>
+                                                    )}
+                                                </div>
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-gray-700 mb-1.5">Pilih Bab / Target Penugasan</label>
+                                                        <CustomSelect 
+                                                            options={taskOptions.map(opt => ({
+                                                                ...opt,
+                                                                disabled: completedTasks.some(t => t.topik === opt.value) || studentActiveTask?.topik === opt.value
+                                                            }))}
+                                                            value={selectedTasks[selectedStudent.mahasiswa.id] || ""}
+                                                            onChange={(val) => setSelectedTasks(prev => ({...prev, [selectedStudent.mahasiswa.id]: val}))}
+                                                            placeholder="Pilih Bab"
+                                                            className="h-10 text-sm"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-gray-700 mb-1.5">Batas Pengumpulan (Waktu)</label>
+                                                        <Popover>
+                                                            <PopoverTrigger asChild>
+                                                                <button className="h-10 text-sm w-full border border-gray-200 rounded-lg px-3 text-left flex items-center justify-between text-gray-700 hover:bg-gray-50 bg-white shadow-sm transition-colors">
+                                                                    {selectedSchedules[selectedStudent.mahasiswa.id] 
+                                                                        ? new Date(selectedSchedules[selectedStudent.mahasiswa.id]).toLocaleString('id-ID', {day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit'})
+                                                                        : <span className="text-gray-400">Pilih Tanggal & Waktu</span>}
+                                                                    <CalendarIcon className="w-4 h-4 text-gray-400" />
+                                                                </button>
+                                                            </PopoverTrigger>
+                                                            <PopoverContent className="w-auto p-0 rounded-xl shadow-xl z-50 border-gray-200 bg-white" align="start">
+                                                                <Calendar
+                                                                    mode="single"
+                                                                    selected={selectedSchedules[selectedStudent.mahasiswa.id] ? new Date(selectedSchedules[selectedStudent.mahasiswa.id]) : undefined}
+                                                                    onSelect={(d) => {
+                                                                        if (d) {
+                                                                            const existingDate = selectedSchedules[selectedStudent.mahasiswa.id] ? new Date(selectedSchedules[selectedStudent.mahasiswa.id]) : null;
+                                                                            const hours = existingDate ? existingDate.getHours() : 23;
+                                                                            const minutes = existingDate ? existingDate.getMinutes() : 59;
+                                                                            d.setHours(hours, minutes);
+                                                                            setSelectedSchedules(prev => ({...prev, [selectedStudent.mahasiswa.id]: d.toISOString()}));
+                                                                        }
+                                                                    }}
+                                                                    className="rounded-t-xl"
+                                                                />
+                                                                <div className="p-3 bg-gray-50 border-t border-gray-100 rounded-b-xl flex items-center justify-between">
+                                                                    <label className="text-xs font-bold text-gray-600 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5"/> Waktu Deadline</label>
+                                                                    <input 
+                                                                        type="time" 
+                                                                        className="px-2 py-1.5 text-sm font-bold border border-gray-200 rounded-lg bg-white outline-none focus:border-[#119DA4]"
+                                                                        value={(() => {
+                                                                            if (!selectedSchedules[selectedStudent.mahasiswa.id]) return "23:59";
+                                                                            const d = new Date(selectedSchedules[selectedStudent.mahasiswa.id]);
+                                                                            return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+                                                                        })()}
+                                                                        onChange={(e) => {
+                                                                            const d = selectedSchedules[selectedStudent.mahasiswa.id] ? new Date(selectedSchedules[selectedStudent.mahasiswa.id]) : new Date();
+                                                                            if (e.target.value) {
+                                                                                const [hh, mm] = e.target.value.split(":");
+                                                                                d.setHours(parseInt(hh), parseInt(mm));
+                                                                                setSelectedSchedules(prev => ({...prev, [selectedStudent.mahasiswa.id]: d.toISOString()}));
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            </PopoverContent>
+                                                        </Popover>
+                                                    </div>
+                                                    <button 
+                                                        onClick={() => handleAssign(selectedStudent.mahasiswa.id)}
+                                                        disabled={assigningId === selectedStudent.mahasiswa.id || !selectedTasks[selectedStudent.mahasiswa.id] || !selectedSchedules[selectedStudent.mahasiswa.id]}
+                                                        className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-3 bg-[#119DA4] hover:bg-[#0e868c] active:bg-[#0b6b70] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition-colors shadow-sm"
+                                                    >
+                                                        {assigningId === selectedStudent.mahasiswa.id ? (
+                                                            <Loader2 size={16} className="animate-spin" />
+                                                        ) : (
+                                                            <Send size={16} />
+                                                        )}
+                                                        {isEditingTask ? "Simpan Perubahan Target" : "Tugaskan Target Ini"}
+                                                    </button>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {completedTasks.length === 0 ? (
+                                    <div className="col-span-full py-16 text-center border border-gray-200 border-dashed rounded-2xl flex flex-col items-center bg-gray-50/50">
+                                        <BookOpen className="w-12 h-12 text-gray-300 mb-3" />
+                                        <h3 className="text-sm font-bold text-gray-800 mb-1">Belum ada Bab Disetujui</h3>
+                                        <p className="text-gray-500 text-xs">
+                                            Daftar target progres yang telah Anda ACC akan muncul di sini.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    completedTasks.map(task => (
+                                        <div key={task.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col min-h-[160px]">
+                                            <div className="h-2 w-full bg-green-500"></div>
+                                            <div className="p-5 flex-1 flex flex-col justify-between">
+                                                <div>
+                                                    <div className="flex justify-between items-start mb-3">
+                                                        <span className="text-[10px] font-bold px-2 py-0.5 bg-green-50 border border-green-200 text-green-700 rounded-md">SELESAI (ACC)</span>
+                                                    </div>
+                                                    <h3 className="text-sm font-bold text-gray-900 mb-1.5 leading-tight">{task.topik}</h3>
+                                                    <p className="text-xs text-gray-500 mb-4">
+                                                        Disetujui: {new Date(task.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                                    </p>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    {task.fileDosen && (
+                                                        <a href={`http://localhost:5002${task.fileDosen}`} target="_blank" rel="noreferrer" className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 rounded-lg text-xs font-bold transition-colors">
+                                                            <Download className="w-3.5 h-3.5" /> Draf Target (ACC)
+                                                        </a>
+                                                    )}
+                                                    {task.fileMahasiswa?.toLowerCase().endsWith('.pdf') && (
+                                                        <button onClick={() => handleOpenReview(task, true)} className="flex items-center justify-center p-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors group" title="Lihat Anotasi">
+                                                            <Eye className="w-4 h-4 text-gray-500 group-hover:text-blue-600 transition-colors" />
                                                         </button>
                                                     )}
                                                 </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        )}
                     </div>
-                )}
-            </div>
+                </div>
+            )}
+
 
             {/* Review Modal */}
             {reviewingTask && (
@@ -356,8 +729,8 @@ export function BimbinganDesktop() {
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-7xl overflow-hidden flex flex-col max-h-[96vh]">
                         <div className="p-4 border-b border-gray-100 flex items-center justify-between shrink-0">
                             <div>
-                                <h3 className="text-lg font-bold text-gray-900">Pemeriksaan Bimbingan</h3>
-                                <p className="text-xs text-gray-500 mt-0.5">Topik: {reviewingTask.topik} {reviewingTask.keteranganProgres ? `• Progres: ${reviewingTask.keteranganProgres}` : ''}</p>
+                                <h3 className="text-lg font-bold text-gray-900">{reviewStatus === 'APPROVED' && reviewingTask.status === 'APPROVED' ? "Melihat Dokumen Reviu (ReadOnly)" : "Pemeriksaan Bimbingan"}</h3>
+                                <p className="text-xs text-gray-500 mt-0.5">Topik: {viewingTaskTopik} {reviewingTask.keteranganProgres ? `• Progres: ${reviewingTask.keteranganProgres}` : ''}</p>
                             </div>
                             <button onClick={() => setReviewingTask(null)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
                                 <X className="w-5 h-5" />
@@ -405,105 +778,103 @@ export function BimbinganDesktop() {
                             )}
 
                             {/* Sidebar Actions */}
-                            <div className="w-full xl:w-80 p-6 flex flex-col gap-6 shrink-0 bg-white">
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1">Keputusan Reviu</label>
-                                    <div className="flex flex-col gap-3 mt-3">
-                                        <label className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${reviewStatus === 'REVISION' ? 'border-orange-500 bg-orange-50/30' : 'border-gray-100 hover:border-gray-200'}`}>
-                                            <input 
-                                                type="radio" name="status" value="REVISION" 
-                                                checked={reviewStatus === "REVISION"}
-                                                onChange={() => setReviewStatus("REVISION")}
-                                                className="mt-0.5 w-4 h-4 text-orange-500 focus:ring-orange-500"
-                                            />
-                                            <div>
-                                                <span className="text-sm font-bold text-gray-900 block">Perlu Revisi</span>
-                                                <span className="text-xs text-gray-500">Mahasiswa harus memperbaiki dokumen</span>
-                                            </div>
-                                        </label>
-                                        <label className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${reviewStatus === 'APPROVED' ? 'border-green-600 bg-green-50/30' : 'border-gray-100 hover:border-gray-200'}`}>
-                                            <input 
-                                                type="radio" name="status" value="APPROVED" 
-                                                checked={reviewStatus === "APPROVED"}
-                                                onChange={() => setReviewStatus("APPROVED")}
-                                                className="mt-0.5 w-4 h-4 text-green-600 focus:ring-green-600"
-                                            />
-                                            <div>
-                                                <span className="text-sm font-bold text-gray-900 block">Disetujui (ACC Target)</span>
-                                                <span className="text-xs text-gray-500">Target bab ini selesai</span>
-                                            </div>
-                                        </label>
-                                    </div>
-                                </div>
-                                
-                                <div className="space-y-4">
+                            {!(reviewStatus === 'APPROVED' && reviewingTask.status === 'APPROVED') && (
+                                <div className="w-full xl:w-80 p-6 flex flex-col gap-6 shrink-0 bg-white border-l border-gray-100">
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">Catatan Keseluruhan (Opsional)</label>
-                                        <textarea 
-                                            className="w-full rounded-xl border-gray-200 border p-3 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all placeholder:text-gray-400 min-h-[100px]"
-                                            placeholder="Berikan masukan menyeluruh di luar anotasi PDF..."
-                                            value={reviewCatatan}
-                                            onChange={(e) => setReviewCatatan(e.target.value)}
-                                        ></textarea>
-                                    </div>
-
-                                    {!reviewingTask.fileMahasiswa?.toLowerCase().endsWith('.pdf') && (
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-1">Upload File Hasil Reviu</label>
-                                            <p className="text-xs text-gray-500 mb-2">Karena ini bukan PDF, unggah dokumen `.docx` yang sudah Anda beri komentar/coretan secara offline.</p>
-                                            <input 
-                                                type="file" 
-                                                accept=".doc,.docx,.pdf" 
-                                                onChange={(e) => {
-                                                    if (e.target.files && e.target.files[0]) {
-                                                        setReviewFile(e.target.files[0]);
-                                                    }
-                                                }}
-                                                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 cursor-pointer border border-gray-200 rounded-xl p-1"
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="mt-4 border-t border-gray-100 pt-4">
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">Riwayat Versi Dokumen</label>
-                                    <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
-                                        {history.length > 0 ? history.map(item => (
-                                            <div key={item.id} className="p-2 border border-gray-100 rounded-lg text-xs flex justify-between items-center bg-gray-50 hover:bg-white transition-colors">
+                                        <label className="block text-sm font-bold text-gray-700 mb-1">Keputusan Reviu</label>
+                                        <div className="flex flex-col gap-3 mt-3">
+                                            <label className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${reviewStatus === 'REVISION' ? 'border-orange-500 bg-orange-50/30' : 'border-gray-100 hover:border-gray-200'}`}>
+                                                <input 
+                                                    type="radio" name="status" value="REVISION" 
+                                                    checked={reviewStatus === "REVISION"}
+                                                    onChange={() => setReviewStatus("REVISION")}
+                                                    className="mt-0.5 w-4 h-4 text-orange-500 focus:ring-orange-500"
+                                                />
                                                 <div>
-                                                    <span className="font-bold text-gray-700">Versi {item.versi} {item.id === reviewingTask.id ? "(Saat ini)" : ""}</span>
-                                                    <span className="text-gray-400 block">{new Date(item.tanggal).toLocaleDateString('id-ID')}</span>
+                                                    <span className="text-sm font-bold text-gray-900 block">Perlu Revisi</span>
+                                                    <span className="text-xs text-gray-500">Mahasiswa harus memperbaiki dokumen</span>
                                                 </div>
-                                                {item.fileMahasiswa && (
-                                                    <a href={`http://localhost:5002${item.fileMahasiswa}`} target="_blank" rel="noreferrer" className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Unduh Draf">
-                                                        <Download className="w-3.5 h-3.5" />
+                                            </label>
+                                            <label className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${reviewStatus === 'APPROVED' ? 'border-green-600 bg-green-50/30' : 'border-gray-100 hover:border-gray-200'}`}>
+                                                <input 
+                                                    type="radio" name="status" value="APPROVED" 
+                                                    checked={reviewStatus === "APPROVED"}
+                                                    onChange={() => setReviewStatus("APPROVED")}
+                                                    className="mt-0.5 w-4 h-4 text-green-600 focus:ring-green-600"
+                                                />
+                                                <div>
+                                                    <span className="text-sm font-bold text-gray-900 block">Disetujui (ACC Target)</span>
+                                                    <span className="text-xs text-gray-500">Target bab ini selesai</span>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="space-y-4 flex-1 overflow-y-auto pr-1 pb-4">
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Catatan Keseluruhan (Opsional)</label>
+                                            <textarea 
+                                                className="w-full rounded-xl border-gray-200 border p-3 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all placeholder:text-gray-400 min-h-[100px]"
+                                                placeholder="Berikan masukan menyeluruh di luar anotasi PDF..."
+                                                value={reviewCatatan}
+                                                onChange={(e) => setReviewCatatan(e.target.value)}
+                                            ></textarea>
+                                        </div>
+
+                                        {!reviewingTask.fileMahasiswa?.toLowerCase().endsWith('.pdf') && (
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-700 mb-1">Upload File Hasil Reviu</label>
+                                                <p className="text-xs text-gray-500 mb-2">Karena ini bukan PDF, unggah dokumen `.docx` yang sudah Anda beri komentar/coretan secara offline.</p>
+                                                <input 
+                                                    type="file" 
+                                                    accept=".doc,.docx,.pdf" 
+                                                    onChange={(e) => {
+                                                        if (e.target.files && e.target.files[0]) {
+                                                            setReviewFile(e.target.files[0]);
+                                                        }
+                                                    }}
+                                                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 cursor-pointer border border-gray-200 rounded-xl p-1"
+                                                />
+                                            </div>
+                                        )}
+                                        
+                                        <div className="mt-4 border-t border-gray-100 pt-4">
+                                            <h4 className="block text-sm font-bold text-gray-700 mb-3">Versi Draf Anda Reviu</h4>
+                                            <div className="p-3 border border-gray-100 rounded-xl text-xs flex justify-between items-center bg-gray-50/50">
+                                                <div>
+                                                    <span className="font-bold text-gray-700 block text-sm">Versi {reviewingTask.versi}</span>
+                                                    <span className="text-gray-500 block mt-1">{new Date(reviewingTask.tanggal).toLocaleDateString('id-ID')}</span>
+                                                </div>
+                                                {reviewingTask.fileMahasiswa && (
+                                                    <a href={`http://localhost:5002${reviewingTask.fileMahasiswa}`} target="_blank" rel="noreferrer" className="px-3 py-2 text-blue-600 bg-blue-50 font-bold hover:bg-blue-100 rounded-lg transition-colors flex items-center gap-2" title="Unduh Draf">
+                                                        <Download className="w-3.5 h-3.5" /> Unduh
                                                     </a>
                                                 )}
                                             </div>
-                                        )) : (
-                                            <div className="text-center text-xs text-gray-400 italic">Riwayat tidak tersedia</div>
-                                        )}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
 
-                        <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 shrink-0">
-                            <button 
-                                onClick={() => setReviewingTask(null)}
-                                className="px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-200 rounded-xl bg-gray-100"
-                            >
-                                Batal
-                            </button>
-                            <button 
-                                onClick={handleReviewSubmit}
-                                disabled={uploadingReview}
-                                className="px-5 py-2 text-sm font-bold text-white bg-[#D25026] hover:bg-[#B9441F] active:scale-95 transition-all rounded-xl shadow-lg shadow-orange-500/20 flex items-center gap-2"
-                            >
-                                {uploadingReview ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                                Kirim Hasil Reviu
-                            </button>
-                        </div>
+                        {!(reviewStatus === 'APPROVED' && reviewingTask.status === 'APPROVED') && (
+                            <div className="p-4 border-t border-gray-100 bg-white flex justify-end gap-3 shrink-0">
+                                <button 
+                                    onClick={() => setReviewingTask(null)}
+                                    className="px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 border border-gray-200 rounded-xl"
+                                >
+                                    Batal
+                                </button>
+                                <button 
+                                    onClick={handleReviewSubmit}
+                                    disabled={uploadingReview}
+                                    className="px-6 py-2.5 text-sm font-bold text-white bg-[#D25026] hover:bg-[#B9441F] active:scale-95 transition-all rounded-xl shadow-lg shadow-orange-500/20 flex items-center gap-2"
+                                >
+                                    {uploadingReview ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                                    Kirim Hasil Reviu
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

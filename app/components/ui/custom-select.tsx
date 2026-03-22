@@ -19,6 +19,7 @@ import {
 interface Option {
   label: string;
   value: string;
+  disabled?: boolean;
 }
 
 interface CustomSelectProps {
@@ -76,11 +77,16 @@ export function CustomSelect({
                 <CommandItem
                   key={option.value}
                   value={option.label}
+                  disabled={option.disabled}
                   onSelect={() => {
+                    if (option.disabled) return;
                     onChange(option.value === value ? "" : option.value);
                     setOpen(false);
                   }}
-                  className="cursor-pointer rounded-lg py-2.5 px-3 data-[selected=true]:bg-gray-100 data-[selected=true]:text-gray-900 aria-selected:bg-gray-100 aria-selected:text-gray-900 hover:bg-gray-50 transition-colors w-full"
+                  className={cn(
+                    "cursor-pointer rounded-lg py-2.5 px-3 aria-selected:bg-gray-100 aria-selected:text-gray-900 transition-colors w-full",
+                    option.disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50 data-[selected=true]:bg-gray-100 data-[selected=true]:text-gray-900"
+                  )}
                 >
                   <Check
                     className={cn(

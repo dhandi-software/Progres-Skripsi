@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "~/hooks/useAuth";
 import { pengajuanApi } from "~/api/pengajuan";
+import { bimbinganApi } from "~/api/bimbinganApi";
 import {
     BookOpen,
     Calendar,
@@ -10,17 +11,22 @@ import {
     FileText,
     TrendingUp,
     XCircle,
+    AlertCircle,
 } from "lucide-react";
 
 export function DashboardDesktop() {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [profile, setProfile] = useState<any>(null);
+    const [bimbinganTasks, setBimbinganTasks] = useState<any[]>([]);
     const [showAllActivities, setShowAllActivities] = useState(false);
 
     useEffect(() => {
         pengajuanApi.getProfile().then(setProfile).catch(console.error);
-    }, []);
+        if (user?.id) {
+            bimbinganApi.getBimbinganByMahasiswa(user.id).then(setBimbinganTasks).catch(console.error);
+        }
+    }, [user?.id]);
 
     const getActivities = () => {
         const activities: any[] = [];
@@ -69,6 +75,19 @@ export function DashboardDesktop() {
                 activities.unshift(dynActivity);
             }
         }
+
+        // 3. Feedback Bimbingan
+        const revisionTasks = bimbinganTasks.filter(t => t.status === 'REVISION');
+        revisionTasks.forEach(t => {
+            activities.unshift({
+                title: "Feedback Bimbingan Baru!",
+                desc: `Dosen pembimbing telah mereviu draf ${t.topik} dan memberikan catatan revisi.`,
+                time: "Segera Perbaiki",
+                icon: AlertCircle,
+                color: "text-red-500",
+            });
+        });
+
         return activities;
     };
 
