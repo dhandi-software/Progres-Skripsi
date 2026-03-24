@@ -10,17 +10,23 @@ import {
     FileText,
     TrendingUp,
     XCircle,
+    AlertCircle,
 } from "lucide-react";
+import { bimbinganApi } from "~/api/bimbinganApi";
 
 export function DashboardMobile() {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [profile, setProfile] = useState<any>(null);
+    const [bimbinganTasks, setBimbinganTasks] = useState<any[]>([]);
     const [showAllActivities, setShowAllActivities] = useState(false);
 
     useEffect(() => {
         pengajuanApi.getProfile().then(setProfile).catch(console.error);
-    }, []);
+        if (user?.id) {
+            bimbinganApi.getBimbinganByMahasiswa(user.id).then(setBimbinganTasks).catch(console.error);
+        }
+    }, [user?.id]);
 
     const getActivities = () => {
         const activities: any[] = [];
@@ -28,24 +34,60 @@ export function DashboardMobile() {
         // 1. Dokumen Belum Lengkap: Only show if NO pengajuan
         if (!profile?.pengajuanJudul || profile.pengajuanJudul.length === 0) {
             activities.push(
-                { title: "Upload Transkrip", time: "Kmrin", color: "text-orange-500" }
+                { title: "Upload Transkrip", time: "Belum Lengkap", color: "text-orange-500", rawDate: new Date(9999, 11, 31) }
             );
         }
         if (profile?.pengajuanJudul && profile.pengajuanJudul.length > 0) {
             const p = profile.pengajuanJudul[0];
-            let dynActivity = null;
+            let dynActivity: { title: string, time: string, color: string, rawDate: Date } | null = null;
             if (p.status === 'PENDING') {
-                dynActivity = { title: "Sedang Diproses", time: "Baru", color: "text-blue-500" };
+                dynActivity = { title: "Sedang Diproses", time: "Baru", color: "text-blue-500", rawDate: new Date(p.tanggal) };
             } else if (p.status === 'APPROVED') {
-                dynActivity = { title: "Judul Disetujui", time: "Baru", color: "text-green-500" };
+                dynActivity = { title: "Judul Disetujui", time: "Baru", color: "text-green-500", rawDate: new Date(p.tanggal) };
             } else if (p.status === 'REJECTED') {
-                dynActivity = { title: "Judul Ditolak", time: "Baru", color: "text-red-500" };
+                dynActivity = { title: "Judul Ditolak", time: "Baru", color: "text-red-500", rawDate: new Date(p.tanggal) };
             }
             if (dynActivity) {
-                activities.unshift(dynActivity);
+                dynActivity.time = new Date(p.tanggal).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric' });
+                activities.push(dynActivity);
             }
         }
-        return activities;
+
+        // 3. Status Bimbingan
+        bimbinganTasks.forEach(t => {
+            const dateStr = new Date(t.tanggal).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric' });
+            if (t.status === 'REVISION') {
+                activities.push({
+                    title: "Revisi Bimbingan",
+                    time: dateStr,
+                    color: "text-red-500",
+                    rawDate: new Date(t.tanggal)
+                });
+            } else if (t.status === 'ASSIGNED') {
+                activities.push({
+                    title: "Tugas Baru",
+                    time: dateStr,
+                    color: "text-blue-500",
+                    rawDate: new Date(t.tanggal)
+                });
+            } else if (t.status === 'SUBMITTED') {
+                activities.push({
+                    title: "Draf Terkirim",
+                    time: dateStr,
+                    color: "text-orange-500",
+                    rawDate: new Date(t.tanggal)
+                });
+            } else if (t.status === 'APPROVED') {
+                activities.push({
+                    title: "Disetujui",
+                    time: dateStr,
+                    color: "text-green-500",
+                    rawDate: new Date(t.tanggal)
+                });
+            }
+        });
+
+        return activities.sort((a, b) => b.rawDate.getTime() - a.rawDate.getTime());
     };
 
     return (
@@ -96,6 +138,29 @@ export function DashboardMobile() {
                     </div>
                 </div>
             )}
+
+            {/* Notification Banner for Bimbingan Revisions Mobile */}
+            {bimbinganTasks.filter(t => t.status === 'REVISION').map((t, index) => (
+                <div key={`rev-${index}`} className="bg-orange-50 border border-orange-200 rounded-xl p-4 shadow-sm relative overflow-hidden animate-in fade-in slide-in-from-top-2 duration-500">
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 bg-orange-100 rounded-full text-orange-600 shrink-0">
+                            <AlertCircle className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-orange-800 font-bold text-sm">Ada Revisi Bimbingan: {t.topik}</h3>
+                            <p className="text-orange-600 text-[10px] mt-1 pr-2 leading-relaxed">
+                                Dosen pembimbing telah memberikan catatan revisi untuk draf Anda. Silakan perbaiki dan unggah kembali.
+                            </p>
+                            <button 
+                                onClick={() => navigate("/mahasiswa/bimbingan")}
+                                className="mt-3 px-4 py-2 bg-orange-600 hover:bg-orange-700 active:bg-orange-800 transition-colors text-white text-xs font-bold rounded-lg shadow-sm w-full"
+                            >
+                                Lihat Revisi
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ))}
 
             {/* Status Summary (Compact) */}
             <div className="grid grid-cols-2 gap-3">

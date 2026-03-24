@@ -47,6 +47,12 @@ export const bimbinganApi = {
         return response.data;
     },
 
+    // Mark as read by Dosen
+    markAsRead: async (id: number) => {
+        const response = await client.put(`/bimbingan/mark-as-read/${id}`);
+        return response.data;
+    },
+
     // Get all tasks for Mahasiswa
     getMahasiswaAllTasks: async () => {
         const response = await client.get("/bimbingan/mahasiswa-all-tasks");

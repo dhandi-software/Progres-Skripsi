@@ -111,7 +111,7 @@ export function PengajuanDesktop() {
             await pengajuanApi.createPengajuan(formData);
             showToast("Pengajuan judul berhasil dikirim!", "success");
             setTimeout(() => {
-                navigate("/mahasiswa/dashboard"); 
+                navigate("/mahasiswa"); 
             }, 1500);
         } catch (error) {
             console.error("Submission error", error);

@@ -176,15 +176,34 @@ export function BimbinganMobile() {
                                             </div>
                                             <h2 className="text-lg flex flex-col items-start gap-1 font-bold text-gray-900 leading-tight">
                                                 <span>Mengerjakan {activeTask.topik}</span>
-                                                {activeTask.status === 'REVISION' && (
-                                                    <span className="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-red-200 animate-pulse mt-0.5">Ada Feedback Dosen!</span>
-                                                )}
                                             </h2>
                                         </div>
 
                                         <p className="text-xs text-gray-600 mb-6 border-b border-gray-100 pb-4">
                                             Silakan kumpulkan draf laporan dalam bentuk PDF untuk reviu.
                                         </p>
+
+                                        {activeTask.status === 'REVISION' && (
+                                            <div className="mb-6 p-3 bg-orange-50 border border-orange-200 rounded-xl flex items-start gap-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-500">
+                                                <div className="p-1.5 bg-orange-100 rounded-full text-orange-600 shrink-0">
+                                                    <AlertCircle className="w-5 h-5" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-orange-800 font-bold text-sm">Revisi Diperlukan</h3>
+                                                    <p className="text-orange-700 text-[10px] mt-1 mb-2 leading-relaxed">
+                                                        Dosen pembimbing telah memberikan catatan revisi. Silakan periksa kolom catatan di bawah, lihat anotasi dokumen jika ada, lalu unggah draf perbaikan Anda.
+                                                    </p>
+                                                    {activeTask.fileMahasiswa?.toLowerCase().endsWith('.pdf') && (
+                                                        <button 
+                                                            onClick={() => handleOpenViewer(activeTask.id, activeTask.topik)}
+                                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-orange-200 text-orange-700 hover:bg-orange-100 rounded-lg text-[10px] font-bold transition-colors shadow-sm w-max"
+                                                        >
+                                                            <Eye className="w-3.5 h-3.5" /> Lihat Anotasi Dokumen
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
                                         
                                         {(activeTask.status === 'ASSIGNED' || activeTask.status === 'REVISION') && (
                                             <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-xl">

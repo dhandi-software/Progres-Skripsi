@@ -4,9 +4,10 @@ import { Users, FileText, Send, Loader2, BookOpen, ChevronLeft, AlertCircle, Fil
 import { CustomSelect } from "~/components/ui/custom-select";
 import { Toast } from "~/components/ui/toast";
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
-import { Calendar } from "~/components/ui/calendar";
+import { Calendar, MonthYearFilter } from "~/components/ui/calendar";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext } from "~/components/ui/pagination";
 import { Link } from "react-router";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 // Use dynamic import for client-side only component
 const SharedPdfViewer = lazy(() => import('../../components/SharedPdfViewer.client').then(m => ({ default: m.SharedPdfViewer })));
@@ -63,11 +64,12 @@ export function BimbinganMobile() {
 
     // Detail View State
     const [selectedStudent, setSelectedStudent] = useState<any>(null);
-    const [activeTab, setActiveTab] = useState<"aktif" | "riwayat">("aktif");
+    const [activeTab, setActiveTab] = useState<"aktif" | "riwayat" | "grafik">("aktif");
     const [studentActiveTask, setStudentActiveTask] = useState<any>(null);
     const [completedTasks, setCompletedTasks] = useState<any[]>([]);
     const [studentLoading, setStudentLoading] = useState(false);
     const [isEditingTask, setIsEditingTask] = useState(false);
+    const [chartData, setChartData] = useState<any[]>([]);
 
     // Review Modal State
     const [reviewingTask, setReviewingTask] = useState<any>(null);
@@ -120,6 +122,119 @@ export function BimbinganMobile() {
             } else {
                 setHistory([]);
             }
+
+            // Generate Chart Data for Timeliness
+            const taskOptionsList = [
+                { label: "Bab 1: Pendahuluan", value: "Bab 1: Pendahuluan" },
+                { label: "Bab 2: Tinjauan Pustaka", value: "Bab 2: Tinjauan Pustaka" },
+                { label: "Bab 3: Metodologi", value: "Bab 3: Metodologi" },
+                { label: "Bab 4: Hasil dan Pembahasan", value: "Bab 4: Hasil dan Pembahasan" },
+                { label: "Bab 5: Kesimpulan dan Saran", value: "Bab 5: Kesimpulan dan Saran" },
+                { label: "Laporan Akhir (Finalisasi)", value: "Laporan Akhir (Finalisasi)" },
+            ];
+            
+            const groupedByTopic = tasks.reduce((acc: any, task: any) => {
+                if (!acc[task.topik]) acc[task.topik] = [];
+                acc[task.topik].push(task);
+                return acc;
+            }, {});
+
+            const newChartData: any[] = [];
+            newChartData.push({
+                name: "Mulai",
+                score: 0,
+                fullTopic: "Mulai Bimbingan",
+                diffDays: 0,
+                isSubmitted: false,
+                statusText: "Belum Mulai"
+            });
+            
+            taskOptionsList.forEach(opt => {
+                const topicTasks = groupedByTopic[opt.value];
+                if (topicTasks) {
+                    const assignedTask = topicTasks.find((t: any) => t.status === 'ASSIGNED');
+                    const submittedTasks = topicTasks.filter((t: any) => ['SUBMITTED', 'REVISION', 'APPROVED'].includes(t.status));
+                    submittedTasks.sort((a: any, b: any) => a.versi - b.versi); // First submission
+
+                    if (assignedTask || submittedTasks.length > 0) {
+                        const deadline = assignedTask?.jadwalBimbingan ? new Date(assignedTask.jadwalBimbingan) : null;
+                        
+                        // Cek apakah sudah ada submission
+                        if (submittedTasks.length > 0) {
+                            const firstSubmission = submittedTasks[0];
+                            const submittedDate = new Date(firstSubmission.tanggal);
+                            
+                            let diffDays = 0;
+                            if (deadline) {
+                                const diffTime = submittedDate.getTime() - deadline.getTime();
+                                diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            }
+                            
+                            const isApproved = submittedTasks.some((t: any) => t.status === 'APPROVED');
+                            const baseScore = isApproved ? 100 : 50;
+
+                            let score = baseScore;
+                            if (diffDays > 0) {
+                                score = Math.max(0, baseScore - (diffDays * 10)); // Deduct 10 points per day late
+                            }
+                            
+                            newChartData.push({
+                                name: opt.label.split(':')[0].replace('Laporan Akhir (Finalisasi)', 'Laporan Akhir'), 
+                                score: score,
+                                fullTopic: opt.label,
+                                diffDays: diffDays > 0 ? diffDays : 0,
+                                isSubmitted: true,
+                                isApproved: isApproved,
+                                statusText: isApproved ? "Disetujui Dosen" : "Sedang Direviu"
+                            });
+                        } else if (assignedTask) {
+                            // Belum draf di-submit, cek deadline
+                            let diffDays = 0;
+                            if (deadline) {
+                                const now = new Date();
+                                const diffTime = now.getTime() - deadline.getTime();
+                                diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            }
+                            
+                            const baseScore = 50;
+                            let score = baseScore;
+                            if (diffDays > 0) {
+                                score = Math.max(0, baseScore - (diffDays * 10));
+                            }
+                            
+                            newChartData.push({
+                                name: opt.label.split(':')[0].replace('Laporan Akhir (Finalisasi)', 'Laporan Akhir'), 
+                                score: score,
+                                fullTopic: opt.label,
+                                diffDays: diffDays > 0 ? diffDays : 0,
+                                isSubmitted: false,
+                                isApproved: false,
+                                statusText: "Sedang Berjalan (Belum Submit)"
+                            });
+                        }
+                    } else {
+                        newChartData.push({
+                            name: opt.label.split(':')[0].replace('Laporan Akhir (Finalisasi)', 'Laporan Akhir'), 
+                            score: 0,
+                            fullTopic: opt.label,
+                            diffDays: 0,
+                            isSubmitted: false,
+                            statusText: "Belum Mulai"
+                        });
+                    }
+                } else {
+                    newChartData.push({
+                        name: opt.label.split(':')[0].replace('Laporan Akhir (Finalisasi)', 'Laporan Akhir'), 
+                        score: 0,
+                        fullTopic: opt.label,
+                        diffDays: 0,
+                        isSubmitted: false,
+                        statusText: "Belum Mulai"
+                    });
+                }
+            });
+            setChartData(newChartData);
+
         } catch (error) {
             console.error(error);
         } finally {
@@ -185,6 +300,14 @@ export function BimbinganMobile() {
         setReviewFile(null);
         setAnnotations([]);
         setHistory([]);
+
+        if (task.status === 'SUBMITTED' && !task.isReadDosen && !isReadOnly) {
+            try {
+                await bimbinganApi.markAsRead(task.id);
+            } catch (error) {
+                console.error("Failed to mark as read:", error);
+            }
+        }
 
         try {
             const data = await bimbinganApi.getAnnotations(task.id);
@@ -388,16 +511,22 @@ export function BimbinganMobile() {
                 </div>
             ) : (
                 <div className="flex flex-col min-h-[calc(100vh-60px)]">
-                    <div className="bg-white px-4 border-b border-gray-200 flex space-x-4">
+                    <div className="bg-white px-4 border-b border-gray-200 flex space-x-2 overflow-x-auto scrollbar-hide shrink-0">
                         <button
                             onClick={() => setActiveTab("aktif")}
-                            className={`py-3 text-sm font-bold border-b-2 transition-colors flex-1 text-center ${activeTab === 'aktif' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                            className={`py-3 text-sm whitespace-nowrap px-2 font-bold border-b-2 transition-colors flex-1 text-center ${activeTab === 'aktif' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                         >
-                            Target Aktif
+                            Target Saat Ini
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("grafik")}
+                            className={`py-3 text-sm whitespace-nowrap px-2 font-bold border-b-2 transition-colors flex-1 text-center ${activeTab === 'grafik' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Grafik Kedisiplinan
                         </button>
                         <button
                             onClick={() => setActiveTab("riwayat")}
-                            className={`py-3 text-sm font-bold border-b-2 transition-colors flex-1 text-center ${activeTab === 'riwayat' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                            className={`py-3 text-sm whitespace-nowrap px-2 font-bold border-b-2 transition-colors flex-1 text-center ${activeTab === 'riwayat' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                         >
                             Riwayat Selesai
                         </button>
@@ -458,9 +587,13 @@ export function BimbinganMobile() {
                                                         <FileStack className="w-4 h-4" /> Periksa & Berikan Reviu
                                                     </button>
                                                 )}
-                                                {studentActiveTask.status === 'ASSIGNED' && (
+                                                {studentActiveTask.status !== 'APPROVED' && (
                                                     <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg flex flex-col items-center gap-2 mt-2">
-                                                        <span className="text-xs text-gray-500 text-center italic">Menunggu mahasiswa mengunggah draf...</span>
+                                                        <span className="text-[10px] text-gray-500 text-center italic">
+                                                            {studentActiveTask.status === 'ASSIGNED' 
+                                                                ? "Menunggu mahasiswa mengunggah draf..." 
+                                                                : "Draf telah dikumpulkan/direviu. Anda masih bisa mengubah target bab/deadline jika diperlukan."}
+                                                        </span>
                                                         <button 
                                                             onClick={() => {
                                                                 setSelectedTasks(prev => ({...prev, [selectedStudent.mahasiswa.id]: studentActiveTask.topik}));
@@ -549,35 +682,27 @@ export function BimbinganMobile() {
                                         </div>
                                         <div>
                                             <label className="block text-[10px] font-bold text-gray-700 mb-1">Batas Waktu</label>
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <button className="h-10 text-xs w-full border border-gray-200 rounded-lg px-3 text-left flex items-center justify-between text-gray-700 hover:bg-gray-50 bg-white shadow-sm transition-colors">
-                                                        {selectedSchedules[selectedStudent.mahasiswa.id] 
-                                                            ? new Date(selectedSchedules[selectedStudent.mahasiswa.id]).toLocaleString('id-ID', {day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit'})
-                                                            : <span className="text-gray-400">Pilih Tanggal & Waktu</span>}
-                                                        <CalendarIcon className="w-4 h-4 text-gray-400" />
-                                                    </button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0 rounded-xl shadow-xl z-[150] border-gray-200 bg-white" align="start">
-                                                    <Calendar
-                                                        mode="single"
-                                                        selected={selectedSchedules[selectedStudent.mahasiswa.id] ? new Date(selectedSchedules[selectedStudent.mahasiswa.id]) : undefined}
-                                                        onSelect={(d) => {
-                                                            if (d) {
-                                                                const existingDate = selectedSchedules[selectedStudent.mahasiswa.id] ? new Date(selectedSchedules[selectedStudent.mahasiswa.id]) : null;
-                                                                const hours = existingDate ? existingDate.getHours() : 23;
-                                                                const minutes = existingDate ? existingDate.getMinutes() : 59;
-                                                                d.setHours(hours, minutes);
-                                                                setSelectedSchedules(prev => ({...prev, [selectedStudent.mahasiswa.id]: d.toISOString()}));
-                                                            }
-                                                        }}
-                                                        className="rounded-t-xl"
-                                                    />
-                                                    <div className="p-3 bg-gray-50 border-t border-gray-100 rounded-b-xl flex items-center justify-between">
-                                                        <label className="text-xs font-bold text-gray-600 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5"/> Waktu</label>
+                                            <div className="flex flex-col gap-2 relative z-[150]">
+                                                <MonthYearFilter 
+                                                    date={selectedSchedules[selectedStudent.mahasiswa.id] ? new Date(selectedSchedules[selectedStudent.mahasiswa.id]) : undefined}
+                                                    setDate={(d) => {
+                                                        if (d) {
+                                                            const existingDate = selectedSchedules[selectedStudent.mahasiswa.id] ? new Date(selectedSchedules[selectedStudent.mahasiswa.id]) : null;
+                                                            const hours = existingDate ? existingDate.getHours() : 23;
+                                                            const minutes = existingDate ? existingDate.getMinutes() : 59;
+                                                            d.setHours(hours, minutes);
+                                                            setSelectedSchedules(prev => ({...prev, [selectedStudent.mahasiswa.id]: d.toISOString()}));
+                                                        } else {
+                                                            setSelectedSchedules(prev => { const next = {...prev}; delete next[selectedStudent.mahasiswa.id]; return next; });
+                                                        }
+                                                    }}
+                                                />
+                                                <div className="flex mt-1 w-full">
+                                                    <div className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm flex items-center justify-between transition-colors hover:bg-gray-50 focus-within:border-[#119DA4] focus-within:ring-1 focus-within:ring-[#119DA4]">
+                                                        <label className="text-xs font-bold text-gray-600 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5"/> Jam</label>
                                                         <input 
                                                             type="time" 
-                                                            className="px-2 py-1 text-sm font-bold border border-gray-200 rounded-lg bg-white outline-none focus:border-[#119DA4]"
+                                                            className="px-2 py-1 text-sm font-bold bg-transparent outline-none text-gray-800"
                                                             value={(() => {
                                                                 if (!selectedSchedules[selectedStudent.mahasiswa.id]) return "23:59";
                                                                 const d = new Date(selectedSchedules[selectedStudent.mahasiswa.id]);
@@ -593,8 +718,8 @@ export function BimbinganMobile() {
                                                             }}
                                                         />
                                                     </div>
-                                                </PopoverContent>
-                                            </Popover>
+                                                </div>
+                                            </div>
                                         </div>
                                         <button 
                                             onClick={() => handleAssign(selectedStudent.mahasiswa.id)}
@@ -608,6 +733,87 @@ export function BimbinganMobile() {
                                             )}
                                             {isEditingTask ? "Terapkan Edit" : "Tugaskan"}
                                         </button>
+                                    </div>
+                                )}
+                            </div>
+                        ) : activeTab === 'grafik' ? (
+                            <div className="space-y-4">
+                                {chartData.length > 0 ? (
+                                    <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                                        <h3 className="text-sm font-bold text-gray-800 mb-0.5">Grafik Kedisiplinan</h3>
+                                        <p className="text-[10px] text-gray-500 mb-4">Skor 100 = Tepat waktu. Skor turun jika terlambat draf.</p>
+                                        <div className="h-[250px] w-full mt-2">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
+                                                    <defs>
+                                                        <linearGradient id="colorScoreMobile" x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="5%" stopColor="#f97316" stopOpacity={0.3}/>
+                                                            <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                                                    <XAxis 
+                                                        dataKey="name" 
+                                                        axisLine={false} 
+                                                        tickLine={false} 
+                                                        tick={{ fontSize: 10, fill: '#6B7280', fontWeight: 600 }}
+                                                        dy={8}
+                                                    />
+                                                    <YAxis 
+                                                        axisLine={false} 
+                                                        tickLine={false} 
+                                                        tick={{ fontSize: 10, fill: '#6B7280' }}
+                                                        domain={[0, 100]}
+                                                        ticks={[0, 50, 100]}
+                                                    />
+                                                    <Tooltip 
+                                                        content={({ active, payload }) => {
+                                                            if (active && payload && payload.length) {
+                                                                const data = payload[0].payload;
+                                                                return (
+                                                                    <div className="bg-white p-2 border border-gray-100 shadow-lg rounded-xl">
+                                                                        <p className="font-bold text-[11px] text-gray-900 mb-0.5">{data.fullTopic}</p>
+                                                                        {data.statusText === 'Belum Mulai' ? (
+                                                                            <p className="text-[10px] font-medium text-gray-500">Belum Ada Progres</p>
+                                                                        ) : (
+                                                                            <>
+                                                                                <p className="text-[10px] font-medium text-[#f97316]">Skor: {data.score}</p>
+                                                                                <p className="text-[9px] text-gray-500 mt-0.5 font-semibold">{data.isApproved ? '✔ Disetujui Dosen' : data.isSubmitted ? '⏳ Menunggu ACC' : '⏳ Sedang Berjalan (Belum Submit)'}</p>
+                                                                                {data.diffDays > 0 ? (
+                                                                                    <p className="text-[10px] text-red-500 mt-0.5">Terlambat {data.diffDays} hr</p>
+                                                                                ) : (
+                                                                                    <p className="text-[10px] text-green-600 mt-0.5">{data.isSubmitted ? 'Tepat Waktu/Awal' : 'Masih tenggat waktu'}</p>
+                                                                                )}
+                                                                            </>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            }
+                                                            return null;
+                                                        }}
+                                                    />
+                                                    <Area 
+                                                        type="monotone" 
+                                                        dataKey="score" 
+                                                        stroke="#f97316" 
+                                                        fillOpacity={1} 
+                                                        fill="url(#colorScoreMobile)" 
+                                                        strokeWidth={2.5}
+                                                        dot={{ r: 4, fill: '#f97316', strokeWidth: 0, stroke: '#fff' }}
+                                                        activeDot={{ r: 6, stroke: '#ffedd5', strokeWidth: 3, fill: '#f97316' }}
+                                                        animationDuration={1500}
+                                                    />
+                                                </AreaChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="bg-gray-50 border border-gray-200 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center">
+                                        <AlertCircle className="w-8 h-8 text-gray-300 mb-2" />
+                                        <h4 className="text-sm font-bold text-gray-900 mb-1">Belum ada data</h4>
+                                        <p className="text-[10px] text-gray-500">
+                                            Skor kedisiplinan akan muncul setelah draf bab dinilai.
+                                        </p>
                                     </div>
                                 )}
                             </div>
@@ -657,7 +863,7 @@ export function BimbinganMobile() {
             {/* Review Modal */}
             {reviewingTask && (
                 <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-gray-900/60 backdrop-blur-sm">
-                    <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+                    <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full  overflow-hidden flex flex-col max-h-[90vh]">
                         <div className="p-4 border-b border-gray-100 flex items-center justify-between">
                             <div>
                                 <h3 className="text-base font-bold text-gray-900">{reviewStatus === 'APPROVED' && reviewingTask.status === 'APPROVED' ? "Melihat Dokumen Reviu (ReadOnly)" : "Pemeriksaan Bimbingan"}</h3>

@@ -52,7 +52,7 @@ export function DashboardMobile() {
                         const bimbinganList = student.mahasiswa?.bimbingan || [];
                         if (bimbinganList.length > 0) {
                             const activeTask = bimbinganList[0];
-                            if (activeTask.status === 'SUBMITTED') {
+                            if (activeTask.status === 'SUBMITTED' && !activeTask.isReadDosen) {
                                 allActs.push({
                                     type: 'bimbingan',
                                     status: activeTask.status,

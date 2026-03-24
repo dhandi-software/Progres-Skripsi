@@ -36,59 +36,92 @@ export function DashboardDesktop() {
             activities.push({
                 title: "Dokumen Belum Lengkap",
                 desc: "Silakan upload Transkrip Nilai terbaru.",
-                time: "Kemarin",
+                time: "Belum Lengkap",
                 icon: FileText,
                 color: "text-orange-500",
+                rawDate: new Date(9999, 11, 31) // Pin to top
             });
         }
 
         if (profile?.pengajuanJudul && profile.pengajuanJudul.length > 0) {
             const p = profile.pengajuanJudul[0];
-            let dynActivity = null;
+            let dynActivity: { title: string, desc: string, icon: any, color: string, rawDate: Date, time?: string } | null = null;
             if (p.status === 'PENDING') {
                 dynActivity = {
                     title: "Pengajuan Sedang Diproses",
                     desc: `Usulan judul "${p.judul}" sedang menunggu persetujuan.`,
-                    time: "Update terbaru",
                     icon: Clock,
                     color: "text-blue-500",
+                    rawDate: new Date(p.tanggal)
                 };
             } else if (p.status === 'APPROVED') {
                 dynActivity = {
                     title: "Pengajuan Judul Disetujui",
                     desc: `Usulan judul "${p.judul}" telah disetujui.`,
-                    time: "Update terbaru",
                     icon: CheckCircle,
                     color: "text-green-500",
+                    rawDate: new Date(p.tanggal)
                 };
             } else if (p.status === 'REJECTED') {
                 dynActivity = {
                     title: "Pengajuan Judul Ditolak",
                     desc: `Usulan judul "${p.judul}" ditolak.`,
-                    time: "Update terbaru",
                     icon: XCircle,
                     color: "text-red-500",
+                    rawDate: new Date(p.tanggal)
                 };
             }
             if (dynActivity) {
-                // Prepend so it appears first
-                activities.unshift(dynActivity);
+                // Formatting time explicitly
+                dynActivity.time = new Date(p.tanggal).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric' });
+                activities.push(dynActivity);
             }
         }
 
-        // 3. Feedback Bimbingan
-        const revisionTasks = bimbinganTasks.filter(t => t.status === 'REVISION');
-        revisionTasks.forEach(t => {
-            activities.unshift({
-                title: "Feedback Bimbingan Baru!",
-                desc: `Dosen pembimbing telah mereviu draf ${t.topik} dan memberikan catatan revisi.`,
-                time: "Segera Perbaiki",
-                icon: AlertCircle,
-                color: "text-red-500",
-            });
+        // 3. Status Bimbingan
+        bimbinganTasks.forEach(t => {
+            const dateStr = new Date(t.tanggal).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric' });
+            if (t.status === 'REVISION') {
+                activities.push({
+                    title: "Revisi Bimbingan",
+                    desc: `Dosen mereviu draf ${t.topik} dan memberikan catatan.`,
+                    time: dateStr,
+                    icon: AlertCircle,
+                    color: "text-red-500",
+                    rawDate: new Date(t.tanggal)
+                });
+            } else if (t.status === 'ASSIGNED') {
+                activities.push({
+                    title: "Tugas Bimbingan Baru",
+                    desc: `Anda mendapat target bimbingan bab ${t.topik}.`,
+                    time: dateStr,
+                    icon: FileText,
+                    color: "text-blue-500",
+                    rawDate: new Date(t.tanggal)
+                });
+            } else if (t.status === 'SUBMITTED') {
+                activities.push({
+                    title: "Draf Bimbingan Terkirim",
+                    desc: `Draf ${t.topik} menunggu reviu dosen.`,
+                    time: dateStr,
+                    icon: Clock,
+                    color: "text-orange-500",
+                    rawDate: new Date(t.tanggal)
+                });
+            } else if (t.status === 'APPROVED') {
+                activities.push({
+                    title: "Bimbingan Disetujui",
+                    desc: `Bab ${t.topik} telah disetujui dosen.`,
+                    time: dateStr,
+                    icon: CheckCircle,
+                    color: "text-green-500",
+                    rawDate: new Date(t.tanggal)
+                });
+            }
         });
 
-        return activities;
+        // Sort by rawDate descending
+        return activities.sort((a, b) => b.rawDate.getTime() - a.rawDate.getTime());
     };
 
     return (
@@ -130,6 +163,27 @@ export function DashboardDesktop() {
                     </button>
                 </div>
             )}
+
+            {/* Notification Banner for Bimbingan Revisions */}
+            {bimbinganTasks.filter(t => t.status === 'REVISION').map((t, index) => (
+                <div key={`rev-${index}`} className="bg-orange-50 border border-orange-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-orange-100 rounded-full text-orange-600">
+                            <AlertCircle className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="text-orange-800 font-bold text-lg">Ada Revisi Bimbingan: {t.topik}</h3>
+                            <p className="text-orange-700 text-sm mt-1 mb-0">Dosen pembimbing telah memberikan catatan revisi untuk draf Anda. Silakan perbaiki dan unggah kembali.</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => navigate("/mahasiswa/bimbingan")}
+                        className="w-full sm:w-auto px-6 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-xl transition-colors shadow-sm whitespace-nowrap"
+                    >
+                        Lihat Revisi
+                    </button>
+                </div>
+            ))}
 
             {/* Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

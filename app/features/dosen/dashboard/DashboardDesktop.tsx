@@ -67,7 +67,7 @@ export function DashboardDesktop({ title }: { title: string }) {
                                     scheduleCount++;
                                 }
                             }
-                            if (activeTask.status === 'SUBMITTED') {
+                            if (activeTask.status === 'SUBMITTED' && !activeTask.isReadDosen) {
                                 allActs.push({
                                     type: 'bimbingan',
                                     status: activeTask.status,

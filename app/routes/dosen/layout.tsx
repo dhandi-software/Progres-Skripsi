@@ -135,7 +135,7 @@ export function AppSidebar() {
                 const bimbinganList = student.mahasiswa?.bimbingan || [];
                 if (bimbinganList.length > 0) {
                     const activeTask = bimbinganList[0];
-                    if (activeTask.status === 'SUBMITTED' || activeTask.status === 'REVISION') {
+                    if (activeTask.status === 'SUBMITTED') {
                         count++;
                     }
                 }

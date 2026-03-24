@@ -107,7 +107,7 @@ export function AppSidebar() {
         const data = await chatService.getUnreadCount(user.id);
         setUnreadCount(data.count || 0);
 
-        const tasks = await bimbinganApi.getBimbinganByMahasiswa(user.id);
+        const tasks = await bimbinganApi.getMahasiswaAllTasks();
         if (tasks && Array.isArray(tasks)) {
             const grouped = tasks.reduce((acc: any, task: any) => {
                 if (!acc[task.topik] || task.versi > acc[task.topik].versi) acc[task.topik] = task;
