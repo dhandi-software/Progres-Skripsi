@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from "react";
-import Avatar from "~/components/ui/avatar";
+import Avatar, { AvatarImage, AvatarFallback } from "~/components/ui/avatar";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "~/components/ui/sheet";
 import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
 import type { Message, ChatContact } from "~/types/chat";
@@ -38,6 +39,7 @@ export function ChatWindow({
     const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
     const [messageToDelete, setMessageToDelete] = useState<number | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [isGroupInfoOpen, setIsGroupInfoOpen] = useState(false);
     
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -161,24 +163,26 @@ export function ChatWindow({
             }} />
 
             {/* Header */}
-            <div className="flex items-center p-3 bg-[#f0f2f5] border-b border-[#d1d7db] z-10 shrink-0 h-[60px]">
-                <Button variant="ghost" size="icon" className="md:hidden mr-2 text-[#54656f]" onClick={onBack}>
-                    <ArrowLeft size={24} />
-                </Button>
-                
-                <Avatar className={cn("h-10 w-10 mr-3", !avatarImage && avatarColor)}>
-                    {avatarImage ? (
-                        <img src={avatarImage} alt={activeContact.username} className="h-full w-full object-cover" />
-                    ) : (
-                        <div className={cn(avatarColor, "h-full w-full flex items-center justify-center text-[#54656f] text-sm font-bold")}>
+            <div 
+                className={cn("flex items-center p-3 bg-[#f0f2f5] border-b border-[#d1d7db] z-10 shrink-0 h-[60px]", activeContact.isGroup && "cursor-pointer hover:bg-[#e9edef] transition-colors")}
+                onClick={() => activeContact.isGroup && setIsGroupInfoOpen(true)}
+            >
+                <div className="flex items-center flex-1">
+                    <Button variant="ghost" size="icon" className="md:hidden mr-2 text-[#54656f]" onClick={(e) => { e.stopPropagation(); onBack?.(); }}>
+                        <ArrowLeft size={24} />
+                    </Button>
+                    
+                    <Avatar className={cn("h-10 w-10 mr-3", !avatarImage && avatarColor)} src={avatarImage || ""}>
+                        <AvatarImage src={avatarImage} />
+                        <AvatarFallback className={cn("text-sm font-bold text-[#54656f]", !avatarImage && avatarColor)}>
                             {avatarInitials}
-                        </div>
-                    )}
-                </Avatar>
-                
-                <div className="flex flex-col">
-                    <span className="text-[#111b21] font-medium">{activeContact.username}</span>
-                    <span className="text-xs text-[#667781]">{messages.length > 0 ? 'online' : 'online'}</span>
+                        </AvatarFallback>
+                    </Avatar>
+                    
+                    <div className="flex flex-col">
+                        <span className="text-[#111b21] font-medium">{activeContact.username}</span>
+                        <span className="text-xs text-[#667781]">{activeContact.isGroup ? `${activeContact.members?.length || 0} anggota` : 'online'}</span>
+                    </div>
                 </div>
             </div>
 
@@ -271,14 +275,14 @@ export function ChatWindow({
                                                 <div className="mb-1 mt-1">
                                                     {msg.attachmentType === 'image' ? (
                                                         <img 
-                                                            src={`http://localhost:5000${msg.attachmentUrl}`} 
+                                                            src={`http://localhost:5002${msg.attachmentUrl}`} 
                                                             alt="attachment" 
                                                             className="rounded-md max-h-64 object-cover w-full cursor-pointer hover:opacity-90 transition-opacity"
-                                                            onClick={() => window.open(`http://localhost:5000${msg.attachmentUrl}`, '_blank')}
+                                                            onClick={() => window.open(`http://localhost:5002${msg.attachmentUrl}`, '_blank')}
                                                         />
                                                     ) : (
                                                         <a 
-                                                            href={`http://localhost:5000${msg.attachmentUrl}`}
+                                                            href={`http://localhost:5002${msg.attachmentUrl}`}
                                                             target="_blank"
                                                             rel="noreferrer"
                                                             className="flex items-center gap-3 p-3 rounded-md bg-[#f0f2f5] hover:bg-[#e9edef] transition-colors border border-[#d1d7db]"
@@ -401,6 +405,64 @@ export function ChatWindow({
                 onDeleteForEveryone={handleDeleteForEveryone}
                 onDeleteForMe={handleDeleteForMe}
             />
+
+            {/* Group Info Sheet */}
+            <Sheet open={isGroupInfoOpen} onOpenChange={setIsGroupInfoOpen}>
+                <SheetContent className="w-[400px] sm:w-[540px] bg-[#f0f2f5] p-0 flex flex-col border-none shadow-xl border-l border-[#d1d7db]" side="right" hideClose={true}>
+                    <SheetHeader className="px-6 py-4 bg-[#f0f2f5] flex-row items-center border-b border-[#d1d7db] shrink-0 h-[60px] space-y-0">
+                        <button onClick={() => setIsGroupInfoOpen(false)} className="mr-4 text-[#54656f] hover:bg-[#dfe3e5] p-2 rounded-full transition-colors flex items-center justify-center focus:outline-none">
+                            <X className="w-5 h-5" />
+                        </button>
+                        <SheetTitle className="text-base font-medium text-[#111b21] m-0 leading-none pb-1">Info grup</SheetTitle>
+                    </SheetHeader>
+                    
+                    <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col items-center pt-8">
+                        {/* Group Display Area */}
+                        <div className="flex flex-col items-center justify-center py-2 mb-6 w-full px-6">
+                            <Avatar className={cn("h-48 w-48 mb-6 shadow-sm", !avatarImage && avatarColor)} src={avatarImage || ""}>
+                                <AvatarImage src={avatarImage} />
+                                <AvatarFallback className={cn("text-6xl font-light text-[#54656f]", !avatarImage && avatarColor)}>
+                                    {avatarInitials}
+                                </AvatarFallback>
+                            </Avatar>
+                            <h2 className="text-xl font-medium text-[#111b21] text-center px-4 break-words max-w-full leading-tight">{activeContact.username}</h2>
+                            <p className="text-[15px] text-[#667781] mt-1.5">Grup · {activeContact.members?.length || 0} anggota</p>
+                        </div>
+                        
+                        {/* Members List Area */}
+                        <div className="bg-white w-full py-2 shadow-sm border-t border-b border-[#d1d7db] flex flex-col">
+                            <div className="px-6 py-4 text-[#8696a0] text-sm font-medium">
+                                {activeContact.members?.length || 0} anggota
+                            </div>
+                            
+                            {activeContact.members?.map((member) => (
+                                <div key={`member-${member.id}`} className="flex items-center px-6 py-3 hover:bg-[#f5f6f6] transition-colors group cursor-pointer border-b border-[#f0f2f5] last:border-0">
+                                    <Avatar className="h-12 w-12 mr-3 bg-[#dfe3e5]" src="">
+                                        <AvatarFallback className="text-[15px] font-medium text-[#54656f]">
+                                            {member.username.substring(0, 2).toUpperCase()}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex flex-col flex-1 truncate justify-center">
+                                        <div className="flex items-center justify-between">
+                                            <span className={cn("text-[16px] truncate leading-tight", member.id === currentUser?.id ? "text-[#111b21] font-medium" : "text-[#111b21]")}>
+                                                {member.id === currentUser?.id ? "Anda" : member.username}
+                                            </span>
+                                            {activeContact.adminId === member.id && (
+                                                <div className="text-[11px] text-[#00a884] border border-[#00a884] rounded px-1.5 py-[2px] ml-3 font-medium opacity-80 border-opacity-30 leading-none">
+                                                    Admin grup
+                                                </div>
+                                            )}
+                                        </div>
+                                        <span className="text-[13px] text-[#667781] truncate capitalize leading-tight mt-0.5">
+                                            {member.role?.toLowerCase()}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </SheetContent>
+            </Sheet>
         </div>
     );
 }

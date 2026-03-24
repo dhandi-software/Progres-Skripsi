@@ -1,5 +1,7 @@
-// Dosen Layout
+import React from "react";
 import { useLocation, useNavigate } from "react-router";
+import { pengajuanApi } from "~/api/pengajuan";
+import { bimbinganApi } from "~/api/bimbinganApi";
 import {
   LayoutDashboard,
   LogOut,
@@ -15,14 +17,15 @@ import { ProtectedRoute } from "~/routes/ProtectedRoute";
 import { RoleGuard } from "~/routes/RoleGuard";
 import { useAuth } from "~/hooks/useAuth";
 import type { ContextType } from "~/root";
+import { chatService } from "~/services/chatService";
 
-import { SidebarProvider, Sidebar, SidebarContent, useSidebar } from "~/components/ui/sidebar";
+import { SidebarProvider, Sidebar, SidebarContent, useSidebar, SidebarTrigger } from "~/components/ui/sidebar";
 import { cn } from "~/lib/utils";
 
 type MenuKey =
   | "dashboard"
   | "download"
-  | "pengajuan"
+  | "peninjauan"
   | "bimbingan"
   | "chat"
   | "acara"
@@ -31,7 +34,7 @@ type MenuKey =
 
 const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/dosen/download")) return "download";
-  if (pathname.startsWith("/dosen/pengajuan")) return "pengajuan";
+  if (pathname.startsWith("/dosen/peninjauan")) return "peninjauan";
   if (pathname.startsWith("/dosen/bimbingan")) return "bimbingan";
   if (pathname.startsWith("/dosen/chat")) return "chat";
   if (pathname.startsWith("/dosen/acara")) return "acara";
@@ -55,10 +58,10 @@ const menuItems = [
     url: "/dosen/download",
   },
   {
-    key: "pengajuan" as MenuKey,
-    title: "Pengajuan Formulir",
+    key: "peninjauan" as MenuKey,
+    title: "Peninjauan Formulir",
     icon: FileText,
-    url: "/dosen/pengajuan",
+    url: "/dosen/peninjauan",
   },
   {
     key: "bimbingan" as MenuKey,
@@ -89,11 +92,74 @@ const menuItems = [
 export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const { setOpenMobile, isMobile } = useSidebar();
   const rootData = useRouteLoaderData("root") as { isMobile: boolean };
   // const _isMobile = rootData?.isMobile ?? isMobile; // Unused variable
   const active = pathToKey(location.pathname) ?? "dashboard";
+
+  // Fetch pending pengajuan count and unread chat count
+  const [pendingCount, setPendingCount] = React.useState(0);
+  const [unreadCount, setUnreadCount] = React.useState(0);
+  const [bimbinganBadgeCount, setBimbinganBadgeCount] = React.useState(0);
+
+  React.useEffect(() => {
+    const fetchPendingCount = async () => {
+      try {
+        const data = await pengajuanApi.getPengajuanByDosen();
+        if (data && Array.isArray(data)) {
+          const count = data.filter((item: any) => item.status === 'PENDING').length;
+          setPendingCount(count);
+        }
+      } catch (error) {
+        console.error("Failed to fetch pending requests count:", error);
+      }
+    };
+    
+    const fetchUnread = async () => {
+      if (!user) return;
+      try {
+        const data = await chatService.getUnreadCount(user.id);
+        setUnreadCount(data.count || 0);
+      } catch (error) {
+        console.error("Failed to fetch unread chat count:", error);
+      }
+    };
+
+    const fetchBimbinganBadge = async () => {
+      try {
+        const students = await bimbinganApi.getDosenBimbinganStudents();
+        let count = 0;
+        if (students && Array.isArray(students)) {
+            students.forEach((student: any) => {
+                const bimbinganList = student.mahasiswa?.bimbingan || [];
+                if (bimbinganList.length > 0) {
+                    const activeTask = bimbinganList[0];
+                    if (activeTask.status === 'SUBMITTED') {
+                        count++;
+                    }
+                }
+            });
+        }
+        setBimbinganBadgeCount(count);
+      } catch (error) {
+        console.error("Failed to fetch bimbingan badge:", error);
+      }
+    };
+
+    // Initial fetch
+    fetchPendingCount();
+    fetchUnread();
+    fetchBimbinganBadge();
+    
+    // Setup interval to periodically check (optional, but good for real-time feel)
+    const intervalId = setInterval(() => {
+        fetchPendingCount();
+        fetchUnread();
+        fetchBimbinganBadge();
+    }, 30000); // Check every 30s
+    return () => clearInterval(intervalId);
+  }, [user]);
 
   const handleNavigate = (key: MenuKey) => {
     const item = menuItems.find((item) => item.key === key);
@@ -136,26 +202,44 @@ export function AppSidebar() {
                     <div
                       onClick={() => handleNavigate(item.key)}
                       className={cn(
-                        "group flex items-center gap-4 px-3 py-3 rounded-xl cursor-pointer transition-all duration-200",
+                        "group flex items-center justify-between px-3 py-3 rounded-xl cursor-pointer transition-all duration-200",
                         isActive ? "bg-[#FFF0EB]" : "hover:bg-gray-50",
                       )}
                     >
-                      <div
-                        className={cn(
-                          "flex items-center justify-center rounded-full w-8 h-8 shrink-0 transition-colors",
-                          isActive ? "bg-[#D25026]" : "bg-[#A1A1A1] group-hover:bg-gray-400"
-                        )}
-                      >
-                        <IconComponent className="w-5 h-5 text-white" />
+                      <div className="flex items-center gap-4">
+                        <div
+                          className={cn(
+                            "flex items-center justify-center rounded-full w-8 h-8 shrink-0 transition-colors",
+                            isActive ? "bg-[#D25026]" : "bg-[#A1A1A1] group-hover:bg-gray-400"
+                          )}
+                        >
+                          <IconComponent className="w-5 h-5 text-white" />
+                        </div>
+                        <span
+                          className={cn(
+                            "flex-1 font-medium text-[1rem] transition-colors",
+                            isActive ? "text-[#D25026]" : "text-[#A1A1A1] group-hover:text-gray-600"
+                          )}
+                        >
+                          {item.title}
+                        </span>
                       </div>
-                      <span
-                        className={cn(
-                          "flex-1 font-medium text-[1rem] transition-colors",
-                          isActive ? "text-[#D25026]" : "text-[#A1A1A1] group-hover:text-gray-600"
-                        )}
-                      >
-                        {item.title}
-                      </span>
+                      
+                      {item.key === "bimbingan" && bimbinganBadgeCount > 0 && (
+                        <div className="bg-[#D25026] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
+                          {bimbinganBadgeCount}
+                        </div>
+                      )}
+                      {item.key === "peninjauan" && pendingCount > 0 && (
+                        <div className="bg-[#D25026] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
+                          {pendingCount}
+                        </div>
+                      )}
+                      {item.key === "chat" && unreadCount > 0 && (
+                        <div className="bg-[#00a884] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
+                          {unreadCount}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -192,6 +276,18 @@ export default function DosenLayout() {
               "flex-1 w-full h-full overflow-y-auto",
               location.pathname.includes("/chat") ? "pb-0" : "pb-12"
             )}>
+              {/* Mobile Header with Hamburger Menu */}
+              {isMobile && !location.pathname.includes("/chat") && (
+                <div className="md:hidden flex items-center p-4 bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
+                  <SidebarTrigger className="p-2 -ml-2 text-gray-700" />
+                  <span className="ml-2 font-bold text-[#119DA4] text-lg tracking-tight">Dosen Panel</span>
+                </div>
+              )}
+              {isMobile && location.pathname.includes("/chat") && (
+                <div className="md:hidden absolute top-4 left-4 z-50">
+                   <SidebarTrigger className="p-2 bg-white rounded-full shadow-md text-gray-700" />
+                </div>
+              )}
               <Outlet context={{ isMobile }} />
             </main>
           </div>

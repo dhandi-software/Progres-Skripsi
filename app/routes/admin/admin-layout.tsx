@@ -41,7 +41,7 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
     return "advertisement-management";
   if (pathname.startsWith("/admin/create-account"))
     return "create-account";
-  if (pathname.startsWith("/admin/manage-account"))
+  if (pathname.startsWith("/admin/manage-account") || pathname.startsWith("/admin/edit-account") || pathname.startsWith("/admin/users"))
     return "manage-account";
   if (pathname.startsWith("/admin/article")) return "article-and-media";
   if (pathname.startsWith("/admin/media")) return "article-and-media";

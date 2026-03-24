@@ -8,5 +8,8 @@ export default defineConfig({
     host: true,
     allowedHosts: true,
   },
+  ssr: {
+    noExternal: ["react-pdf-highlighter", "pdfjs-dist"],
+  },
   plugins: [tailwindcss(), reactRouter(), tsconfigPaths()],
 });

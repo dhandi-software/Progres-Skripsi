@@ -69,26 +69,39 @@ export const userApi = {
      * Create new user
      * POST /api/v1/admin/register
      */
-    register: async (data: any): Promise<any> => {
+    /**
+     * Create Mahasiswa
+     * POST /api/admin/create-mahasiswa
+     */
+    createMahasiswa: async (data: any): Promise<any> => {
         try {
-            const response = await client.post("/admin/register", data);
+            const response = await client.post("/admin/create-mahasiswa", data);
             return response.data;
         } catch (error: any) {
-            console.error("❌ Register user error:", {
+            console.error("❌ Create Mahasiswa error:", {
                 status: error.response?.status,
                 data: error.response?.data,
                 message: error.message,
             });
+            throw error;
+        }
+    },
 
-            throw {
-                code: error.response?.status || 500,
-                status: "error",
-                message:
-                    error.response?.data?.message ||
-                    error.message ||
-                    "Registration failed",
+    /**
+     * Create Dosen
+     * POST /api/admin/create-dosen
+     */
+    createDosen: async (data: any): Promise<any> => {
+        try {
+            const response = await client.post("/admin/create-dosen", data);
+            return response.data;
+        } catch (error: any) {
+            console.error("❌ Create Dosen error:", {
+                status: error.response?.status,
                 data: error.response?.data,
-            };
+                message: error.message,
+            });
+            throw error;
         }
     },
 

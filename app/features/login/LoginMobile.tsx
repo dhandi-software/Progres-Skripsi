@@ -5,6 +5,7 @@ import { Label } from "~/components/ui/label";
 import { TextField } from "~/components/ui/TextField";
 import { Link } from "react-router";
 import { useAuth } from "~/hooks/useAuth";
+import { Eye, EyeOff } from "lucide-react";
 
 export function LoginMobile() {
     const [email, setEmail] = useState("");
@@ -12,6 +13,7 @@ export function LoginMobile() {
     const [rememberMe, setRememberMe] = useState(false);
     const [errors, setErrors] = useState({ email: false, password: false, rememberMe: false });
     const [loginError, setLoginError] = useState<string | null>(null);
+    const [showPassword, setShowPassword] = useState(false);
     const { login, isLoading } = useAuth();
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -92,11 +94,20 @@ export function LoginMobile() {
                                 label="Password"
                                 placeholder="••••••••"
                                 value={password}
-                                type="password"
+                                type={showPassword ? "text" : "password"}
                                 variant="vertical"
                                 onChange={(e) => setPassword(e.target.value)}
                                 error={errors.password}
                                 className="bg-zinc-50 focus:bg-white transition-colors"
+                                rightIcon={
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="text-zinc-400 hover:text-zinc-600 focus:outline-none flex items-center"
+                                    >
+                                        {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
+                                    </button>
+                                }
                             />
                              <div className="flex justify-end mt-1">
                                 <Link

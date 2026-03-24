@@ -1,5 +1,8 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "~/hooks/useAuth";
+import { pengajuanApi } from "~/api/pengajuan";
+import { bimbinganApi } from "~/api/bimbinganApi";
 import {
     BookOpen,
     Calendar,
@@ -7,11 +10,119 @@ import {
     Clock,
     FileText,
     TrendingUp,
+    XCircle,
+    AlertCircle,
 } from "lucide-react";
 
 export function DashboardDesktop() {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const [profile, setProfile] = useState<any>(null);
+    const [bimbinganTasks, setBimbinganTasks] = useState<any[]>([]);
+    const [showAllActivities, setShowAllActivities] = useState(false);
+
+    useEffect(() => {
+        pengajuanApi.getProfile().then(setProfile).catch(console.error);
+        if (user?.id) {
+            bimbinganApi.getBimbinganByMahasiswa(user.id).then(setBimbinganTasks).catch(console.error);
+        }
+    }, [user?.id]);
+
+    const getActivities = () => {
+        const activities: any[] = [];
+        
+        // 1. Dokumen Belum Lengkap: Only show if NO pengajuan
+        if (!profile?.pengajuanJudul || profile.pengajuanJudul.length === 0) {
+            activities.push({
+                title: "Dokumen Belum Lengkap",
+                desc: "Silakan upload Transkrip Nilai terbaru.",
+                time: "Belum Lengkap",
+                icon: FileText,
+                color: "text-orange-500",
+                rawDate: new Date(9999, 11, 31) // Pin to top
+            });
+        }
+
+        if (profile?.pengajuanJudul && profile.pengajuanJudul.length > 0) {
+            const p = profile.pengajuanJudul[0];
+            let dynActivity: { title: string, desc: string, icon: any, color: string, rawDate: Date, time?: string } | null = null;
+            if (p.status === 'PENDING') {
+                dynActivity = {
+                    title: "Pengajuan Sedang Diproses",
+                    desc: `Usulan judul "${p.judul}" sedang menunggu persetujuan.`,
+                    icon: Clock,
+                    color: "text-blue-500",
+                    rawDate: new Date(p.tanggal)
+                };
+            } else if (p.status === 'APPROVED') {
+                dynActivity = {
+                    title: "Pengajuan Judul Disetujui",
+                    desc: `Usulan judul "${p.judul}" telah disetujui.`,
+                    icon: CheckCircle,
+                    color: "text-green-500",
+                    rawDate: new Date(p.tanggal)
+                };
+            } else if (p.status === 'REJECTED') {
+                dynActivity = {
+                    title: "Pengajuan Judul Ditolak",
+                    desc: `Usulan judul "${p.judul}" ditolak.`,
+                    icon: XCircle,
+                    color: "text-red-500",
+                    rawDate: new Date(p.tanggal)
+                };
+            }
+            if (dynActivity) {
+                // Formatting time explicitly
+                dynActivity.time = new Date(p.tanggal).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric' });
+                activities.push(dynActivity);
+            }
+        }
+
+        // 3. Status Bimbingan
+        bimbinganTasks.forEach(t => {
+            const dateStr = new Date(t.tanggal).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric' });
+            if (t.status === 'REVISION') {
+                activities.push({
+                    title: "Revisi Bimbingan",
+                    desc: `Dosen mereviu draf ${t.topik} dan memberikan catatan.`,
+                    time: dateStr,
+                    icon: AlertCircle,
+                    color: "text-red-500",
+                    rawDate: new Date(t.tanggal)
+                });
+            } else if (t.status === 'ASSIGNED') {
+                activities.push({
+                    title: "Tugas Bimbingan Baru",
+                    desc: `Anda mendapat target bimbingan bab ${t.topik}.`,
+                    time: dateStr,
+                    icon: FileText,
+                    color: "text-blue-500",
+                    rawDate: new Date(t.tanggal)
+                });
+            } else if (t.status === 'SUBMITTED') {
+                activities.push({
+                    title: "Draf Bimbingan Terkirim",
+                    desc: `Draf ${t.topik} menunggu reviu dosen.`,
+                    time: dateStr,
+                    icon: Clock,
+                    color: "text-orange-500",
+                    rawDate: new Date(t.tanggal)
+                });
+            } else if (t.status === 'APPROVED') {
+                activities.push({
+                    title: "Bimbingan Disetujui",
+                    desc: `Bab ${t.topik} telah disetujui dosen.`,
+                    time: dateStr,
+                    icon: CheckCircle,
+                    color: "text-green-500",
+                    rawDate: new Date(t.tanggal)
+                });
+            }
+        });
+
+        // Sort by rawDate descending
+        return activities.sort((a, b) => b.rawDate.getTime() - a.rawDate.getTime());
+    };
 
     return (
         <div className="p-6 lg:p-10 space-y-8 font-geist">
@@ -31,6 +142,48 @@ export function DashboardDesktop() {
                 <div className="absolute right-0 top-0 h-full w-1/3 bg-white/10 skew-x-12 translate-x-12" />
                 <div className="absolute right-20 bottom-0 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
             </div>
+
+            {/* Notification Banner for Rejected Applications */}
+            {profile?.pengajuanJudul && profile.pengajuanJudul.length > 0 && profile.pengajuanJudul[0].status === 'REJECTED' && (
+                <div className="bg-red-50 border border-red-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-red-100 rounded-full text-red-600">
+                            <XCircle className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="text-red-800 font-bold text-lg">Pengajuan Judul Ditolak</h3>
+                            <p className="text-red-600 text-sm mt-1 mb-0">Usulan judul "{profile.pengajuanJudul[0].judul}" tidak disetujui. Silakan perbaiki dan ajukan ulang formulir.</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => navigate("/mahasiswa/pengajuan")}
+                        className="w-full sm:w-auto px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-colors shadow-sm whitespace-nowrap"
+                    >
+                        Ajukan Kembali
+                    </button>
+                </div>
+            )}
+
+            {/* Notification Banner for Bimbingan Revisions */}
+            {bimbinganTasks.filter(t => t.status === 'REVISION').map((t, index) => (
+                <div key={`rev-${index}`} className="bg-orange-50 border border-orange-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-orange-100 rounded-full text-orange-600">
+                            <AlertCircle className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="text-orange-800 font-bold text-lg">Ada Revisi Bimbingan: {t.topik}</h3>
+                            <p className="text-orange-700 text-sm mt-1 mb-0">Dosen pembimbing telah memberikan catatan revisi untuk draf Anda. Silakan perbaiki dan unggah kembali.</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => navigate("/mahasiswa/bimbingan")}
+                        className="w-full sm:w-auto px-6 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-xl transition-colors shadow-sm whitespace-nowrap"
+                    >
+                        Lihat Revisi
+                    </button>
+                </div>
+            ))}
 
             {/* Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -88,41 +241,22 @@ export function DashboardDesktop() {
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 {/* Recent Activity / Notifications */}
                 <div className="lg:col-span-2 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="p-6 border-b border-gray-100 flex justify-between items-center">
                         <h2 className="text-xl font-bold text-gray-800">
                             Aktivitas Terkini
                         </h2>
-                        <button className="text-sm text-[#119DA4] font-medium hover:underline">
-                            Lihat Semua
+                        <button 
+                            onClick={() => setShowAllActivities(!showAllActivities)}
+                            className="text-sm text-[#119DA4] font-medium hover:underline"
+                        >
+                            {showAllActivities ? "Sembunyikan" : "Lihat Semua"}
                         </button>
                     </div>
                     <div className="divide-y divide-gray-50">
-                        {[
-                            {
-                                title: "Pengajuan Judul Disetujui",
-                                desc: "Judul KP kamu telah disetujui oleh Kaprodi.",
-                                time: "2 Jam yang lalu",
-                                icon: CheckCircle,
-                                color: "text-green-500",
-                            },
-                            {
-                                title: "Jadwal Bimbingan Baru",
-                                desc: "Dosen pembimbing menetapkan jadwal bimbingan baru.",
-                                time: "Hari ini, 10:00",
-                                icon: Calendar,
-                                color: "text-blue-500",
-                            },
-                            {
-                                title: "Dokumen Belum Lengkap",
-                                desc: "Silakan upload Transkrip Nilai terbaru.",
-                                time: "Kemarin",
-                                icon: FileText,
-                                color: "text-orange-500",
-                            },
-                        ].map((item, i) => (
+                        {(showAllActivities ? getActivities() : getActivities().slice(0, 5)).map((item, i) => (
                             <div
                                 key={i}
                                 className="p-6 flex items-start gap-4 hover:bg-gray-50 transition-colors"
@@ -139,7 +273,7 @@ export function DashboardDesktop() {
                                     <p className="text-sm text-gray-500 mt-1">
                                         {item.desc}
                                     </p>
-                                    <span className="text-xs text-gray-400 mt-2 block flex items-center gap-1">
+                                    <span className="text-xs text-gray-400 mt-2 flex items-center gap-1">
                                         <Clock className="w-3 h-3" />{" "}
                                         {item.time}
                                     </span>

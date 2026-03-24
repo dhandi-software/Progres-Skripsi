@@ -1,15 +1,26 @@
-import Avatar from "~/components/ui/avatar";
+import Avatar, { AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import type { ChatContact } from "~/types/chat";
 import { cn } from "~/lib/utils";
+import { Search, MessageSquarePlus, Users } from "lucide-react";
+import { useState } from "react";
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+} from "~/components/ui/dropdown-menu";
 
 interface ChatSidebarProps {
     contacts: ChatContact[];
     activeContact: ChatContact | null;
     onSelectContact: (contact: ChatContact) => void;
-    unreadCounts?: Record<number, number>;
+    unreadCounts?: Record<string | number, number>;
+    currentUserRole?: string;
+    currentUser?: any;
+    onCreateGroup?: () => void;
 }
 
-export function ChatSidebar({ contacts, activeContact, onSelectContact, unreadCounts }: ChatSidebarProps) {
+export function ChatSidebar({ contacts, activeContact, onSelectContact, unreadCounts, currentUserRole, currentUser, onCreateGroup }: ChatSidebarProps) {
     // Helper to get initials
     // Helper to get avatar details
     const getAvatarDetails = (contact: ChatContact) => {
@@ -22,6 +33,10 @@ export function ChatSidebar({ contacts, activeContact, onSelectContact, unreadCo
 
         if (contact.id === 0) { // Public Room
             return { initials: "Rp", color: "bg-[#e5e7eb]", image: "" }; 
+        }
+
+        if (contact.isGroup) {
+            return { initials: contact.username.substring(0, 2).toUpperCase(), color: "bg-[#00a884] text-white", image: "" };
         }
 
         if (role.includes("mahasiswa") || username.includes("mahasiswa")) {
@@ -46,27 +61,82 @@ export function ChatSidebar({ contacts, activeContact, onSelectContact, unreadCo
         return { initials, color, image };
     };
 
+    const [searchQuery, setSearchQuery] = useState("");
+
+    const filteredContacts = contacts.filter(c => {
+        if (!searchQuery) return true;
+        const query = searchQuery.toLowerCase();
+        return c.username?.toLowerCase().includes(query) || c.role?.toLowerCase().includes(query);
+    });
+
+    const getMyInitials = () => {
+        if (!currentUser) return "DA";
+        const name = currentUser.dosen?.nama || currentUser.mahasiswa?.nama || currentUser.username || "Dhandi Adam";
+        
+        if (/^\d+$/.test(name)) return "DA";
+        
+        return name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
+    };
+
+    const sortedFilteredContacts = [...filteredContacts].sort((a, b) => {
+        const timeA = a.lastMessage ? new Date(a.lastMessage.createdAt).getTime() : 0;
+        const timeB = b.lastMessage ? new Date(b.lastMessage.createdAt).getTime() : 0;
+        return timeB - timeA;
+    });
+
     return (
         <div className="w-80 border-r border-[#d1d7db] bg-white flex flex-col h-full">
             <div className="px-4 py-3 bg-[#f0f2f5] border-b border-[#d1d7db] flex justify-between items-center h-[59px]">
                  <div className="flex items-center gap-3">
-                     <Avatar 
-                        className="h-10 w-10 bg-[#dfe3e5]" 
-                        src={`https://api.dicebear.com/7.x/initials/svg?seed=You`}
-                        fallback="YO"
-                     />
+                     <Avatar className="h-10 w-10" src="">
+                        <AvatarImage src="" />
+                        <AvatarFallback className="bg-[#00a884] text-white">
+                            {getMyInitials()}
+                        </AvatarFallback>
+                     </Avatar>
                      <h2 className="text-base font-medium text-[#111b21] font-bold">Chat</h2>
                  </div>
+                 {currentUserRole?.toUpperCase() === 'DOSEN' && onCreateGroup && (
+                     <DropdownMenu>
+                         <DropdownMenuTrigger asChild>
+                             <button 
+                                 className="p-2 text-[#54656f] hover:bg-[#dfe3e5] rounded-full transition-colors focus:outline-none focus:ring-0" 
+                                 title="Chat Baru"
+                             >
+                                 <MessageSquarePlus className="w-5 h-5" />
+                             </button>
+                         </DropdownMenuTrigger>
+                         <DropdownMenuContent align="end" className="w-48 bg-white rounded-lg shadow-md border border-[#d1d7db]" sideOffset={8}>
+                             <DropdownMenuItem onClick={onCreateGroup} className="cursor-pointer py-2.5 px-3 focus:bg-[#f0f2f5] rounded-md transition-colors">
+                                 <Users className="w-5 h-5 mr-3 text-[#54656f]" />
+                                 <span className="text-[#111b21] font-medium text-[15px]">Grup Baru</span>
+                             </DropdownMenuItem>
+                         </DropdownMenuContent>
+                     </DropdownMenu>
+                 )}
+            </div>
+
+            <div className="px-3 py-2 border-b border-[#d1d7db] bg-white">
+                <div className="flex items-center bg-[#f0f2f5] rounded-lg px-3 py-1.5 focus-within:bg-white focus-within:ring-1 focus-within:ring-[#00a884] focus-within:shadow-[0_0_0_1px_rgba(0,168,132,0.2)] transition-all">
+                    <Search className="w-4 h-4 text-[#54656f] mr-3" />
+                    <input 
+                        type="text"
+                        placeholder="Cari atau mulai chat baru"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="bg-transparent border-none outline-none text-[#111b21] w-full text-sm placeholder:text-[#54656f] py-1"
+                    />
+                </div>
             </div>
             
             <div className="flex-1 overflow-y-auto custom-scrollbar">
-                {contacts.length === 0 ? (
+                {sortedFilteredContacts.length === 0 ? (
                     <div className="p-8 text-center text-[#8696a0] text-sm">
-                        Tidak ada kontak
+                        {searchQuery ? "Kontak tidak ditemukan" : "Tidak ada kontak"}
                     </div>
                 ) : (
                     <div className="flex flex-col">
-                        {contacts.map((contact) => {
+                        {sortedFilteredContacts.map((contact) => {
                             const unread = unreadCounts?.[contact.id] || 0;
                             const { initials, color, image } = getAvatarDetails(contact);
                             
@@ -79,18 +149,11 @@ export function ChatSidebar({ contacts, activeContact, onSelectContact, unreadCo
                                         activeContact?.id === contact.id ? "bg-[#f0f2f5]" : ""
                                     )}
                                 >
-                                    <Avatar 
-                                        className={cn("h-12 w-12", !image && color)}
-                                        src={image}
-                                        fallback={initials}
-                                    >
-                                        {image ? (
-                                            <img src={image} alt={contact.username} className="h-full w-full object-cover" />
-                                        ) : (
-                                            <div className={cn(color, "h-full w-full flex items-center justify-center text-[#54656f] text-sm font-bold")}>
-                                                {initials}
-                                            </div>
-                                        )}
+                                    <Avatar className="h-12 w-12" src={image || ""}>
+                                        <AvatarImage src={image} />
+                                        <AvatarFallback className={cn("text-sm font-medium", !image && color)}>
+                                            {initials}
+                                        </AvatarFallback>
                                     </Avatar>
                                     
                                     <div className="flex-1 overflow-hidden">

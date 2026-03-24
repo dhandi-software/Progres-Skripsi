@@ -15,7 +15,7 @@ export function RoleGuard({ allowedRoles, children }: RoleGuardProps) {
   }
 
   if (!user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   const userRole = user.role.toLowerCase();

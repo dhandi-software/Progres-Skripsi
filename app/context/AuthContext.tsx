@@ -21,10 +21,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const initializeAuth = async () => {
-      const token = localStorage.getItem("jwt");
       const savedUser = localStorage.getItem("user");
       
-      if (token && savedUser) {
+      if (savedUser) {
         try {
             setUser(JSON.parse(savedUser));
         } catch (error) {
@@ -52,10 +51,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const response = await authService.login(payload);
 
-      if (response.token && response.user) {
-        const { token, user } = response;
+      if (response.user) {
+        const { user } = response;
 
-        localStorage.setItem("jwt", token);
         localStorage.setItem("user", JSON.stringify(user));
 
         setUser(user);
@@ -102,10 +100,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    localStorage.removeItem("jwt");
     localStorage.removeItem("user");
-    setUser(null);
-    navigate("/login", { replace: true });
+    
+    // Fire and forget the backend logout
+    try {
+      authService.logout().catch(e => console.error(e));
+    } catch(e) { console.error(e) }
+
+    window.location.href = "/login";
   };
 
   const value = React.useMemo(() => ({

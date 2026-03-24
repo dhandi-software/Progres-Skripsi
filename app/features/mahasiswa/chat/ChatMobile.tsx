@@ -4,6 +4,7 @@ import { ChatWindow } from "~/components/ui/chat-window";
 import { useChat } from "~/hooks/useChat";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "~/components/ui/button";
+import { Toast } from "~/components/ui/toast";
 
 export function ChatMobile({ title }: { title: string }) {
     const {
@@ -17,7 +18,9 @@ export function ChatMobile({ title }: { title: string }) {
         unreadCounts,
         resetUnreadCount,
         markAsRead,
-        deleteMessage
+        deleteMessage,
+        toastProps,
+        setToastProps
     } = useChat();
 
     const [view, setView] = useState<"list" | "chat">("list");
@@ -34,7 +37,7 @@ export function ChatMobile({ title }: { title: string }) {
     };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-4rem)] w-full bg-white">
+        <div className="flex flex-col h-[calc(100vh-4rem)] w-full bg-white relative">
             {view === "list" ? (
                 <ChatSidebar
                     contacts={contacts}
@@ -53,6 +56,16 @@ export function ChatMobile({ title }: { title: string }) {
                         onBack={handleBack}
                         onMarkAsRead={markAsRead}
                         onDeleteMessage={deleteMessage}
+                    />
+                </div>
+            )}
+            
+            {toastProps && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 w-[90%] z-50">
+                    <Toast
+                        title={toastProps.title}
+                        variant={toastProps.variant}
+                        onClose={() => setToastProps(null)}
                     />
                 </div>
             )}
