@@ -22,6 +22,12 @@ export const bimbinganApi = {
         return response.data;
     },
 
+    // New Dosen endpoint for final bimbingan report
+    getLaporanAkhir: async () => {
+        const response = await client.get("/bimbingan/dosen-laporan-akhir");
+        return response.data;
+    },
+
     // New Dosen endpoint for assigning tasks
     assignBimbinganTask: async (mahasiswaId: number, topik: string, jadwalBimbingan?: Date) => {
         const response = await client.post("/bimbingan/assign-task", { 

@@ -68,19 +68,6 @@ export const CreateAccountDesktop = () => {
         </div>
 
             <div className="flex flex-col gap-6">
-                {/* Email Field */}
-                <div className="flex flex-col gap-3">
-                <label className="text-base font-semibold text-[#18181B]">Email</label>
-                <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    placeholder={formData.role === 'mahasiswa' ? "mahasiswa@student.univ.ac.id" : "dosen@univ.ac.id"}
-                    disabled={isLoading}
-                    className="w-full px-5 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-base disabled:opacity-50 disabled:bg-gray-50 bg-white"
-                />
-                </div>
 
                 {/* Name Field */}
                 <div className="flex flex-col gap-3">
@@ -96,6 +83,20 @@ export const CreateAccountDesktop = () => {
                 />
                 </div>
             </div>
+
+                 {/* Email Field */}
+                <div className="flex flex-col gap-3">
+                <label className="text-base font-semibold text-[#18181B]">Email</label>
+                <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    placeholder={formData.role === 'mahasiswa' ? "mahasiswa@student.univ.ac.id" : "dosen@univ.ac.id"}
+                    disabled={isLoading}
+                    className="w-full px-5 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-base disabled:opacity-50 disabled:bg-gray-50 bg-white"
+                />
+                </div>
 
             {/* Conditional Fields for Mahasiswa */}
             {formData.role === 'mahasiswa' && (

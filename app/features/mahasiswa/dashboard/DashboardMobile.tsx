@@ -11,6 +11,7 @@ import {
     TrendingUp,
     XCircle,
     AlertCircle,
+    MessageSquare as MessageSquareIcon,
 } from "lucide-react";
 import { bimbinganApi } from "~/api/bimbinganApi";
 
@@ -24,7 +25,17 @@ export function DashboardMobile() {
     useEffect(() => {
         pengajuanApi.getProfile().then(setProfile).catch(console.error);
         if (user?.id) {
-            bimbinganApi.getBimbinganByMahasiswa(user.id).then(setBimbinganTasks).catch(console.error);
+            bimbinganApi.getMahasiswaAllTasks()
+                .then(tasks => {
+                    const grouped = tasks.reduce((acc: any, task: any) => {
+                        if (!acc[task.topik] || task.versi > acc[task.topik].versi) {
+                            acc[task.topik] = task;
+                        }
+                        return acc;
+                    }, {});
+                    setBimbinganTasks(Object.values(grouped));
+                })
+                .catch(console.error);
         }
     }, [user?.id]);
 
@@ -46,6 +57,8 @@ export function DashboardMobile() {
                 dynActivity = { title: "Judul Disetujui", time: "Baru", color: "text-green-500", rawDate: new Date(p.tanggal) };
             } else if (p.status === 'REJECTED') {
                 dynActivity = { title: "Judul Ditolak", time: "Baru", color: "text-red-500", rawDate: new Date(p.tanggal) };
+            } else if (p.status === 'REVISION') {
+                dynActivity = { title: "Pengajuan Perlu Revisi", time: "Baru", color: "text-yellow-600", rawDate: new Date(p.tanggal) };
             }
             if (dynActivity) {
                 dynActivity.time = new Date(p.tanggal).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -139,6 +152,37 @@ export function DashboardMobile() {
                 </div>
             )}
 
+            {/* Notification Banner for Revision Pengajuan Mobile */}
+            {profile?.pengajuanJudul && profile.pengajuanJudul.length > 0 && profile.pengajuanJudul[0].status === 'REVISION' && (
+                <div className="bg-yellow-50 border border-yellow-300 rounded-xl p-4 shadow-sm relative overflow-hidden animate-in fade-in slide-in-from-top-2 duration-500">
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 bg-yellow-100 rounded-full text-yellow-700 shrink-0">
+                            <AlertCircle className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-yellow-800 font-bold text-sm">Pengajuan Perlu Revisi</h3>
+                            <p className="text-yellow-700 text-[10px] mt-1 pr-2 leading-relaxed">
+                                Usulan "{profile.pengajuanJudul[0].judul}" diminta revisi oleh dosen. Silakan perbaiki dan ajukan ulang.
+                            </p>
+                            {profile.pengajuanJudul[0].remarks && (
+                                <div className="mt-2 p-2.5 bg-white border border-yellow-200 rounded-lg">
+                                    <p className="text-[10px] font-bold text-yellow-700 mb-1 flex items-center gap-1">
+                                        <MessageSquareIcon className="w-3 h-3" /> Komentar Dosen:
+                                    </p>
+                                    <p className="text-[11px] text-yellow-900 italic leading-relaxed">"{profile.pengajuanJudul[0].remarks}"</p>
+                                </div>
+                            )}
+                            <button 
+                                onClick={() => navigate("/mahasiswa/pengajuan")}
+                                className="mt-3 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 active:bg-yellow-800 transition-colors text-white text-xs font-bold rounded-lg shadow-sm w-full"
+                            >
+                                Perbaiki & Ajukan Ulang
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Notification Banner for Bimbingan Revisions Mobile */}
             {bimbinganTasks.filter(t => t.status === 'REVISION').map((t, index) => (
                 <div key={`rev-${index}`} className="bg-orange-50 border border-orange-200 rounded-xl p-4 shadow-sm relative overflow-hidden animate-in fade-in slide-in-from-top-2 duration-500">
@@ -151,6 +195,14 @@ export function DashboardMobile() {
                             <p className="text-orange-600 text-[10px] mt-1 pr-2 leading-relaxed">
                                 Dosen pembimbing telah memberikan catatan revisi untuk draf Anda. Silakan perbaiki dan unggah kembali.
                             </p>
+                            {t.catatan && t.catatan !== 'Task Assigned' && (
+                                <div className="mt-2 p-2.5 bg-white border border-orange-200 rounded-lg">
+                                    <p className="text-[10px] font-bold text-orange-700 mb-1 flex items-center gap-1">
+                                        <MessageSquareIcon className="w-3 h-3" /> Komentar Dosen:
+                                    </p>
+                                    <p className="text-[11px] text-orange-900 italic leading-relaxed">"{t.catatan}"</p>
+                                </div>
+                            )}
                             <button 
                                 onClick={() => navigate("/mahasiswa/bimbingan")}
                                 className="mt-3 px-4 py-2 bg-orange-600 hover:bg-orange-700 active:bg-orange-800 transition-colors text-white text-xs font-bold rounded-lg shadow-sm w-full"
@@ -184,15 +236,18 @@ export function DashboardMobile() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="p-4 border-b border-gray-100 pb-2 flex justify-between items-center">
                     <h2 className="font-bold text-gray-800 text-lg">Aktivitas</h2>
-                    <button 
-                        onClick={() => setShowAllActivities(!showAllActivities)}
-                        className="text-sm text-orange-600 font-medium font-['Noto_Sans']"
-                    >
-                        {showAllActivities ? "Sembunyikan" : "Lihat Semua"}
-                    </button>
+                    {/* Tampilkan tombol toggle dikanan atas hanya jika jumlah aktivitas lebih dari 5 */}
+                    {getActivities().length > 5 && (
+                        <button 
+                            onClick={() => setShowAllActivities(true)}
+                            className="text-sm text-orange-600 font-medium font-['Noto_Sans']"
+                        >
+                            Lihat Semua
+                        </button>
+                    )}
                 </div>
                 <div className="divide-y divide-gray-50">
-                    {(showAllActivities ? getActivities() : getActivities().slice(0, 5)).map((item, i) => (
+                    {getActivities().slice(0, 5).map((item, i) => (
                         <div key={i} className="p-4 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className={`w-2 h-2 rounded-full bg-current ${item.color}`} />
@@ -202,11 +257,17 @@ export function DashboardMobile() {
                         </div>
                     ))}
                 </div>
-                <div className="p-3">
-                    <button className="w-full py-2 text-sm text-[#119DA4] font-medium bg-gray-50 rounded-lg">
-                        Lihat Semua Aktivitas
-                    </button>
-                </div>
+                {/* Tombol expand di bagian bawah khusus untuk mobile, disembunyikan jika data sedang diexpand atau < 5 */}
+                {getActivities().length > 5 && (
+                    <div className="p-3">
+                        <button 
+                            onClick={() => setShowAllActivities(true)}
+                            className="w-full py-2 text-sm text-[#119DA4] font-medium bg-gray-50 rounded-lg"
+                        >
+                            Lihat Semua Aktivitas
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Help Section */}
@@ -222,6 +283,32 @@ export function DashboardMobile() {
                     Chat
                 </button>
             </div>
+
+            {/* Modal "Lihat Semua" Aktivitas Mobile */}
+            {showAllActivities && (
+                <div className="fixed inset-0 z-[100] flex flex-col bg-white animate-in slide-in-from-bottom-full duration-300">
+                    <div className="p-4 border-b border-gray-100 flex items-center justify-between shrink-0 bg-[#119DA4] text-white">
+                        <h3 className="text-lg font-bold">Semua Aktivitas</h3>
+                        <button onClick={() => setShowAllActivities(false)} className="p-2 text-white/80 hover:text-white rounded-lg">
+                            <XCircle className="w-6 h-6" />
+                        </button>
+                    </div>
+                    <div className="overflow-y-auto divide-y divide-gray-50 flex-1 p-2 bg-gray-50 pb-10">
+                        {getActivities().map((item, i) => (
+                            <div key={i} className="p-4 flex items-center justify-between bg-white m-2 rounded-xl shadow-sm border border-gray-100">
+                                <div className="flex items-start gap-4">
+                                    <div className="mt-1"><item.icon className={`w-5 h-5 ${item.color}`} /></div>
+                                    <div>
+                                        <h4 className="font-semibold text-gray-900 text-sm">{item.title}</h4>
+                                        <p className="text-xs text-gray-500 mt-0.5 line-clamp-2 pr-2">{item.desc}</p>
+                                        <span className="text-[10px] text-gray-400 mt-2 block flex gap-1 items-center"><Clock className="w-3 h-3"/>{item.time}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

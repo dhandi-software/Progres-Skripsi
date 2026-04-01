@@ -79,8 +79,7 @@ export function PeninjauanMobile({
                              options={[
                                  { value: "ALL", label: "Semua" },
                                  { value: "PENDING", label: "Pending" },
-                                 { value: "APPROVED", label: "Disetujui" },
-                                 { value: "REJECTED", label: "Ditolak" }
+                                 { value: "APPROVED", label: "Disetujui" }
                              ]}
                              placeholder="Status"
                          />
@@ -127,7 +126,12 @@ export function PeninjauanMobile({
                                 <span className="text-green-700 font-bold text-sm tracking-widest">{item.mahasiswa.nama.substring(0,2).toUpperCase()}</span>
                             </div>
                             <div className="flex flex-col gap-0.5 mt-0.5">
-                                <span className="text-sm font-bold text-gray-900 line-clamp-1">{item.mahasiswa.nama}</span>
+                                <div className="flex flex-col gap-1 items-start mt-0.5">
+                                    <span className="text-sm font-bold text-gray-900 line-clamp-1">{item.mahasiswa.nama}</span>
+                                    {item.status === 'PENDING' && (
+                                        <span className="bg-red-100 text-red-700 text-[9px] px-1.5 py-0.5 rounded border border-red-200 font-bold uppercase tracking-widest whitespace-nowrap inline-flex">BARU</span>
+                                    )}
+                                </div>
                                 <span className="text-xs text-gray-400 mt-1">NIM: {item.mahasiswa.nim}</span>
                                 <span className="text-[11px] text-gray-400 line-clamp-1">{item.mahasiswa.jurusan}</span>
                             </div>

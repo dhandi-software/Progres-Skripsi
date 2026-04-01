@@ -46,6 +46,53 @@ export const chatService = {
       const err = await response.json().catch(() => ({}));
       throw new Error(`Failed to create group: ${err.error || err.message || response.statusText}`);
     }
+  },
+
+  async addMembersToGroup(groupId: number, participantIds: number[], adminId: number) {
+    const response = await fetch(`${API_URL}/chat/groups/${groupId}/members`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ memberIds: participantIds, adminId }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(`Failed to add members: ${err.message || response.statusText}`);
+    }
+    return response.json();
+  },
+
+  async removeMemberFromGroup(groupId: number, userId: number, adminId: number) {
+    const response = await fetch(`${API_URL}/chat/groups/${groupId}/members/${userId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ adminId }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(`Failed to remove member: ${err.message || response.statusText}`);
+    }
+    return response.json();
+  },
+
+  async deleteGroup(groupId: number, adminId: number) {
+    const response = await fetch(`${API_URL}/chat/groups/${groupId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ adminId }),
+    });
+
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(`Failed to delete group: ${err.message || response.statusText}`);
+    }
     return response.json();
   }
 };

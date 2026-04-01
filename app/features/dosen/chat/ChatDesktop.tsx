@@ -3,9 +3,11 @@ import { ChatSidebar } from "~/components/ui/chat-sidebar";
 import { ChatWindow } from "~/components/ui/chat-window";
 import { useChat } from "~/hooks/useChat";
 import { CreateGroupModal } from "./CreateGroupModal";
+import { AddMemberModal } from "./AddMemberModal";
 
 export function ChatDesktop({ title }: { title: string }) {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
     
     const {
         contacts,
@@ -21,7 +23,10 @@ export function ChatDesktop({ title }: { title: string }) {
         deleteMessage,
         deleteMessageForMe,
         editMessage,
-        createGroup
+        createGroup,
+        deleteGroup,
+        addMembersToGroup,
+        removeMemberFromGroup
     } = useChat();
 
     const handleSelectContact = (contact: any) => {
@@ -50,6 +55,17 @@ export function ChatDesktop({ title }: { title: string }) {
                 onMarkAsRead={markAsRead}
                 onDeleteMessage={deleteMessage}
                 onDeleteMessageForMe={deleteMessageForMe}
+                onAddMembers={() => setIsAddMemberOpen(true)}
+                onRemoveMember={(memberId) => {
+                    if (activeContact?.isGroup && activeContact.realId) {
+                        return removeMemberFromGroup(activeContact.realId, memberId);
+                    }
+                }}
+                onDeleteGroup={() => {
+                    if (activeContact?.isGroup && activeContact.realId) {
+                        return deleteGroup(activeContact.realId);
+                    }
+                }}
             />
             <CreateGroupModal
                 isOpen={isCreateModalOpen}
@@ -57,6 +73,18 @@ export function ChatDesktop({ title }: { title: string }) {
                 contacts={contacts}
                 onCreate={createGroup}
             />
+            
+            {activeContact?.isGroup && (
+               <AddMemberModal
+                   isOpen={isAddMemberOpen}
+                   onClose={() => setIsAddMemberOpen(false)}
+                   contacts={contacts}
+                   currentMemberIds={activeContact.members?.map(m => m.id) || []}
+                   onAdd={async (participantIds) => {
+                       await addMembersToGroup(activeContact.realId!, participantIds);
+                   }}
+               />
+            )}
         </div>
     );
 }

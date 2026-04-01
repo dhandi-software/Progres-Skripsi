@@ -19,6 +19,8 @@ export function DashboardDesktop({ title }: { title: string }) {
     const navigate = useNavigate();
     const [activities, setActivities] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    // State untuk mengontrol apakah semua aktivitas ditampilkan atau tidak
+    const [showAllActivities, setShowAllActivities] = useState(false);
 
     const [activeBimbinganCount, setActiveBimbinganCount] = useState(0);
     const [thisWeekScheduleCount, setThisWeekScheduleCount] = useState(0);
@@ -201,6 +203,15 @@ export function DashboardDesktop({ title }: { title: string }) {
                         <h2 className="text-xl font-bold text-gray-800">
                             Aktivitas Terkini
                         </h2>
+                        {/* Tampilkan tombol 'Lihat Semua' hanya jika jumlah aktivitas lebih dari 5 */}
+                        {activities.length > 5 && (
+                            <button 
+                                onClick={() => setShowAllActivities(true)}
+                                className="text-sm text-[#119DA4] font-medium hover:underline"
+                            >
+                                Lihat Semua
+                            </button>
+                        )}
                     </div>
                     
                     <div className="divide-y divide-gray-50">
@@ -209,6 +220,7 @@ export function DashboardDesktop({ title }: { title: string }) {
                         ) : activities.length === 0 ? (
                             <div className="p-6 text-center text-gray-400 text-sm">Belum ada aktivitas pengajuan.</div>
                         ) : (
+                            // batasi maksimal 5 data pertama
                             activities.slice(0, 5).map((item, i) => {
                                 const Icon = getIcon(item.status);
                                 return (
@@ -276,6 +288,45 @@ export function DashboardDesktop({ title }: { title: string }) {
                     </div>
                 </div>
             </div>
+
+            {/* Modal "Lihat Semua" Aktivitas */}
+            {showAllActivities && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh]">
+                        <div className="p-6 border-b border-gray-100 flex items-center justify-between shrink-0">
+                            <h3 className="text-xl font-bold text-gray-900">Semua Aktivitas</h3>
+                            <button onClick={() => setShowAllActivities(false)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                            </button>
+                        </div>
+                        <div className="overflow-y-auto divide-y divide-gray-50 flex-1 p-2">
+                            {activities.map((item, i) => {
+                                const Icon = getIcon(item.status);
+                                return (
+                                <div key={i} className="p-4 flex items-start gap-4 hover:bg-gray-50 transition-colors rounded-xl mx-2">
+                                    <div className="mt-1">
+                                        <Icon className={`w-5 h-5 ${getIconColor(item.status)}`} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="font-semibold text-gray-900">
+                                            {item.type === 'bimbingan' ? `Bimbingan Draf - ${item.nama}` : `Pengajuan Judul - ${item.nama}`}
+                                        </h4>
+                                        <p className="text-sm text-gray-500 mt-1">
+                                            {item.judul}
+                                        </p>
+                                        <span className="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                                            <Clock className="w-3.5 h-3.5" />{" "}
+                                            {new Date(item.tanggal).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })} 
+                                            <span className="mx-1">•</span>
+                                            {getStatusText(item.status, item.type)}
+                                        </span>
+                                    </div>
+                                </div>
+                            )})}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

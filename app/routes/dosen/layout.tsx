@@ -11,6 +11,7 @@ import {
   MessageCircle,
   Calendar,
   Award,
+  ClipboardList,
 } from "lucide-react";
 import { Outlet, useRouteLoaderData } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
@@ -30,6 +31,7 @@ type MenuKey =
   | "chat"
   | "acara"
   | "penilaian"
+  | "laporan"
   | "logout";
 
 const pathToKey = (pathname: string): MenuKey | undefined => {
@@ -39,6 +41,7 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/dosen/chat")) return "chat";
   if (pathname.startsWith("/dosen/acara")) return "acara";
   if (pathname.startsWith("/dosen/penilaian")) return "penilaian";
+  if (pathname.startsWith("/dosen/laporan")) return "laporan";
   if (pathname === "/dosen" || pathname.startsWith("/dosen/"))
     return "dashboard";
   return undefined;
@@ -86,6 +89,12 @@ const menuItems = [
     title: "Penilaian",
     icon: Award,
     url: "/dosen/penilaian",
+  },
+  {
+    key: "laporan" as MenuKey,
+    title: "Laporan Akhir",
+    icon: ClipboardList,
+    url: "/dosen/laporan",
   },
 ];
 

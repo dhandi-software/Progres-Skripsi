@@ -87,7 +87,17 @@ export function BimbinganDesktop() {
     const fetchStudents = async () => {
         try {
             const data = await bimbinganApi.getDosenBimbinganStudents();
-            setStudents(data || []);
+            
+            // Sort students so that SUBMITTED tasks appear at the top
+            const sortedData = (data || []).sort((a: any, b: any) => {
+                const aActive = a.mahasiswa?.bimbingan?.[0];
+                const bActive = b.mahasiswa?.bimbingan?.[0];
+                const aSub = aActive?.status === 'SUBMITTED' ? 1 : 0;
+                const bSub = bActive?.status === 'SUBMITTED' ? 1 : 0;
+                return bSub - aSub;
+            });
+            
+            setStudents(sortedData);
         } catch (error) {
             console.error("Failed to fetch students:", error);
         } finally {
@@ -322,8 +332,8 @@ export function BimbinganDesktop() {
             const formatted = data.map((a: any) => {
                 const pos = typeof a.posisi === 'string' ? JSON.parse(a.posisi) : a.posisi;
                 return {
-                    id: String(a.id),
-                    ...pos
+                    ...pos,
+                    id: String(a.id)
                 };
             });
             setAnnotations(formatted);
@@ -455,10 +465,10 @@ export function BimbinganDesktop() {
                                         return (
                                             <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
                                                 <td className="p-4 pl-6 align-top">
-                                                    <div className="font-bold text-gray-900 flex items-center gap-2">
-                                                        {mhs.nama}
+                                                    <div className="flex flex-col gap-1 items-start">
+                                                        <span className="font-bold text-gray-900 leading-tight">{mhs.nama}</span>
                                                         {activeTask?.status === 'SUBMITTED' && (
-                                                            <span className="bg-red-100 text-red-700 text-[10px] px-2 py-0.5 rounded border border-red-200 uppercase tracking-wider animate-pulse ml-2">Perlu Reviu</span>
+                                                            <span className="bg-red-100 text-red-700 text-[9px] px-1.5 py-0.5 rounded border border-red-200 font-bold uppercase tracking-widest whitespace-nowrap inline-flex">BARU</span>
                                                         )}
                                                     </div>
                                                     <div className="text-xs text-gray-500 font-mono mt-0.5">{mhs.nim}</div>

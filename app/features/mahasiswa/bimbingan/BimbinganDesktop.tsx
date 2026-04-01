@@ -2,6 +2,7 @@ import { useState, useEffect, lazy, Suspense } from "react";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { BookOpen, Calendar, Clock, Loader2, CheckCircle2, FileText, Upload, Download, AlertCircle, FileStack, Eye, X } from "lucide-react";
 import { Loader2 as LoaderIcon } from "lucide-react";
+import { Toast } from "~/components/ui/toast";
 
 // Use dynamic import for client-side only component
 const SharedPdfViewer = lazy(() => import('../../components/SharedPdfViewer.client').then(m => ({ default: m.SharedPdfViewer })));
@@ -49,6 +50,13 @@ export function BimbinganDesktop() {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [keteranganProgres, setKeteranganProgres] = useState("");
     const [uploading, setUploading] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    
+    const [toastProps, setToastProps] = useState<{title: string, variant?: "success" | "destructive" | "default"} | null>(null);
+
+    const showToast = (title: string, variant: "success" | "destructive" | "default" = "success") => {
+        setToastProps({ title, variant });
+    };
     
     // Viewer Modal State
     const [viewingReview, setViewingReview] = useState(false);
@@ -100,13 +108,13 @@ export function BimbinganDesktop() {
         setUploading(true);
         try {
             await bimbinganApi.uploadDraftMahasiswa(activeTask.id, selectedFile, keteranganProgres);
-            alert("Berhasil mengunggah dokumen bimbingan!");
+            showToast("Berhasil mengunggah dokumen bimbingan!", "success");
             setSelectedFile(null);
             setKeteranganProgres("");
             fetchTask();
         } catch (error) {
             console.error(error);
-            alert("Gagal mengunggah file.");
+            showToast("Gagal mengunggah file.", "destructive");
         } finally {
             setUploading(false);
         }
@@ -141,6 +149,16 @@ export function BimbinganDesktop() {
 
     return (
         <div className="min-h-screen bg-gray-50/50 p-6 lg:p-10 font-geist">
+            {toastProps && (
+                <div className="fixed top-4 right-4 z-[150]">
+                    <Toast
+                        title={toastProps.title}
+                        variant={toastProps.variant}
+                        duration={toastProps.variant === 'success' ? 3000 : 5000}
+                        onClose={() => setToastProps(null)}
+                    />
+                </div>
+            )}
             {/* Header */}
             <div className="mb-8">
                 <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
@@ -213,11 +231,38 @@ export function BimbinganDesktop() {
                                             </div>
                                         )}
                                         
-                                        {(activeTask.status === 'ASSIGNED' || activeTask.status === 'REVISION') && (
+                                        {/* Jika status SUBMITTED dan sedang tidak edit, tampilkan tombol Edit saja */}
+                                        {activeTask.status === 'SUBMITTED' && !isEditing && !getTimeRemaining(activeTask.jadwalBimbingan).isLate && (
+                                            <div className="mb-8 p-6 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-between">
+                                                <div>
+                                                    <h3 className="text-sm font-bold text-gray-800">Draf telah dikumpulkan</h3>
+                                                    <p className="text-xs text-gray-500 mt-1">Anda dapat memperbarui draf sebelum dosen melakukan reviu.</p>
+                                                </div>
+                                                <button 
+                                                    onClick={() => setIsEditing(true)}
+                                                    className="px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 font-bold rounded-lg transition-colors text-sm"
+                                                >
+                                                    Edit Pengajuan (Draf)
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {/* Form upload ditampilkan jika status ASSIGNED, REVISION, atau ketika isEditing true */}
+                                        {(activeTask.status === 'ASSIGNED' || activeTask.status === 'REVISION' || isEditing) && (
                                             <div className="mb-8 p-6 bg-gray-50 border border-gray-200 rounded-xl">
-                                                <label className="block text-sm font-bold text-gray-700 mb-2">
-                                                    Form Pengumpulan Draf (.pdf, .doc, .docx)
-                                                </label>
+                                                <div className="flex justify-between items-center mb-4">
+                                                    <label className="block text-sm font-bold text-gray-700">
+                                                        Form Pengumpulan Draf (.pdf, .doc, .docx)
+                                                    </label>
+                                                    {isEditing && (
+                                                        <button 
+                                                            onClick={() => setIsEditing(false)}
+                                                            className="text-xs text-gray-500 hover:text-gray-700 font-bold"
+                                                        >
+                                                            Batal Edit
+                                                        </button>
+                                                    )}
+                                                </div>
                                                 <input 
                                                     type="file" 
                                                     accept=".pdf,application/pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
@@ -248,7 +293,7 @@ export function BimbinganDesktop() {
                                                         className="mt-6 w-full py-3 bg-[#4267B2] hover:bg-[#365899] disabled:opacity-50 text-white font-bold rounded-lg transition-all text-sm flex items-center justify-center gap-2"
                                                     >
                                                         {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
-                                                        KIRIMKAN PENGAJUAN (DRAF)
+                                                        {activeTask.status === 'SUBMITTED' ? "PERBARUI DRAF" : "KIRIMKAN PENGAJUAN (DRAF)"}
                                                     </button>
                                                 )}
                                             </div>
@@ -265,6 +310,19 @@ export function BimbinganDesktop() {
                                                     <tr className="bg-gray-50/50">
                                                         <th className="py-4 px-6 font-bold text-gray-700 w-1/3 border-r border-gray-200">Status penilaian</th>
                                                         <td className="py-4 px-6 text-gray-900 bg-white font-medium">{getStatusPenilaian(activeTask.status)}</td>
+                                                    </tr>
+                                                    {/* Baris baru untuk File Draf */}
+                                                    <tr className="bg-gray-50/50">
+                                                        <th className="py-4 px-6 font-bold text-gray-700 w-1/3 border-r border-gray-200">File draf Anda</th>
+                                                        <td className="py-4 px-6 text-gray-900 bg-white">
+                                                            {activeTask.fileMahasiswa ? (
+                                                                <a href={`http://localhost:5002${activeTask.fileMahasiswa}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 font-bold text-[#119DA4] hover:text-[#0d7a7f] hover:underline">
+                                                                    <FileText className="w-4 h-4" /> Buka File Draf Saat Ini
+                                                                </a>
+                                                            ) : (
+                                                                <span className="text-gray-400 italic">Belum ada file diunggah</span>
+                                                            )}
+                                                        </td>
                                                     </tr>
                                                     <tr className="bg-gray-50/50">
                                                         <th className="py-4 px-6 font-bold text-gray-700 w-1/3 border-r border-gray-200">Waktu tersisa</th>

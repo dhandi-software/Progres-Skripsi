@@ -22,11 +22,25 @@ export function usePeninjauan(user: User | null) {
             try {
                 const data = await pengajuanApi.getPengajuanByDosen();
                 
-                // Urutkan berdasarkan id menurun (TERBARU) dulu
+                // Urutkan berdasarkan id menurun (terbaru dulu)
                 const sortedData = data.sort((a: any, b: any) => b.id - a.id);
                 
-                setOriginalList(sortedData);
-                setFilteredList(sortedData);
+                // Ambil hanya pengajuan terbaru untuk setiap mahasiswa (hapus duplikasi)
+                const uniqueStudents = new Set();
+                const deduplicatedData = sortedData.filter((item: any) => {
+                    const studentId = item.mahasiswa?.id || item.mahasiswaId;
+                    if (uniqueStudents.has(studentId)) {
+                        return false;
+                    }
+                    uniqueStudents.add(studentId);
+                    return true;
+                });
+                
+                // Hilangkan yang berstatus REJECTED
+                const finalData = deduplicatedData.filter((item: any) => item.status !== 'REJECTED');
+                
+                setOriginalList(finalData);
+                setFilteredList(finalData);
             } catch (error) {
                 console.error("Failed to fetch pengajuan:", error);
             } finally {

@@ -17,6 +17,8 @@ export function DashboardMobile() {
     const navigate = useNavigate();
     const [activities, setActivities] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    // State untuk mengontrol apakah semua aktivitas ditampilkan atau tidak
+    const [showAllActivities, setShowAllActivities] = useState(false);
 
     const [activeBimbinganCount, setActiveBimbinganCount] = useState(0);
     const [unreadMessages, setUnreadMessages] = useState(0);
@@ -143,7 +145,16 @@ export function DashboardMobile() {
             {/* Recent Activity */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="p-4 border-b border-gray-100 pb-2 flex justify-between items-center">
-                    <h2 className="font-bold text-gray-800 text-lg">Usulan Terkini</h2>
+                    <h2 className="font-bold text-gray-800 text-lg">Aktivitas Terkini</h2>
+                    {/* Tampilkan tombol toggle dikanan atas hanya jika jumlah aktivitas lebih dari 5 */}
+                    {activities.length > 5 && (
+                        <button 
+                            onClick={() => setShowAllActivities(true)}
+                            className="text-sm text-orange-600 font-medium font-['Noto_Sans']"
+                        >
+                            Lihat Semua
+                        </button>
+                    )}
                 </div>
                 <div className="divide-y divide-gray-50">
                     {loading ? (
@@ -151,6 +162,7 @@ export function DashboardMobile() {
                     ) : activities.length === 0 ? (
                          <div className="p-4 text-center text-gray-400 text-sm">Belum ada aktivitas.</div>
                     ) : (
+                        // Batasi hanya 5 data pertama
                         activities.slice(0, 5).map((item, i) => (
                             <div key={i} className="p-4 flex flex-col gap-1">
                                 <div className="flex items-center gap-2 mb-1">
@@ -172,6 +184,17 @@ export function DashboardMobile() {
                         ))
                     )}
                 </div>
+                {/* Tombol expand di bagian bawah khusus untuk mobile, disembunyikan jika data sedang diexpand atau < 5 */}
+                {activities.length > 5 && (
+                    <div className="p-3">
+                        <button 
+                            onClick={() => setShowAllActivities(true)}
+                            className="w-full py-2 text-sm text-[#119DA4] font-medium bg-gray-50 rounded-lg"
+                        >
+                            Lihat Semua Aktivitas
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Help Section */}
@@ -187,6 +210,35 @@ export function DashboardMobile() {
                     Chat
                 </button>
             </div>
+
+            {/* Modal "Lihat Semua" Aktivitas Mobile */}
+            {showAllActivities && (
+                <div className="fixed inset-0 z-[100] flex flex-col bg-white animate-in slide-in-from-bottom-full duration-300">
+                    <div className="p-4 border-b border-gray-100 flex items-center justify-between shrink-0 bg-[#119DA4] text-white">
+                        <h3 className="text-lg font-bold">Semua Aktivitas</h3>
+                        <button onClick={() => setShowAllActivities(false)} className="p-2 text-white/80 hover:text-white rounded-lg">
+                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                        </button>
+                    </div>
+                    <div className="overflow-y-auto divide-y divide-gray-50 flex-1 p-2 bg-gray-50 pb-10">
+                        {activities.map((item, i) => (
+                            <div key={i} className="p-4 flex flex-col gap-1 bg-white m-2 rounded-xl border border-gray-100 shadow-sm">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className={`w-2 h-2 rounded-full ${getIconColor(item.status)}`} />
+                                    <span className="text-sm font-bold text-gray-900 truncate flex-1">
+                                        {item.type === 'bimbingan' ? `Bimbingan Draf - ${item.nama}` : `Pengajuan Judul - ${item.nama}`}
+                                    </span>
+                                </div>
+                                <span className="text-xs text-gray-500 line-clamp-2">{item.judul}</span>
+                                <div className="flex items-center justify-between mt-2 border-t border-gray-50 pt-2 text-[10px] text-gray-400">
+                                     <span className="flex items-center gap-1"><Clock className="w-3 h-3"/> {new Date(item.tanggal).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                     <span className="font-bold uppercase tracking-widest">{getStatusText(item.status, item.type)}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

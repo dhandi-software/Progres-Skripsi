@@ -50,7 +50,7 @@ export function ChatSidebar({ contacts, activeContact, onSelectContact, unreadCo
             initials = "Sf";
             color = "bg-[#caffbf]"; 
         } else {
-            initials = contact.username
+            initials = (contact.username || "U")
                 .split(" ")
                 .map((n) => n[0])
                 .join("")
@@ -79,6 +79,15 @@ export function ChatSidebar({ contacts, activeContact, onSelectContact, unreadCo
     };
 
     const sortedFilteredContacts = [...filteredContacts].sort((a, b) => {
+        // 1. Ruang Publik stays firmly at the top
+        if (a.id === 0) return -1;
+        if (b.id === 0) return 1;
+
+        // 2. Groups have secondary priority over personal chats
+        if (a.isGroup && !b.isGroup) return -1;
+        if (!a.isGroup && b.isGroup) return 1;
+
+        // 3. Fallback to newest message time
         const timeA = a.lastMessage ? new Date(a.lastMessage.createdAt).getTime() : 0;
         const timeB = b.lastMessage ? new Date(b.lastMessage.createdAt).getTime() : 0;
         return timeB - timeA;
