@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { useAuth } from "~/hooks/useAuth";
 import { pengajuanApi } from "~/api/pengajuan";
 import { bimbinganApi } from "~/api/bimbinganApi";
+import { acaraApi } from "~/api/acaraApi";
 import {
     BookOpen,
     Calendar,
@@ -13,13 +14,17 @@ import {
     XCircle,
     AlertCircle,
     MessageSquare as MessageSquareIcon,
+    ClipboardList,
 } from "lucide-react";
+import { cn } from "~/lib/utils";
 
 export function DashboardDesktop() {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [profile, setProfile] = useState<any>(null);
     const [bimbinganTasks, setBimbinganTasks] = useState<any[]>([]);
+    const [acaras, setAcaras] = useState<any[]>([]);
+    const [unreadAcaraCount, setUnreadAcaraCount] = useState(0);
     const [showAllActivities, setShowAllActivities] = useState(false);
 
     useEffect(() => {
@@ -35,6 +40,14 @@ export function DashboardDesktop() {
                     }, {});
                     setBimbinganTasks(Object.values(grouped));
                 })
+                .catch(console.error);
+            
+            acaraApi.getAcara()
+                .then(setAcaras)
+                .catch(console.error);
+
+            acaraApi.getUnreadCount()
+                .then(res => setUnreadAcaraCount(res.count))
                 .catch(console.error);
         }
     }, [user?.id]);
@@ -137,6 +150,19 @@ export function DashboardDesktop() {
                     rawDate: new Date(t.tanggal)
                 });
             }
+        });
+        
+        // 4. Berita Acara (Acara)
+        acaras.forEach(a => {
+            activities.push({
+                title: a.type === 'ASSIGNMENT' ? `Tugas Baru: ${a.title}` : `Pengumuman: ${a.title}`,
+                desc: `${a.dosen.nama} memposting di timeline.`,
+                time: new Date(a.createdAt).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric' }),
+                icon: a.type === 'ASSIGNMENT' ? FileText : AlertCircle,
+                color: a.type === 'ASSIGNMENT' ? "text-cyan-500" : "text-purple-500",
+                rawDate: new Date(a.createdAt),
+                onClick: () => navigate("/mahasiswa/acara")
+            });
         });
 
         // Sort by rawDate descending
@@ -246,7 +272,28 @@ export function DashboardDesktop() {
                     </div>
                 </div>
             ))}
-
+            
+            {/* Notification Banner for Unread Acara */}
+            {unreadAcaraCount > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-blue-100 rounded-full text-blue-600 shrink-0">
+                            <ClipboardList className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="text-blue-800 font-bold text-lg">Informasi Tugas Baru</h3>
+                            <p className="text-blue-600 text-sm mt-1 mb-0">Ada {unreadAcaraCount} berita acara atau tugas baru dari dosen pembimbing yang belum Anda baca.</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => navigate("/mahasiswa/acara")}
+                        className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors shadow-sm whitespace-nowrap"
+                    >
+                        Lihat Sekarang
+                    </button>
+                </div>
+            )}
+ 
             {/* Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
@@ -324,7 +371,11 @@ export function DashboardDesktop() {
                         {getActivities().slice(0, 5).map((item, i) => (
                             <div
                                 key={i}
-                                className="p-6 flex items-start gap-4 hover:bg-gray-50 transition-colors"
+                                onClick={item.onClick}
+                                className={cn(
+                                    "p-6 flex items-start gap-4 hover:bg-gray-50 transition-colors",
+                                    item.onClick ? "cursor-pointer" : ""
+                                )}
                             >
                                 <div className="mt-1">
                                     <item.icon
@@ -393,7 +444,7 @@ export function DashboardDesktop() {
             {/* Modal "Lihat Semua" Aktivitas */}
             {showAllActivities && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[80vh]">
+                    <div className="bg-white rounded-2xl shadow-xl w-full overflow-hidden flex flex-col max-h-[80vh]">
                         <div className="p-6 border-b border-gray-100 flex items-center justify-between shrink-0">
                             <h3 className="text-xl font-bold text-gray-900">Semua Aktivitas</h3>
                             <button onClick={() => setShowAllActivities(false)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">

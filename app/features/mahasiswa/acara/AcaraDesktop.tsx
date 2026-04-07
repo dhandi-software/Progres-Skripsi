@@ -1,8 +1,228 @@
+import React, { useEffect, useState } from "react";
+import { format } from "date-fns";
+import { id } from "date-fns/locale/id";
+import { 
+    ClipboardList, Send, MessageSquare, 
+    Calendar as CalendarIcon, User, 
+    X, ChevronRight, 
+    ArrowLeft, MoreVertical, Users
+} from "lucide-react";
+import { cn } from "~/lib/utils";
+import { useAuth } from "~/hooks/useAuth";
+import { acaraApi } from "~/api/acaraApi";
+import type { Acara } from "~/api/acaraApi";
+import { UPLOADS_URL } from "~/api/client";
+
 export function AcaraDesktop({ title }: { title: string }) {
+    const { user } = useAuth();
+    const [acaras, setAcaras] = useState<Acara[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [selectedAcara, setSelectedAcara] = useState<Acara | null>(null);
+    const [newComment, setNewComment] = useState("");
+
+    const fetchData = async () => {
+        try {
+            setIsLoading(true);
+            const data = await acaraApi.getAcara();
+            setAcaras(data);
+        } catch (error) {
+            console.error("Fetch Acara Error:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    const handleSelectAcara = async (item: Acara) => {
+        setSelectedAcara(item);
+        if (!item.isRead) {
+            try {
+                await acaraApi.markAsRead(item.id);
+                setAcaras(prev => prev.map(a => a.id === item.id ? { ...a, isRead: true } : a));
+                window.dispatchEvent(new CustomEvent('update-unread-count'));
+            } catch (error) {
+                console.error("Mark Read Error:", error);
+            }
+        }
+    };
+
+    const handleBack = () => {
+        setSelectedAcara(null);
+        fetchData();
+    };
+
+    const transformContent = (content: string) => {
+        if (!content) return "";
+        const baseUploads = UPLOADS_URL.replace(/\/$/, "");
+        return content
+            .replace(/src="\/uploads\//g, `src="${baseUploads}/uploads/`)
+            .replace(/href="\/uploads\//g, `href="${baseUploads}/uploads/`)
+            .replace(/<img /g, '<img class="max-w-[800px] mx-auto block aspect-video object-cover rounded-[32px] my-12 shadow-2xl border border-slate-100" ');
+    };
+
+    const handleAddComment = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedAcara || !newComment.trim()) return;
+        try {
+            const comment = await acaraApi.addComment(selectedAcara.id, newComment);
+            setSelectedAcara({
+                ...selectedAcara,
+                comments: [...selectedAcara.comments, comment]
+            });
+            setNewComment("");
+        } catch (error) {
+            alert("Gagal menambah komentar.");
+        }
+    };
+
+    if (selectedAcara) {
+        return (
+            <div className="flex flex-col h-full w-full bg-white animate-in fade-in slide-in-from-right-4 duration-500">
+                <div className="flex items-center gap-8 px-16 py-10 border-b border-slate-100 sticky top-0 bg-white z-10">
+                    <button 
+                        onClick={handleBack}
+                        className="w-14 h-14 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 hover:text-[#00bcd4] hover:border-[#00bcd4] transition-all duration-300 shadow-sm"
+                    >
+                        <ArrowLeft size={24} />
+                    </button>
+                    <div className="w-16 h-16 rounded-full bg-[#00bcd4] flex items-center justify-center text-white shadow-lg shadow-[#00bcd4]/20">
+                        <ClipboardList size={32} />
+                    </div>
+                    <div className="flex-1">
+                        <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-tight">{selectedAcara.title}</h1>
+                        <div className="flex items-center gap-3 mt-1.5">
+                            <span className="text-sm font-bold text-slate-500">{selectedAcara.dosen.nama}</span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                            <span className="text-sm text-slate-400 font-medium">
+                                {format(new Date(selectedAcara.createdAt), "dd MMM yyyy", { locale: id })}
+                            </span>
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        <MoreVertical className="text-slate-300 ml-auto cursor-pointer hover:text-slate-600 transition-colors" />
+                    </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto px-16 py-12">
+                    <div className="max-w-[1000px]">
+                        <div className="prose prose-slate max-w-none prose-headings:font-black prose-p:text-slate-800 prose-p:leading-relaxed prose-strong:text-slate-950 prose-a:text-[#00bcd4] prose-a:font-bold">
+                            <div dangerouslySetInnerHTML={{ __html: transformContent(selectedAcara.content) }} />
+                        </div>
+                        <hr className="border-slate-100 my-16" />
+                        <div className="space-y-12">
+                            <div className="flex items-center gap-4">
+                                <Users size={26} className="text-slate-400" />
+                                <h3 className="text-xl font-black text-slate-900 tracking-tight">Komentar Kelas</h3>
+                                <span className="text-sm font-bold text-slate-400">({selectedAcara.comments.length})</span>
+                            </div>
+                            <div className="space-y-10">
+                                {selectedAcara.comments.map(comment => (
+                                    <div key={comment.id} className="flex gap-6 group">
+                                        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 shrink-0 font-black text-lg border border-slate-200">
+                                            {comment.user.username.charAt(0).toUpperCase()}
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-3 mb-1.5">
+                                                <span className="text-sm font-black text-slate-900">
+                                                    {comment.user.mahasiswa?.nama || comment.user.dosen?.nama || comment.user.username}
+                                                </span>
+                                                <span className="text-[11px] font-bold text-slate-400">{format(new Date(comment.createdAt), "dd MMM, HH:mm", { locale: id })}</span>
+                                            </div>
+                                            <p className="text-sm text-slate-700 leading-relaxed font-medium">{comment.content}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <form onSubmit={handleAddComment} className="flex gap-6 mt-16 items-center">
+                                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 shrink-0 font-black text-lg border border-slate-200 shadow-sm">
+                                    {user?.username?.charAt(0).toUpperCase()}
+                                </div>
+                                <div className="flex-1 group relative">
+                                    <input 
+                                        value={newComment}
+                                        onChange={(e) => setNewComment(e.target.value)}
+                                        placeholder="Tambahkan komentar kelas..."
+                                        className="w-full bg-white border-b-2 border-slate-200 py-4 text-sm font-medium focus:outline-none focus:border-[#00bcd4] transition-all pr-14"
+                                    />
+                                    <button type="submit" className="absolute right-0 top-1/2 -translate-y-1/2 p-3 text-slate-300 hover:text-[#00bcd4] transition-colors"><Send size={22} /></button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="flex h-full w-full flex-col items-center justify-center text-center text-gray-400 p-8">
-            <h2 className="text-2xl font-bold text-gray-300">Halaman {title} (Desktop)</h2>
-            <p className="mt-2 text-sm">Fitur ini sedang dalam pengembangan.</p>
+        <div className="flex flex-col min-h-screen w-full bg-slate-50/50">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 p-8 lg:p-12">
+                <div>
+                     <h1 className="text-3xl font-black text-slate-900 tracking-tight">Timeline Kegiatan & Berita Acara</h1>
+                     <p className="text-slate-500 text-sm mt-2 font-medium">Daftar assignment, postingan, dan instruksi akademik untuk mahasiswa.</p>
+                </div>
+            </div>
+
+            <div className="px-8 lg:px-12 pb-12 w-full">
+                <div className="grid grid-cols-1 gap-6 w-full">
+                    {isLoading ? (
+                        [1,2,3].map(i => <div key={i} className="h-28 bg-white/50 border border-slate-100 rounded-[32px] animate-pulse" />)
+                    ) : acaras.length === 0 ? (
+                        <div className="bg-white rounded-[40px] p-24 text-center border-2 border-dashed border-slate-100 shadow-sm">
+                             <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-8 text-slate-200"><ClipboardList size={56} /></div>
+                             <h3 className="text-2xl font-black text-slate-900 tracking-tight">Belum Ada Posting Terdaftar</h3>
+                             <p className="text-slate-400 mx-auto mt-4 font-medium">Berita acara atau assignment dari dosen akan muncul di sini.</p>
+                        </div>
+                    ) : (
+                        acaras.map(item => (
+                            <div 
+                                key={item.id} 
+                                onClick={() => handleSelectAcara(item)}
+                                className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-6 lg:p-8 flex items-center justify-between gap-6 hover:shadow-2xl hover:shadow-slate-200/50 hover:border-brand-primary/10 transition-all duration-300 group cursor-pointer w-full relative overflow-hidden"
+                            >
+                                <div className="absolute inset-y-0 left-0 w-2 bg-slate-50 group-hover:bg-brand-primary transition-colors duration-300" />
+                                
+                                <div className="flex items-center gap-6 flex-1 min-w-0 ml-4">
+                                    <div className="w-14 h-14 rounded-2xl bg-[#00bcd4]/10 flex items-center justify-center text-[#00bcd4] shrink-0 group-hover:scale-110 transition-transform duration-500">
+                                        <ClipboardList size={28} />
+                                    </div>
+                                    <div className="flex flex-col min-w-0">
+                                        <div className="flex items-center gap-3">
+                                            <h3 className="text-lg lg:text-xl font-black text-slate-900 truncate tracking-tight mb-1">
+                                                {item.dosen.nama} memposting tugas baru: {item.title}
+                                            </h3>
+                                            {!item.isRead && (
+                                                <span className="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-brand-primary shadow-sm group-hover:animate-pulse" />
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-bold text-slate-400">{format(new Date(item.createdAt), "dd MMM yyyy", { locale: id })}</span>
+                                            <span className="w-1 h-1 rounded-full bg-slate-200" />
+                                            <span className="text-[10px] font-black uppercase tracking-wider text-brand-primary/60">
+                                                {item.type === "ASSIGNMENT" ? "Berita Acara" : "Pengumuman"}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-4 shrink-0 pr-2">
+                                    {item.comments.length > 0 && (
+                                        <div className="hidden lg:flex items-center gap-1.5 text-slate-400 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
+                                            <MessageSquare size={14} />
+                                            <span className="text-[11px] font-bold">{item.comments.length}</span>
+                                        </div>
+                                    )}
+                                    <div className="p-3 text-slate-300">
+                                        <MoreVertical size={20} />
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
         </div>
     );
 }

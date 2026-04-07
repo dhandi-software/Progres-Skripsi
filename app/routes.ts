@@ -43,8 +43,11 @@ export default [
             route("bimbingan", "routes/dosen/bimbingan.tsx"),
             route("chat", "routes/dosen/chat.tsx"),
             route("acara", "routes/dosen/acara.tsx"),
+            route("sidang", "routes/dosen/sidang.tsx"),
             route("penilaian", "routes/dosen/penilaian.tsx"),
             route("laporan", "routes/dosen/laporan.tsx"),
+            route("prodi/sidang", "routes/dosen/prodi.sidang.tsx"),
+            route("prodi/bimbingan", "routes/dosen/prodi.bimbingan.tsx"),
         ]),
     ]),
     // Admin

@@ -292,7 +292,7 @@ export function DashboardDesktop({ title }: { title: string }) {
             {/* Modal "Lihat Semua" Aktivitas */}
             {showAllActivities && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh]">
+                    <div className="bg-white rounded-2xl shadow-xl w-full  overflow-hidden flex flex-col max-h-[85vh]">
                         <div className="p-6 border-b border-gray-100 flex items-center justify-between shrink-0">
                             <h3 className="text-xl font-bold text-gray-900">Semua Aktivitas</h3>
                             <button onClick={() => setShowAllActivities(false)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">

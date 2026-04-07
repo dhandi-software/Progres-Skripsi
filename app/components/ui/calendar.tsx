@@ -345,9 +345,11 @@ function YearSelector({ selectedYear, onSelectYear, onBack }: { selectedYear: nu
 interface MonthYearFilterProps {
   date: Date | undefined;
   setDate: (date: Date | undefined) => void;
+  showLabel?: boolean;
+  className?: string;
 }
 
-function MonthYearFilter({ date, setDate }: MonthYearFilterProps) {
+function MonthYearFilter({ date, setDate, showLabel = true, className }: MonthYearFilterProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [view, setView] = useState<'days' | 'months' | 'years'>('days');
   const [browsingDate, setBrowsingDate] = useState<Date>(date || new Date());
@@ -369,24 +371,26 @@ function MonthYearFilter({ date, setDate }: MonthYearFilterProps) {
   const currentYear = date ? date.getFullYear() : undefined;
 
   return (
-    <div className="w-auto inline-flex flex-col justify-start items-start gap-1">
-      <div className="flex flex-row items-center gap-2 mb-1 w-full">
-        <span className="text-sm font-medium text-foreground leading-none">Filter by Date</span>
-        {date && (
-            <Button 
-                variant="outline"
-                onClick={() => setDate(undefined)} 
-                className="h-auto p-0 m-0 text-xs text-[#D25026] hover:text-orange-700 font-medium decoration-1 underline-offset-2 transition-colors leading-none"
-                title="Clear date filter"
-            >
-                Clear
-            </Button>
-        )}
-      </div>
+    <div className={cn("w-auto inline-flex flex-col justify-start items-start gap-1", className)}>
+      {showLabel && (
+        <div className="flex flex-row items-center gap-2 mb-1 w-full">
+          <span className="text-sm font-medium text-foreground leading-none">Filter by Date</span>
+          {date && (
+              <Button 
+                  variant="outline"
+                  onClick={() => setDate(undefined)} 
+                  className="h-auto p-0 m-0 text-xs text-[#D25026] hover:text-orange-700 font-medium decoration-1 underline-offset-2 transition-colors leading-none"
+                  title="Clear date filter"
+              >
+                  Clear
+              </Button>
+          )}
+        </div>
+      )}
 
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverAnchor asChild>
-            <div className="h-10 inline-flex flex-row justify-start items-center gap-2 select-none border border-transparent shrink-0">
+            <div className="min-h-[40px] flex flex-row flex-wrap justify-start items-center gap-2 select-none border border-transparent shrink-0">
                 
                 <div 
                     onClick={() => toggleOpen('days')} 
@@ -423,7 +427,7 @@ function MonthYearFilter({ date, setDate }: MonthYearFilterProps) {
             
             </div>
         </PopoverAnchor>
-        <PopoverContent align="start" className="w-auto p-0 border-none bg-transparent shadow-none" sideOffset={8}>
+        <PopoverContent align="start" className="w-auto p-0 border-none bg-transparent shadow-none z-[1000]" sideOffset={8}>
             {view === 'days' && (
                 <Calendar
                     mode="single"

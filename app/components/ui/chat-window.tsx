@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from "react";
+import { UPLOADS_URL } from "~/api/client";
 import Avatar, { AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "~/components/ui/sheet";
 import { Button } from "~/components/ui/button";
@@ -283,14 +284,14 @@ export function ChatWindow({
                                                 <div className="mb-1 mt-1">
                                                     {msg.attachmentType === 'image' ? (
                                                         <img 
-                                                            src={`http://localhost:5002${msg.attachmentUrl}`} 
+                                                            src={`${UPLOADS_URL}${msg.attachmentUrl}`} 
                                                             alt="attachment" 
                                                             className="rounded-md max-h-64 object-cover w-full cursor-pointer hover:opacity-90 transition-opacity"
-                                                            onClick={() => window.open(`http://localhost:5002${msg.attachmentUrl}`, '_blank')}
+                                                            onClick={() => window.open(`${UPLOADS_URL}${msg.attachmentUrl}`, '_blank')}
                                                         />
                                                     ) : (
                                                         <a 
-                                                            href={`http://localhost:5002${msg.attachmentUrl}`}
+                                                            href={`${UPLOADS_URL}${msg.attachmentUrl}`}
                                                             target="_blank"
                                                             rel="noreferrer"
                                                             className="flex items-center gap-3 p-3 rounded-md bg-[#f0f2f5] hover:bg-[#e9edef] transition-colors border border-[#d1d7db]"

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { bimbinganApi } from "~/api/bimbinganApi";
+import { UPLOADS_URL } from "~/api/client";
 import { BookOpen, Calendar, Clock, Loader2, CheckCircle2, ChevronLeft, FileText, Upload, Download, AlertCircle, Eye, X } from "lucide-react";
 import { Link } from "react-router";
 import { lazy, Suspense } from "react";
@@ -306,7 +307,7 @@ export function BimbinganMobile() {
                                                         <th className="py-2.5 px-3 font-bold text-gray-700 w-2/5 border-r border-gray-200 align-top">File Draf</th>
                                                         <td className="py-2.5 px-3 text-gray-900 bg-white">
                                                             {activeTask.fileMahasiswa ? (
-                                                                <a href={`http://localhost:5002${activeTask.fileMahasiswa}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-bold text-[#119DA4] hover:underline text-[10px] break-all leading-tight">
+                                                                <a href={`${UPLOADS_URL}${activeTask.fileMahasiswa}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-bold text-[#119DA4] hover:underline text-[10px] break-all leading-tight">
                                                                     <FileText className="w-3 h-3 shrink-0" /> Lihat File
                                                                 </a>
                                                             ) : (
@@ -338,7 +339,7 @@ export function BimbinganMobile() {
                                                             )}
                                                             
                                                             {activeTask.fileDosen && (
-                                                                <a href={`http://localhost:5002${activeTask.fileDosen}`} target="_blank" rel="noreferrer" className="mt-2 text-center w-full block py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-[10px] font-bold transition-colors">
+                                                                <a href={`${UPLOADS_URL}${activeTask.fileDosen}`} target="_blank" rel="noreferrer" className="mt-2 text-center w-full block py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-[10px] font-bold transition-colors">
                                                                     Unduh File Dosen
                                                                 </a>
                                                             )}
@@ -390,7 +391,7 @@ export function BimbinganMobile() {
                                                     {item.status === 'APPROVED' && <p className="text-green-600 font-medium">Disetujui (ACC)</p>}
                                                     
                                                     {item.fileMahasiswa && item.status !== 'ASSIGNED' && (
-                                                        <a href={`http://localhost:5002${item.fileMahasiswa}`} target="_blank" rel="noreferrer" className="inline-block mt-1 font-bold text-blue-600 active:text-blue-700">
+                                                        <a href={`${UPLOADS_URL}${item.fileMahasiswa}`} target="_blank" rel="noreferrer" className="inline-block mt-1 font-bold text-blue-600 active:text-blue-700">
                                                             Unduh PDF
                                                         </a>
                                                     )}
@@ -434,7 +435,7 @@ export function BimbinganMobile() {
                                             </p>
                                             <div className="flex gap-2 pt-3 border-t border-gray-50">
                                                 {task.fileDosen && (
-                                                    <a href={`http://localhost:5002${task.fileDosen}`} target="_blank" rel="noreferrer" className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-green-50 text-green-700 rounded-md text-[10px] font-bold">
+                                                    <a href={`${UPLOADS_URL}${task.fileDosen}`} target="_blank" rel="noreferrer" className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-green-50 text-green-700 rounded-md text-[10px] font-bold">
                                                         <Download className="w-3 h-3" /> Final
                                                     </a>
                                                 )}
@@ -470,7 +471,7 @@ export function BimbinganMobile() {
                         <div className="bg-gray-50 flex-1 relative min-h-[300px] overflow-hidden">
                             <Suspense fallback={<div className="flex h-full items-center justify-center bg-gray-50"><LoaderIcon className="w-8 h-8 animate-spin text-[#119DA4]" /></div>}>
                                 <SharedPdfViewer 
-                                    url={`http://localhost:5002${[...completedTasks, activeTask].find(t => t?.topik === viewingTaskTopik)?.fileMahasiswa || ''}`}
+                                    url={`${UPLOADS_URL}${[...completedTasks, activeTask].find(t => t?.topik === viewingTaskTopik)?.fileMahasiswa || ''}`}
                                     initialHighlights={annotations}
                                     readOnly={true}
                                 />

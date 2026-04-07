@@ -1,7 +1,21 @@
 import axios from "axios";
 
-// Hardcode to port 5000 to fix connection issues
-const API_URL = "http://localhost:5002/api";
+const getEnvUrl = () => {
+    if (typeof window === "undefined" && typeof process !== "undefined" && process?.env?.INTERNAL_API_URL) {
+        return process.env.INTERNAL_API_URL;
+    }
+    // Return empty by default to use the Vite proxy during local dev
+    return import.meta.env.VITE_API_BASE_URL || "";
+};
+
+const envUrl = getEnvUrl();
+const baseUrl = envUrl.replace(/\/$/, "");
+
+// Use '/api' prefix as requested ("tetep yang saya punya")
+export const API_URL = baseUrl.endsWith("/api") ? baseUrl : `${baseUrl}/api`;
+
+// We also export the static uploads URL for static file links
+export const UPLOADS_URL = baseUrl || "http://localhost:5002";
 
 export const client = axios.create({
     baseURL: API_URL,

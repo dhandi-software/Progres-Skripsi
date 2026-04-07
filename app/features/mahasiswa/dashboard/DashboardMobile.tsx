@@ -12,14 +12,18 @@ import {
     XCircle,
     AlertCircle,
     MessageSquare as MessageSquareIcon,
+    ClipboardList,
 } from "lucide-react";
 import { bimbinganApi } from "~/api/bimbinganApi";
+import { acaraApi } from "~/api/acaraApi";
 
 export function DashboardMobile() {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [profile, setProfile] = useState<any>(null);
     const [bimbinganTasks, setBimbinganTasks] = useState<any[]>([]);
+    const [acaras, setAcaras] = useState<any[]>([]);
+    const [unreadAcaraCount, setUnreadAcaraCount] = useState(0);
     const [showAllActivities, setShowAllActivities] = useState(false);
 
     useEffect(() => {
@@ -35,6 +39,14 @@ export function DashboardMobile() {
                     }, {});
                     setBimbinganTasks(Object.values(grouped));
                 })
+                .catch(console.error);
+            
+            acaraApi.getAcara()
+                .then(setAcaras)
+                .catch(console.error);
+
+            acaraApi.getUnreadCount()
+                .then(res => setUnreadAcaraCount(res.count))
                 .catch(console.error);
         }
     }, [user?.id]);
@@ -98,6 +110,19 @@ export function DashboardMobile() {
                     rawDate: new Date(t.tanggal)
                 });
             }
+        });
+
+        // 4. Berita Acara (Acara)
+        acaras.forEach(a => {
+            activities.push({
+                title: a.type === 'ASSIGNMENT' ? `Tugas: ${a.title}` : `Pengumuman: ${a.title}`,
+                desc: `${a.dosen.nama} memposting di timeline.`,
+                time: new Date(a.createdAt).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric' }),
+                icon: a.type === 'ASSIGNMENT' ? FileText : AlertCircle,
+                color: a.type === 'ASSIGNMENT' ? "text-cyan-500" : "text-purple-500",
+                rawDate: new Date(a.createdAt),
+                onClick: () => navigate("/mahasiswa/acara")
+            });
         });
 
         return activities.sort((a, b) => b.rawDate.getTime() - a.rawDate.getTime());
@@ -214,6 +239,29 @@ export function DashboardMobile() {
                 </div>
             ))}
 
+            {/* Notification Banner for Unread Acara Mobile */}
+            {unreadAcaraCount > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 shadow-sm relative overflow-hidden animate-in fade-in slide-in-from-top-2 duration-500">
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 bg-blue-100 rounded-full text-blue-600 shrink-0">
+                            <ClipboardList className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-blue-800 font-bold text-sm">Tugas/Berita Acara Baru</h3>
+                            <p className="text-blue-600 text-[10px] mt-1 pr-2 leading-relaxed">
+                                Ada {unreadAcaraCount} informasi atau tugas baru yang belum Anda baca.
+                            </p>
+                            <button 
+                                onClick={() => navigate("/mahasiswa/acara")}
+                                className="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 transition-colors text-white text-xs font-bold rounded-lg shadow-sm w-full"
+                            >
+                                Lihat Tugas
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Status Summary (Compact) */}
             <div className="grid grid-cols-2 gap-3">
                 <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
@@ -248,7 +296,11 @@ export function DashboardMobile() {
                 </div>
                 <div className="divide-y divide-gray-50">
                     {getActivities().slice(0, 5).map((item, i) => (
-                        <div key={i} className="p-4 flex items-center justify-between">
+                        <div 
+                            key={i} 
+                            onClick={item.onClick}
+                            className={`p-4 flex items-center justify-between ${item.onClick ? 'cursor-pointer active:bg-gray-50' : ''}`}
+                        >
                             <div className="flex items-center gap-3">
                                 <div className={`w-2 h-2 rounded-full bg-current ${item.color}`} />
                                 <span className="text-sm font-medium text-gray-700">{item.title}</span>

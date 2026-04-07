@@ -107,5 +107,13 @@ export const bimbinganApi = {
     deleteAnnotation: async (id: number) => {
         const response = await client.delete(`/bimbingan/annotations/${id}`);
         return response.data;
+    },
+    getAllProdiBimbingan: async () => {
+        const response = await client.get("/bimbingan/all-prodi");
+        return response.data;
+    },
+    checkAllTasksCompleted: async (mahasiswaId: number) => {
+        const response = await client.get(`/bimbingan/check-all-completed/${mahasiswaId}`);
+        return response.data;
     }
 };

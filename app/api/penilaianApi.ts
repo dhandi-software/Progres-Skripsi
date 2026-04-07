@@ -8,15 +8,25 @@ export const penilaianApi = {
     },
 
     // Create or update penilaian (upsert logic handled by backend)
-    createPenilaian: async (mahasiswaId: number, nilai: number, keterangan: string) => {
-        const response = await client.post("/penilaian", { mahasiswaId, nilai, keterangan });
+    createPenilaian: async (data: {
+        mahasiswaId: number;
+        p1_k1: number; p1_k2: number; p1_k3: number; p1_nama: string;
+        p2_k1: number; p2_k2: number; p2_k3: number; p2_nama: string;
+        keterangan: string;
+    }) => {
+        const response = await client.post("/penilaian", data);
         return response.data;
     },
 
-    updatePenilaian: async (id: number, nilai: number, keterangan: string) => {
-        const response = await client.put(`/penilaian/${id}`, { nilai, keterangan });
+    updatePenilaian: async (id: number, data: {
+        p1_k1: number; p1_k2: number; p1_k3: number; p1_nama: string;
+        p2_k1: number; p2_k2: number; p2_k3: number; p2_nama: string;
+        keterangan: string;
+    }) => {
+        const response = await client.put(`/penilaian/${id}`, data);
         return response.data;
     },
+
 
     deletePenilaian: async (id: number) => {
         const response = await client.delete(`/penilaian/${id}`);

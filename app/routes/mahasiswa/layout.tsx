@@ -16,6 +16,7 @@ import { useAuth } from "~/hooks/useAuth";
 import type { ContextType } from "~/root";
 import { chatService } from "~/services/chatService";
 import { bimbinganApi } from "~/api/bimbinganApi";
+import { acaraApi } from "~/api/acaraApi";
 import React from "react";
 
 import { SidebarProvider, Sidebar, SidebarContent, useSidebar, SidebarTrigger } from "~/components/ui/sidebar";
@@ -99,6 +100,7 @@ export function AppSidebar() {
   const { user } = useAuth(); // Needed for ID
   const [unreadCount, setUnreadCount] = React.useState(0);
   const [bimbinganBadgeCount, setBimbinganBadgeCount] = React.useState(0);
+  const [acaraBadgeCount, setAcaraBadgeCount] = React.useState(0);
 
   React.useEffect(() => {
     if (!user) return;
@@ -121,6 +123,9 @@ export function AppSidebar() {
                 setBimbinganBadgeCount(0);
             }
         }
+
+        const acaraData = await acaraApi.getUnreadCount();
+        setAcaraBadgeCount(acaraData.count || 0);
       } catch (error) {
         console.error("Failed to fetch sidebar counts:", error);
       }
@@ -199,6 +204,11 @@ export function AppSidebar() {
                       {item.key === "chat" && unreadCount > 0 && (
                         <div className="bg-[#00a884] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
                           {unreadCount}
+                        </div>
+                      )}
+                      {item.key === "acara" && acaraBadgeCount > 0 && (
+                        <div className="bg-red-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
+                          {acaraBadgeCount}
                         </div>
                       )}
                     </div>

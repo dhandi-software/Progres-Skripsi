@@ -1,10 +1,11 @@
 import { useEffect, useState, useRef, useCallback } from "react";
+import { UPLOADS_URL } from "~/api/client";
 import { io, Socket } from "socket.io-client";
 import { chatService } from "~/services/chatService";
 import type { Message, ChatContact, SendMessagePayload } from "~/types/chat";
 import { useAuth } from "~/hooks/useAuth";
 
-const SOCKET_URL = "http://localhost:5002";
+const SOCKET_URL = UPLOADS_URL;
 
 export function useChat() {
   const { user } = useAuth();

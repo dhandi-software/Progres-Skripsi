@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { bimbinganApi } from "~/api/bimbinganApi";
+import { UPLOADS_URL } from "~/api/client";
 import { Users, FileText, Send, Loader2, BookOpen, ChevronLeft, AlertCircle, FileStack, X, Upload, Download, Eye, Clock, CalendarIcon } from "lucide-react";
 import { CustomSelect } from "~/components/ui/custom-select";
 import { Toast } from "~/components/ui/toast";
@@ -654,7 +655,7 @@ export function BimbinganMobile() {
                                                              item.status === 'APPROVED' ? <span className="text-green-600 font-medium">Telah di-ACC</span> : ""}
                                                         </p>
                                                         {item.fileMahasiswa && item.status !== 'ASSIGNED' && (
-                                                            <a href={`http://localhost:5002${item.fileMahasiswa}`} target="_blank" rel="noreferrer" className="mt-2 text-[10px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 w-max bg-blue-50 px-2 py-1 rounded">
+                                                            <a href={`${UPLOADS_URL}${item.fileMahasiswa}`} target="_blank" rel="noreferrer" className="mt-2 text-[10px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 w-max bg-blue-50 px-2 py-1 rounded">
                                                                 <Download className="w-3 h-3" /> Unduh PDF
                                                             </a>
                                                         )}
@@ -850,7 +851,7 @@ export function BimbinganMobile() {
                                                 </div>
                                                 <div className="flex gap-2">
                                                     {task.fileDosen && (
-                                                        <a href={`http://localhost:5002${task.fileDosen}`} target="_blank" rel="noreferrer" className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-green-50 active:bg-green-100 text-green-700 border border-green-200 rounded-lg text-[10px] font-bold transition-colors">
+                                                        <a href={`${UPLOADS_URL}${task.fileDosen}`} target="_blank" rel="noreferrer" className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-green-50 active:bg-green-100 text-green-700 border border-green-200 rounded-lg text-[10px] font-bold transition-colors">
                                                             <Download className="w-3.5 h-3.5" /> Draf Target (ACC)
                                                         </a>
                                                     )}
@@ -893,14 +894,14 @@ export function BimbinganMobile() {
                                             <Eye className="w-3.5 h-3.5 text-[#119DA4]" />
                                             Live Annotator
                                         </h4>
-                                        <a href={`http://localhost:5002${reviewingTask.fileMahasiswa}`} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-blue-600 hover:underline flex items-center gap-1">
+                                        <a href={`${UPLOADS_URL}${reviewingTask.fileMahasiswa}`} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-blue-600 hover:underline flex items-center gap-1">
                                             <Download className="w-3 h-3" /> Unduh
                                         </a>
                                     </div>
                                     <div className="flex-1 relative overflow-hidden">
                                         <Suspense fallback={<div className="flex h-full items-center justify-center bg-gray-50"><Loader2 className="w-8 h-8 animate-spin text-orange-500" /></div>}>
                                             <SharedPdfViewer 
-                                                url={`http://localhost:5002${reviewingTask.fileMahasiswa}`}
+                                                url={`${UPLOADS_URL}${reviewingTask.fileMahasiswa}`}
                                                 initialHighlights={annotations}
                                                 onAddHighlight={handleAddHighlight}
                                                 onDeleteHighlight={handleDeleteHighlight}
@@ -917,7 +918,7 @@ export function BimbinganMobile() {
                                         File ({reviewingTask.fileMahasiswa?.split('.').pop()}) tidak mendukung Live Annotator.
                                     </p>
                                     <a 
-                                        href={`http://localhost:5002${reviewingTask.fileMahasiswa}`} 
+                                        href={`${UPLOADS_URL}${reviewingTask.fileMahasiswa}`} 
                                         target="_blank" rel="noreferrer" 
                                         className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white border border-blue-200 text-blue-700 font-bold rounded-lg text-xs shadow-sm transition-all"
                                     >
@@ -983,7 +984,7 @@ export function BimbinganMobile() {
                                                         <span className="text-gray-400 block">{new Date(item.tanggal).toLocaleDateString('id-ID')}</span>
                                                     </div>
                                                     {item.fileMahasiswa && (
-                                                        <a href={`http://localhost:5002${item.fileMahasiswa}`} target="_blank" rel="noreferrer" className="p-1.5 text-blue-600 bg-blue-50 rounded-lg">
+                                                        <a href={`${UPLOADS_URL}${item.fileMahasiswa}`} target="_blank" rel="noreferrer" className="p-1.5 text-blue-600 bg-blue-50 rounded-lg">
                                                             <Download className="w-3 h-3" />
                                                         </a>
                                                     )}
