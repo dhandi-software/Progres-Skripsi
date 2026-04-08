@@ -66,7 +66,15 @@ export function DashboardMobile() {
         // 1. Dokumen Belum Lengkap: Only show if NO pengajuan
         if (!profile?.pengajuanJudul || profile.pengajuanJudul.length === 0) {
             activities.push(
-                { title: "Upload Transkrip", time: "Belum Lengkap", color: "text-orange-500", rawDate: new Date(9999, 11, 31) }
+                { 
+                    title: "Upload Transkrip", 
+                    desc: "Lengkapi berkas pendaftaran kerja praktik.",
+                    time: "Belum Lengkap", 
+                    color: "text-orange-500", 
+                    icon: ClipboardList,
+                    rawDate: new Date(9999, 11, 31),
+                    onClick: () => navigate("/mahasiswa/pengajuan")
+                }
             );
         }
         if (profile?.pengajuanJudul && profile.pengajuanJudul.length > 0) {
@@ -83,7 +91,12 @@ export function DashboardMobile() {
             }
             if (dynActivity) {
                 dynActivity.time = new Date(p.tanggal).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric' });
-                activities.push(dynActivity);
+                activities.push({
+                    ...dynActivity,
+                    desc: "Pembaruan status pengajuan judul bimbingan.",
+                    icon: FileText,
+                    onClick: () => navigate("/mahasiswa/pengajuan")
+                });
             }
         }
 
@@ -93,30 +106,42 @@ export function DashboardMobile() {
             if (t.status === 'REVISION') {
                 activities.push({
                     title: "Revisi Bimbingan",
+                    desc: `Ada catatan revisi untuk topik: ${t.topik}`,
                     time: dateStr,
                     color: "text-red-500",
-                    rawDate: new Date(t.tanggal)
+                    icon: AlertCircle,
+                    rawDate: new Date(t.tanggal),
+                    onClick: () => navigate("/mahasiswa/bimbingan")
                 });
             } else if (t.status === 'ASSIGNED') {
                 activities.push({
                     title: "Tugas Baru",
+                    desc: `Tugas baru ditugaskan: ${t.topik}`,
                     time: dateStr,
                     color: "text-blue-500",
-                    rawDate: new Date(t.tanggal)
+                    icon: Calendar,
+                    rawDate: new Date(t.tanggal),
+                    onClick: () => navigate("/mahasiswa/bimbingan")
                 });
             } else if (t.status === 'SUBMITTED') {
                 activities.push({
                     title: "Draf Terkirim",
+                    desc: `Draf untuk topik ${t.topik} telah diunggah.`,
                     time: dateStr,
                     color: "text-orange-500",
-                    rawDate: new Date(t.tanggal)
+                    icon: TrendingUp,
+                    rawDate: new Date(t.tanggal),
+                    onClick: () => navigate("/mahasiswa/bimbingan")
                 });
             } else if (t.status === 'APPROVED') {
                 activities.push({
                     title: "Disetujui",
+                    desc: `Draf topik ${t.topik} telah disetujui dosen.`,
                     time: dateStr,
                     color: "text-green-500",
-                    rawDate: new Date(t.tanggal)
+                    icon: CheckCircle,
+                    rawDate: new Date(t.tanggal),
+                    onClick: () => navigate("/mahasiswa/bimbingan")
                 });
             }
         });
@@ -124,7 +149,7 @@ export function DashboardMobile() {
         // 4. Berita Acara (Acara)
         acaras.forEach(a => {
             activities.push({
-                title: a.type === 'ASSIGNMENT' ? `Tugas Baru: ${a.title}` : `Pengumuman: ${a.title}`,
+                title: a.type === 'ASSIGNMENT' ? `Instruksi Baru: ${a.title}` : `Pengumuman: ${a.title}`,
                 desc: `${a.dosen.nama} memposting di timeline.`,
                 time: new Date(a.createdAt).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric' }),
                 icon: a.type === 'ASSIGNMENT' ? FileText : AlertCircle,
@@ -257,15 +282,15 @@ export function DashboardMobile() {
                             <ClipboardList className="w-5 h-5" />
                         </div>
                         <div className="flex-1">
-                            <h3 className="text-blue-800 font-bold text-sm">Tugas/Berita Acara Baru</h3>
+                            <h3 className="text-blue-800 font-bold text-sm">Pengumuman/Instruksi Baru</h3>
                             <p className="text-blue-600 text-[10px] mt-1 pr-2 leading-relaxed">
-                                Ada {unreadAcaraCount} informasi atau tugas baru yang belum Anda baca.
+                                Ada {unreadAcaraCount} informasi atau instruksi baru yang belum Anda baca.
                             </p>
                             <button 
                                 onClick={() => navigate("/mahasiswa/acara")}
                                 className="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 transition-colors text-white text-xs font-bold rounded-lg shadow-sm w-full"
                             >
-                                Lihat Tugas
+                                Lihat Pengumuman
                             </button>
                         </div>
                     </div>
@@ -356,23 +381,32 @@ export function DashboardMobile() {
                         </button>
                     </div>
                     <div className="overflow-y-auto divide-y divide-gray-50 flex-1 p-2 bg-gray-50 pb-10">
-                        {getActivities().map((item, i) => (
-                            <div key={i} className="p-4 flex items-center justify-between bg-white m-2 rounded-xl shadow-sm border border-gray-100">
-                                <div className="flex items-start gap-4">
-                                    <div className="mt-1"><item.icon className={`w-5 h-5 ${item.color}`} /></div>
-                                    <div>
-                                        <h4 className="font-semibold text-gray-900 flex items-center gap-2">
-                                            {item.title}
-                                            {item.isRead === false && (
-                                                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-sm animate-pulse" />
-                                            )}
-                                        </h4>
-                                        <p className="text-xs text-gray-500 mt-0.5 line-clamp-2 pr-2">{item.desc}</p>
-                                        <span className="text-[10px] text-gray-400 mt-2 block flex gap-1 items-center"><Clock className="w-3 h-3"/>{item.time}</span>
+                        {getActivities().map((item, i) => {
+                            const Icon = item.icon || AlertCircle;
+                            return (
+                                <div 
+                                    key={i} 
+                                    onClick={item.onClick}
+                                    className={`p-4 flex items-center justify-between bg-white m-2 rounded-xl shadow-sm border border-gray-100 ${item.onClick ? 'active:scale-[0.98] transition-transform cursor-pointer' : ''}`}
+                                >
+                                    <div className="flex items-start gap-4 text-left">
+                                        <div className="mt-1 shrink-0"><Icon className={`w-5 h-5 ${item.color}`} /></div>
+                                        <div>
+                                            <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                                                {item.title}
+                                                {item.isRead === false && (
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-sm animate-pulse" />
+                                                )}
+                                            </h4>
+                                            <p className="text-[10px] text-gray-500 mt-0.5 line-clamp-2 pr-2">{item.desc || ''}</p>
+                                            <span className="text-[10px] text-gray-400 mt-2 block flex gap-1 items-center font-medium">
+                                                <Clock className="w-3 h-3"/>{item.time}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             )}

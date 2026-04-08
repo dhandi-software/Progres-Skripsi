@@ -123,7 +123,7 @@ export function AcaraMobile({ title }: { title: string }) {
         const url = `${window.location.origin}${window.location.pathname}?post=${selectedAcara?.id}`;
         navigator.clipboard.writeText(url);
         setIsCopying(true);
-        setToast({ title: "Link disalin!", variant: "success" });
+        setToast({ title: "Link berhasil disalin!", variant: "success" });
         setTimeout(() => setIsCopying(false), 2000);
     };
 
@@ -131,7 +131,7 @@ export function AcaraMobile({ title }: { title: string }) {
         const url = `${window.location.origin}${window.location.pathname}?post=${id}`;
         navigator.clipboard.writeText(url);
         setIsCopying(true);
-        setToast({ title: "Link disalin!", variant: "success" });
+        setToast({ title: "Link berhasil disalin!", variant: "success" });
         setTimeout(() => setIsCopying(false), 2000);
     };
 
@@ -286,7 +286,7 @@ export function AcaraMobile({ title }: { title: string }) {
                 ) : acaras.length === 0 ? (
                     <div className="py-20 text-center">
                         <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200"><ClipboardList size={32} /></div>
-                        <p className="text-sm font-bold text-slate-300">Belum ada postingan bimbingan.</p>
+                        <p className="text-sm font-bold text-slate-300">Belum ada pengumuman bimbingan.</p>
                     </div>
                 ) : (
                     acaras.map(item => (
@@ -300,7 +300,9 @@ export function AcaraMobile({ title }: { title: string }) {
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                    <h3 className="text-sm font-black text-slate-900 tracking-tight truncate mb-0.5">{item.title}</h3>
+                                    <h3 className="text-sm font-black text-slate-900 tracking-tight truncate mb-0.5">
+                                        {item.dosen?.nama} memposting: {item.title}
+                                    </h3>
                                     {(item.isReadByMe === false || item.isReadByMe === undefined) && (
                                         <span className="w-2 h-2 rounded-full bg-orange-500 shadow-sm" />
                                     )}

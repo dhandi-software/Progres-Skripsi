@@ -270,7 +270,7 @@ export function AcaraDesktop({ title }: { title: string }) {
                         <div className="bg-white rounded-[40px] p-24 text-center border-2 border-dashed border-slate-100 shadow-sm">
                              <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-8 text-slate-200"><ClipboardList size={56} /></div>
                              <h3 className="text-2xl font-black text-slate-900 tracking-tight">Belum Ada Posting Terdaftar</h3>
-                             <p className="text-slate-400 mx-auto mt-4 font-medium">Berita acara atau assignment dari dosen akan muncul di sini.</p>
+                             <p className="text-slate-400 mx-auto mt-4 font-medium">Pengumuman atau instruksi bimbingan dari dosen akan muncul di sini.</p>
                         </div>
                     ) : (
                         acaras.map(item => (
@@ -288,7 +288,7 @@ export function AcaraDesktop({ title }: { title: string }) {
                                     <div className="flex flex-col min-w-0">
                                         <div className="flex items-center gap-3">
                                             <h3 className="text-lg lg:text-xl font-black text-slate-900 truncate tracking-tight mb-1">
-                                                {item.dosen.nama} memposting tugas baru: {item.title}
+                                                {item.dosen.nama} memposting: {item.title}
                                             </h3>
                                             {(item.isReadByMe === false || item.isReadByMe === undefined) && (
                                                 <span className="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm group-hover:animate-pulse" />
