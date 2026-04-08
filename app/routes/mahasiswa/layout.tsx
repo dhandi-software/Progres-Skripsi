@@ -18,6 +18,8 @@ import { chatService } from "~/services/chatService";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { acaraApi } from "~/api/acaraApi";
 import React from "react";
+import { io } from "socket.io-client";
+import { UPLOADS_URL } from "~/api/client";
 
 import { SidebarProvider, Sidebar, SidebarContent, useSidebar, SidebarTrigger } from "~/components/ui/sidebar";
 import { cn } from "~/lib/utils";
@@ -77,7 +79,7 @@ const menuItems = [
   },
   {
     key: "acara" as MenuKey,
-    title: "Acara",
+    title: "Pengumuman",
     icon: Calendar,
     url: "/mahasiswa/acara",
   },
@@ -105,34 +107,91 @@ export function AppSidebar() {
   React.useEffect(() => {
     if (!user) return;
     const fetchData = async () => {
-      try {
-        const data = await chatService.getUnreadCount(user.id);
-        setUnreadCount(data.count || 0);
+      // Fetch Chat Unread Count
+      chatService.getUnreadCount(user.id)
+        .then(data => setUnreadCount(data.count || 0))
+        .catch(err => console.error("Sidebar Chat Error:", err));
 
-        const tasks = await bimbinganApi.getMahasiswaAllTasks();
-        if (tasks && Array.isArray(tasks)) {
-            const grouped = tasks.reduce((acc: any, task: any) => {
-                if (!acc[task.topik] || task.versi > acc[task.topik].versi) acc[task.topik] = task;
-                return acc;
-            }, {});
-            const uniqueTasks: any[] = Object.values(grouped);
-            const active = uniqueTasks.find((t: any) => t.status !== 'APPROVED');
-            if (active && (active.status === 'ASSIGNED' || active.status === 'REVISION')) {
-                setBimbinganBadgeCount(1);
-            } else {
-                setBimbinganBadgeCount(0);
+      // Fetch Bimbingan Tasks
+      bimbinganApi.getMahasiswaAllTasks()
+        .then(tasks => {
+            if (tasks && Array.isArray(tasks)) {
+                const grouped = tasks.reduce((acc: any, task: any) => {
+                    if (!acc[task.topik] || task.versi > acc[task.topik].versi) acc[task.topik] = task;
+                    return acc;
+                }, {});
+                const uniqueTasks: any[] = Object.values(grouped);
+                const active = uniqueTasks.find((t: any) => t.status !== 'APPROVED');
+                setBimbinganBadgeCount(active && (active.status === 'ASSIGNED' || active.status === 'REVISION') ? 1 : 0);
             }
-        }
+        })
+        .catch(err => console.error("Sidebar Bimbingan Error:", err));
 
-        const acaraData = await acaraApi.getUnreadCount();
-        setAcaraBadgeCount(acaraData.count || 0);
-      } catch (error) {
-        console.error("Failed to fetch sidebar counts:", error);
-      }
+      // Fetch Acara Unread Count
+      acaraApi.getUnreadCount()
+        .then(data => {
+            setAcaraBadgeCount(data.count || 0);
+        })
+        .catch(err => console.error("Sidebar Acara Error:", err));
     };
     fetchData();
     const intervalId = setInterval(fetchData, 30000);
     return () => clearInterval(intervalId);
+  }, [user]);
+
+  // Real-time socket notifications
+  React.useEffect(() => {
+    if (!user) return;
+    
+    // Connect to the socket server
+    const socket = io(UPLOADS_URL);
+    
+    // Join user-specific room for private notifications
+    socket.emit('join', user.id);
+
+    const refetchCount = () => {
+        acaraApi.getUnreadCount().then(data => {
+            setAcaraBadgeCount(data.count || 0);
+        });
+    };
+    
+    // Handle local sync from the timeline component
+    const handleLocalRead = () => {
+        // Optimistically decrement for immediate feedback
+        setAcaraBadgeCount(prev => Math.max(0, prev - 1));
+        // Verify with server after a small delay
+        setTimeout(refetchCount, 1000);
+    };
+
+    socket.on('new_acara', () => {
+        refetchCount();
+        
+        // Native browser notification
+        if ("Notification" in window && Notification.permission === "granted") {
+            new Notification("Pengumuman Baru", {
+                body: "Ada instruksi atau pengumuman baru dari dosen di timeline.",
+                icon: "/favicon.ico"
+            });
+        }
+    });
+
+    // Handle sync when an item is read (from other devices)
+    socket.on('acara_read', () => {
+        refetchCount();
+    });
+
+    // Handle local sync from the timeline component
+    window.addEventListener('update-unread-count', handleLocalRead);
+
+    // Request permission on mount
+    if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission();
+    }
+
+    return () => {
+        socket.disconnect();
+        window.removeEventListener('update-unread-count', handleLocalRead);
+    };
   }, [user]);
 
   const handleNavigate = (key: MenuKey) => {
@@ -207,7 +266,7 @@ export function AppSidebar() {
                         </div>
                       )}
                       {item.key === "acara" && acaraBadgeCount > 0 && (
-                        <div className="bg-red-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
+                        <div className="bg-[#D25026] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
                           {acaraBadgeCount}
                         </div>
                       )}

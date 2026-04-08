@@ -27,6 +27,16 @@ export function DashboardDesktop() {
     const [unreadAcaraCount, setUnreadAcaraCount] = useState(0);
     const [showAllActivities, setShowAllActivities] = useState(false);
 
+    const fetchAcaraData = () => {
+        acaraApi.getAcara()
+            .then(res => setAcaras(res.data))
+            .catch(console.error);
+
+        acaraApi.getUnreadCount()
+            .then(res => setUnreadAcaraCount(res.count))
+            .catch(console.error);
+    };
+
     useEffect(() => {
         pengajuanApi.getProfile().then(setProfile).catch(console.error);
         if (user?.id) {
@@ -42,15 +52,14 @@ export function DashboardDesktop() {
                 })
                 .catch(console.error);
             
-            acaraApi.getAcara()
-                .then(setAcaras)
-                .catch(console.error);
-
-            acaraApi.getUnreadCount()
-                .then(res => setUnreadAcaraCount(res.count))
-                .catch(console.error);
+            fetchAcaraData();
         }
     }, [user?.id]);
+
+    useEffect(() => {
+        window.addEventListener('update-unread-count', fetchAcaraData);
+        return () => window.removeEventListener('update-unread-count', fetchAcaraData);
+    }, []);
 
     const getActivities = () => {
         const activities: any[] = [];
@@ -161,7 +170,8 @@ export function DashboardDesktop() {
                 icon: a.type === 'ASSIGNMENT' ? FileText : AlertCircle,
                 color: a.type === 'ASSIGNMENT' ? "text-cyan-500" : "text-purple-500",
                 rawDate: new Date(a.createdAt),
-                onClick: () => navigate("/mahasiswa/acara")
+                isRead: a.isRead, // New property
+                onClick: () => navigate("/mahasiswa/acara", { state: { selectedId: a.id } }) // Pass ID
             });
         });
 
@@ -383,8 +393,11 @@ export function DashboardDesktop() {
                                     />
                                 </div>
                                 <div>
-                                    <h4 className="font-semibold text-gray-900">
+                                    <h4 className="font-semibold text-gray-900 flex items-center gap-2">
                                         {item.title}
+                                        {item.isRead === false && (
+                                            <span className="w-2 h-2 rounded-full bg-orange-500 shadow-sm animate-pulse" />
+                                        )}
                                     </h4>
                                     <p className="text-sm text-gray-500 mt-1">
                                         {item.desc}

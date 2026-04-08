@@ -43,6 +43,8 @@ export default [
             route("bimbingan", "routes/dosen/bimbingan.tsx"),
             route("chat", "routes/dosen/chat.tsx"),
             route("acara", "routes/dosen/acara.tsx"),
+            route("acara/create", "routes/dosen/acara.create.tsx"),
+            route("acara/edit/:id", "routes/dosen/acara.edit.$id.tsx"),
             route("sidang", "routes/dosen/sidang.tsx"),
             route("penilaian", "routes/dosen/penilaian.tsx"),
             route("laporan", "routes/dosen/laporan.tsx"),

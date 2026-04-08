@@ -1,52 +1,58 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale/id";
 import { 
     ClipboardList, Send, MessageSquare, 
-    ArrowLeft, Plus, X, Trash2, Edit3, 
-    Calendar as CalendarIcon, CheckCircle2, Info, ChevronRight,
-    Bold, Italic, Underline, List, ListOrdered, AlignLeft, 
-    AlignCenter, AlignRight, Image as ImageIcon, FileText,
-    Undo2, Redo2, Strikethrough, Users, ChevronDown,
-    Indent, Outdent
+    ArrowLeft, Plus, Trash2, Edit3, 
+    MoreVertical, Users, 
+    Link as LinkIcon, Check
 } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { useAuth } from "~/hooks/useAuth";
 import { acaraApi } from "~/api/acaraApi";
-import type { Acara } from "~/api/acaraApi";
+import type { Acara, AcaraResponse } from "~/api/acaraApi";
 import { UPLOADS_URL } from "~/api/client";
 import { Toast } from "~/components/ui/toast";
+import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from "~/components/ui/pagination";
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+} from "~/components/ui/dropdown-menu";
+import { sanitizeHtml } from "~/lib/sanitize";
 
 export function AcaraMobile({ title }: { title: string }) {
     const { user } = useAuth();
+    const navigate = useNavigate();
+
     const [acaras, setAcaras] = useState<Acara[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedAcara, setSelectedAcara] = useState<Acara | null>(null);
-    const [isCreating, setIsCreating] = useState(false);
-    const [editingAcara, setEditingAcara] = useState<Acara | null>(null);
     const [newComment, setNewComment] = useState("");
-    const [isUploading, setIsUploading] = useState(false);
     const [toast, setToast] = useState<{title: string, variant: "success" | "destructive"} | null>(null);
-    const [selectedElement, setSelectedElement] = useState<HTMLElement | null>(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState<AcaraResponse["pagination"] | null>(null);
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [isCopying, setIsCopying] = useState(false);
     
-    // Editor State
-    const editorRef = useRef<HTMLDivElement>(null);
-    const mediaInputRef = useRef<HTMLInputElement>(null);
-    const docInputRef = useRef<HTMLInputElement>(null);
-    const [formData, setFormData] = useState({
-        title: "",
-        content: "",
-        type: "ASSIGNMENT"
-    });
-
-    const fetchData = async () => {
+    const fetchData = async (currentPage: number) => {
         try {
             setIsLoading(true);
-            const data = await acaraApi.getAcara();
-            setAcaras(data);
+            const response = await acaraApi.getAcara(currentPage, 10);
+            setAcaras(response.data);
+            setPagination(response.pagination);
         } catch (error) {
             console.error("Fetch Acara Error:", error);
         } finally {
@@ -55,127 +61,37 @@ export function AcaraMobile({ title }: { title: string }) {
     };
 
     useEffect(() => {
-        fetchData();
-    }, []);
+        fetchData(page);
+    }, [page]);
 
-    // Fungsi untuk memformat teks (Bold, Italic, dll) di editor mobile
-    const formatText = (command: string, value: string = "") => {
-        if (editorRef.current) {
-            editorRef.current.focus();
-            document.execCommand(command, false, value);
-        }
-    };
-
-    // Memastikan baris baru menggunakan tag <p> untuk struktur yang benar
-    const handleEditorFocus = () => {
-        if (editorRef.current) {
-            document.execCommand("defaultParagraphSeparator", false, "p");
-        }
-    };
-
-    // Deteksi klik pada gambar untuk memberikan highlight pilihan hapus
-    const handleEditorClick = (e: React.MouseEvent) => {
-        const target = e.target as HTMLElement;
-        if (target.tagName === "IMG") {
-            if (selectedElement) selectedElement.style.outline = "none";
-            setSelectedElement(target);
-            target.style.outline = "4px solid #00bcd4"; // Warna biru sian
-            target.style.outlineOffset = "2px";
-        } else {
-            if (selectedElement) selectedElement.style.outline = "none";
-            setSelectedElement(null);
-        }
-    };
-
-    // Menghapus gambar/elemen yang sedang dipilih
-    const removeSelectedElement = () => {
-        if (selectedElement) {
-            selectedElement.remove();
-            setSelectedElement(null);
-        }
-    };
-
-    // Mengunggah gambar/dokumen dan memasukkannya ke editor mobile
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'IMAGE' | 'DOC') => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        try {
-            setIsUploading(true);
-            const res = await acaraApi.uploadFile(file);
-            const absoluteUrl = `${UPLOADS_URL.replace(/\/$/, '')}${res.url}`;
-            
-            if (editorRef.current) {
-                editorRef.current.focus();
-                if (type === 'IMAGE') {
-                    // Rasio memanjang (landscape) dengan aspect-video
-                    const img = `<img src="${absoluteUrl}" alt="${res.originalName}" class="w-full aspect-video object-cover rounded-2xl my-4 shadow-lg cursor-pointer" />`;
-                    document.execCommand("insertHTML", false, img);
-                } else {
-                    const link = `<a href="${absoluteUrl}" target="_blank" class="inline-flex items-center gap-2 p-4 bg-slate-50 border border-slate-200 rounded-xl text-[#00bcd4] font-bold no-underline my-2 hover:bg-slate-100 transition-colors">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
-                        ${res.originalName}
-                    </a>`;
-                    document.execCommand("insertHTML", false, link);
-                }
-            }
-        } catch (error) {
-            alert("Gagal mengunggah file.");
-        } finally {
-            setIsUploading(false);
-            if (mediaInputRef.current) mediaInputRef.current.value = "";
-            if (docInputRef.current) docInputRef.current.value = "";
-        }
-    };
-
-    // Menangani pengiriman form (Buat baru atau Update) di Mobile
-    const handleSubmit = async (e?: React.FormEvent | React.MouseEvent) => {
-        if (e) e.preventDefault();
-        const content = editorRef.current?.innerHTML || "";
-        try {
-            if (editingAcara) {
-                await acaraApi.updateAcara(editingAcara.id, { ...formData, content });
-                setToast({ title: "Berhasil diperbarui!", variant: "success" });
-            } else {
-                await acaraApi.createAcara({ ...formData, content });
-                setToast({ title: "Berhasil dipublish!", variant: "success" });
-            }
-            setIsCreating(false);
-            setEditingAcara(null);
-            setFormData({ title: "", content: "", type: "ASSIGNMENT" });
-            fetchData();
-        } catch (error) {
-            setToast({ title: "Gagal menyimpan.", variant: "destructive" });
-        }
-    };
-
-    // Fungsi untuk memicu mode Edit di Mobile
-    const startEdit = (e: React.MouseEvent, item: Acara) => {
-        e.stopPropagation();
-        setEditingAcara(item);
-        setFormData({
-            title: item.title,
-            content: item.content,
-            type: item.type
-        });
-        setIsCreating(true);
-    };
-
-    // Mengisi konten editor saat masuk mode edit mobile
+    // -- LOGIKA DEEP LINKING (Lecturer Mobile) --
     useEffect(() => {
-        if (isCreating && editingAcara && editorRef.current) {
-            editorRef.current.innerHTML = editingAcara.content;
+        const postId = searchParams.get("post");
+        if (postId && !selectedAcara) {
+            const id = parseInt(postId);
+            const localMatch = acaras.find(a => a.id === id);
+            if (localMatch) {
+                setSelectedAcara(localMatch);
+            } else if (!isLoading && acaras.length > 0) {
+                acaraApi.getAcaraById(id).then(data => {
+                    setSelectedAcara(data);
+                }).catch(err => {
+                    console.error("Gagal deep link dosen mobile:", err);
+                    setSearchParams({});
+                });
+            }
         }
-    }, [isCreating, editingAcara]);
+    }, [searchParams, acaras.length, isLoading]);
 
-    // Transformasi path gambar menjadi absolut & memaksa rasio memanjang di mobile
     const transformContent = (content: string) => {
         if (!content) return "";
         const baseUploads = UPLOADS_URL.replace(/\/$/, "");
-        return content
+        const transformed = content
             .replace(/src="\/uploads\//g, `src="${baseUploads}/uploads/`)
             .replace(/href="\/uploads\//g, `href="${baseUploads}/uploads/`)
             .replace(/<img /g, '<img class="w-full aspect-video object-cover rounded-2xl my-8 shadow-lg border border-slate-100" ');
+        
+        return sanitizeHtml(transformed);
     };
 
     const handleAddComment = async (e: React.FormEvent) => {
@@ -184,7 +100,6 @@ export function AcaraMobile({ title }: { title: string }) {
         try {
             const comment = await acaraApi.addComment(selectedAcara.id, newComment);
             
-            // Perbarui data acara terpilih agar komentar baru langsung muncul
             const updatedAcara = {
                 ...selectedAcara,
                 comments: [...selectedAcara.comments, comment]
@@ -192,7 +107,6 @@ export function AcaraMobile({ title }: { title: string }) {
             setSelectedAcara(updatedAcara);
             setNewComment("");
 
-            // Sinkronkan daftar utama agar jumlah komentarnya bertambah (tanpa reload)
             setAcaras(prev => prev.map(item => 
                 item.id === selectedAcara.id ? updatedAcara : item
             ));
@@ -201,13 +115,39 @@ export function AcaraMobile({ title }: { title: string }) {
         }
     };
 
+    const handleSelectAcara = (item: Acara) => {
+        setSelectedAcara(item);
+        setSearchParams({ post: item.id.toString() });
+    };
+
+    const handleBack = () => {
+        setSelectedAcara(null);
+        setSearchParams({});
+    };
+
+    const handleCopyLink = () => {
+        const url = `${window.location.origin}${window.location.pathname}?post=${selectedAcara?.id}`;
+        navigator.clipboard.writeText(url);
+        setIsCopying(true);
+        setToast({ title: "Link berhasil disalin!", variant: "success" });
+        setTimeout(() => setIsCopying(false), 2000);
+    };
+
+    const handleCopySpecificLink = (id: number) => {
+        const url = `${window.location.origin}${window.location.pathname}?post=${id}`;
+        navigator.clipboard.writeText(url);
+        setIsCopying(true);
+        setToast({ title: "Link berhasil disalin!", variant: "success" });
+        setTimeout(() => setIsCopying(false), 2000);
+    };
+
     const handleDelete = async () => {
         if (!deletingId) return;
         try {
             await acaraApi.deleteAcara(deletingId);
             if (selectedAcara?.id === deletingId) setSelectedAcara(null);
             setToast({ title: "Postingan berhasil dihapus!", variant: "success" });
-            fetchData();
+            fetchData(page);
         } catch (error) {
             setToast({ title: "Gagal menghapus.", variant: "destructive" });
         } finally {
@@ -219,11 +159,9 @@ export function AcaraMobile({ title }: { title: string }) {
     if (selectedAcara) {
         return (
             <div className="fixed inset-0 z-[100] bg-white flex flex-col animate-in slide-in-from-bottom duration-500">
-                {/* Header Navbar */}
-                {/* Header Navbar - Style Google Classroom Mobile */}
                 <div className="flex items-center gap-4 px-6 h-20 border-b border-slate-100 shrink-0">
                     <button 
-                        onClick={() => setSelectedAcara(null)}
+                        onClick={handleBack}
                         className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 active:scale-90 transition-all"
                     >
                         <ArrowLeft size={20} />
@@ -237,6 +175,25 @@ export function AcaraMobile({ title }: { title: string }) {
                             {selectedAcara.dosen.nama} • {format(new Date(selectedAcara.createdAt), "dd MMM", { locale: id })}
                         </p>
                     </div>
+                    <div className="flex items-center gap-2">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger className="p-2 border-none bg-transparent active:bg-slate-100 rounded-full outline-none">
+                                <MoreVertical size={20} className="text-slate-400" />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48 bg-white border border-slate-100 shadow-xl rounded-2xl p-2 z-[200]">
+                                <DropdownMenuItem 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleCopyLink();
+                                    }}
+                                    className="flex items-center gap-3 px-4 py-3 rounded-xl active:bg-slate-50 text-slate-600 font-bold text-sm"
+                                >
+                                    <LinkIcon size={16} />
+                                    Salin Link
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
                     <button 
                         onClick={() => {
                             setDeletingId(selectedAcara.id);
@@ -248,7 +205,6 @@ export function AcaraMobile({ title }: { title: string }) {
                     </button>
                 </div>
 
-                {/* Content Scrollable */}
                 <div className="flex-1 overflow-y-auto px-6 py-8 pb-32">
                     <div 
                         className="prose prose-slate max-w-none prose-headings:font-black prose-p:text-slate-800 prose-p:leading-relaxed prose-strong:text-slate-950 prose-a:text-[#00bcd4] prose-a:font-bold text-sm mb-12"
@@ -290,7 +246,6 @@ export function AcaraMobile({ title }: { title: string }) {
                     </div>
                 </div>
 
-                {/* Bottom Comment Input - Elegant Classroom Style */}
                 <div className="fixed bottom-14 left-6 right-6 z-[150] animate-in fade-in slide-in-from-bottom duration-700">
                     <form 
                         onSubmit={handleAddComment} 
@@ -325,8 +280,8 @@ export function AcaraMobile({ title }: { title: string }) {
     return (
         <div className="flex flex-col min-h-screen w-full bg-white pb-24">
             <div className="flex flex-col gap-2 p-8">
-                <h1 className="text-2xl font-black text-slate-900 tracking-tight">{title}</h1>
-                <p className="text-xs text-slate-400 font-medium tracking-wide">Daftar postingan bimbingan & assignment.</p>
+                <h1 className="text-2xl font-black text-slate-900 tracking-tight">Pengumuman & Instruksi</h1>
+                <p className="text-xs text-slate-400 font-medium tracking-wide">Daftar pengumuman & instruksi bimbingan.</p>
             </div>
 
             <div className="flex-1 px-8 space-y-4">
@@ -337,13 +292,13 @@ export function AcaraMobile({ title }: { title: string }) {
                         <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
                             <ClipboardList size={32} />
                         </div>
-                        <p className="text-sm font-bold text-slate-300">Belum ada postingan.</p>
+                        <p className="text-sm font-bold text-slate-300">Belum ada pengumuman.</p>
                     </div>
                 ) : (
                     acaras.map(item => (
                         <div 
                             key={item.id} 
-                            onClick={() => setSelectedAcara(item)}
+                            onClick={() => handleSelectAcara(item)}
                             className="bg-white border border-slate-100 rounded-[28px] p-5 flex items-center gap-4 active:scale-95 transition-all shadow-sm group"
                         >
                             <div className="w-12 h-12 rounded-xl bg-[#00bcd4]/10 flex items-center justify-center text-[#00bcd4] shrink-0">
@@ -355,159 +310,116 @@ export function AcaraMobile({ title }: { title: string }) {
                                     <span className="text-[10px] font-bold text-slate-400">{format(new Date(item.createdAt), "dd MMM", { locale: id })}</span>
                                     <span className="w-1 h-1 rounded-full bg-slate-200" />
                                     <span className="text-[10px] font-bold text-[#00bcd4]/60 uppercase">
-                                        {item.type === "ASSIGNMENT" ? "Berita Acara" : "Pengumuman"}
+                                        {item.type === "ASSIGNMENT" ? "Instruksi" : "Pengumuman"}
                                     </span>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-3">
+                             <div className="flex items-center gap-1 group/item">
                                 {item.comments.length > 0 && (
-                                    <div className="flex items-center gap-1 text-slate-400 bg-slate-50 px-2.5 py-1 rounded-full border border-slate-100/50">
+                                    <div className="flex items-center gap-1.5 text-slate-400 bg-slate-50 px-2 py-1 rounded-full border border-slate-100/50">
                                         <MessageSquare size={12} />
                                         <span className="text-[10px] font-black">{item.comments.length}</span>
                                     </div>
                                 )}
-                                <div className="flex items-center gap-1">
-                                <button 
-                                    onClick={(e) => startEdit(e, item)}
-                                    className="p-2 text-slate-400 hover:text-blue-500 active:scale-90 transition-all"
-                                    title="Edit"
-                                >
-                                    <Edit3 size={18} />
-                                </button>
-                                <button 
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setDeletingId(item.id);
-                                        setShowDeleteModal(true);
-                                    }}
-                                    className="p-2 text-slate-400 hover:text-red-500 active:scale-90 transition-all"
-                                    title="Hapus"
-                                >
-                                    <Trash2 size={18} />
-                                </button>
+                                <div className="flex items-center">
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(`/dosen/acara/edit/${item.id}`);
+                                        }}
+                                        className="p-2 text-slate-400 hover:text-blue-500 active:scale-90 transition-all"
+                                        title="Edit"
+                                    >
+                                        <Edit3 size={18} />
+                                    </button>
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setDeletingId(item.id);
+                                            setShowDeleteModal(true);
+                                        }}
+                                        className="p-2 text-slate-400 hover:text-red-500 active:scale-90 transition-all"
+                                        title="Hapus"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger className="p-2 border-none bg-transparent active:bg-slate-100 rounded-full outline-none" onClick={(e) => e.stopPropagation()}>
+                                            <MoreVertical size={18} className="text-slate-300 group-hover/item:text-slate-400" />
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="w-48 bg-white border border-slate-100 shadow-xl rounded-2xl p-2 z-[50]">
+                                            <DropdownMenuItem 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleCopySpecificLink(item.id);
+                                                }}
+                                                className="flex items-center gap-3 px-4 py-3 rounded-xl active:bg-slate-50 text-slate-600 font-bold text-sm"
+                                            >
+                                                <LinkIcon size={16} />
+                                                Salin Link
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 </div>
                             </div>
                         </div>
                     ))
                 )}
+
+                {pagination && pagination.totalPages > 1 && (
+                    <div className="mt-8 flex justify-center pb-8 border-t border-slate-50 pt-8">
+                        <Pagination>
+                            <PaginationContent>
+                                <PaginationItem>
+                                    <PaginationPrevious
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            if (page > 1) setPage(page - 1);
+                                        }}
+                                        className={page === 1 ? "pointer-events-none opacity-20" : "active:scale-90"}
+                                    />
+                                </PaginationItem>
+                                
+                                {Array.from({ length: Math.min(pagination.totalPages, 5) }, (_, i) => i + 1).map((p) => (
+                                    <PaginationItem key={p}>
+                                        <PaginationLink
+                                            href="#"
+                                            isActive={p === page}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                setPage(p);
+                                            }}
+                                            className="w-8 h-8 text-xs"
+                                        >
+                                            {p}
+                                        </PaginationLink>
+                                    </PaginationItem>
+                                ))}
+
+                                <PaginationItem>
+                                    <PaginationNext
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            if (page < pagination.totalPages) setPage(page + 1);
+                                        }}
+                                        className={page === pagination.totalPages ? "pointer-events-none opacity-20" : "active:scale-90"}
+                                    />
+                                </PaginationItem>
+                            </PaginationContent>
+                        </Pagination>
+                    </div>
+                )}
             </div>
 
             <button 
-                onClick={() => setIsCreating(true)}
+                onClick={() => navigate("/dosen/acara/create")}
                 className="fixed bottom-8 right-8 w-16 h-16 bg-brand-primary text-white rounded-[24px] flex items-center justify-center shadow-2xl shadow-brand-primary/40 active:scale-90 transition-all z-50"
             >
                 <Plus size={28} strokeWidth={3} />
             </button>
 
-            {isCreating && (
-                <div className="fixed inset-0 z-[200] bg-white flex flex-col animate-in slide-in-from-bottom duration-500">
-                    <div className="flex items-center justify-between px-6 h-20 border-b border-slate-100 shrink-0">
-                        <div className="flex items-center gap-4">
-                            <button 
-                                onClick={() => {
-                                    setIsCreating(false);
-                                    setEditingAcara(null);
-                                    setFormData({ title: "", content: "", type: "ASSIGNMENT" });
-                                }} 
-                                className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 active:scale-90 transition-all font-geist"
-                            >
-                                <ArrowLeft size={20} />
-                            </button>
-                            <div>
-                                <h2 className="text-lg font-black text-slate-900 leading-none">
-                                    {editingAcara ? "Edit Postingan" : "Posting Baru"}
-                                </h2>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                                    Berita Acara & Instruksi
-                                </p>
-                            </div>
-                        </div>
-                        <Button 
-                            onClick={handleSubmit}
-                            className="h-10 px-6 bg-brand-primary rounded-xl font-black text-[10px] uppercase tracking-widest text-white shadow-lg shadow-brand-primary/20 active:scale-95"
-                        >
-                            Publish
-                        </Button>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto px-6 py-8 space-y-8 custom-scrollbar">
-
-                        <div className="space-y-8">
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Judul Posting</label>
-                                <input 
-                                    required
-                                    value={formData.title}
-                                    onChange={(e) => setFormData({...formData, title: e.target.value})}
-                                    placeholder="Cth: Review Bab 1"
-                                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl h-16 px-6 text-base font-black focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all"
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tipe & Detail</label>
-                                
-                                {/* Rich Text Editor Container Mobile */}
-                                <div className="border-2 border-slate-100 rounded-[32px] overflow-hidden focus-within:border-brand-primary transition-all group bg-slate-50">
-                                    {/* Toolbar Mobile */}
-                                    <div className="flex items-center gap-1 p-3 bg-white border-b-2 border-slate-100 overflow-x-auto no-scrollbar">
-                                        <button type="button" onMouseDown={(e) => { e.preventDefault(); formatText("bold"); }} className="p-2 rounded-xl active:bg-slate-100 text-slate-500"><Bold size={16} /></button>
-                                        <button type="button" onMouseDown={(e) => { e.preventDefault(); formatText("italic"); }} className="p-2 rounded-xl active:bg-slate-100 text-slate-500"><Italic size={16} /></button>
-                                        <button type="button" onMouseDown={(e) => { e.preventDefault(); formatText("underline"); }} className="p-2 rounded-xl active:bg-slate-100 text-slate-500"><Underline size={16} /></button>
-                                        <button type="button" onMouseDown={(e) => { e.preventDefault(); formatText("insertUnorderedList"); }} className="p-2 rounded-xl active:bg-slate-100 text-slate-500"><List size={16} /></button>
-                                        <button type="button" onMouseDown={(e) => { e.preventDefault(); formatText("insertOrderedList"); }} className="p-2 rounded-xl active:bg-slate-100 text-slate-500"><ListOrdered size={16} /></button>
-                                        <div className="w-[1px] h-4 bg-slate-200 mx-1" />
-                                        <button type="button" onMouseDown={(e) => { e.preventDefault(); formatText("outdent"); }} className="p-2 rounded-xl active:bg-slate-100 text-slate-500"><Outdent size={16} /></button>
-                                        <button type="button" onMouseDown={(e) => { e.preventDefault(); formatText("indent"); }} className="p-2 rounded-xl active:bg-slate-100 text-slate-500"><Indent size={16} /></button>
-                                        <div className="w-[1px] h-4 bg-slate-200 mx-1" />
-                                        <button type="button" onMouseDown={(e) => { e.preventDefault(); mediaInputRef.current?.click(); }} className="p-2 rounded-xl active:bg-slate-100 text-brand-primary"><ImageIcon size={16} /></button>
-                                        <button type="button" onMouseDown={(e) => { e.preventDefault(); docInputRef.current?.click(); }} className="p-2 rounded-xl active:bg-slate-100 text-blue-500"><FileText size={16} /></button>
-                                        <div className="w-[1px] h-4 bg-slate-200 mx-1" />
-                                        <button 
-                                            type="button" 
-                                            onClick={removeSelectedElement} 
-                                            disabled={!selectedElement}
-                                            className={cn(
-                                                "p-2 rounded-xl active:bg-red-50",
-                                                selectedElement ? "text-red-500" : "text-slate-200"
-                                            )}
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </div>
-
-                                    {/* ContentEditable Editor Mobile */}
-                                    <div 
-                                        ref={editorRef}
-                                        contentEditable
-                                        onFocus={handleEditorFocus}
-                                        onClick={handleEditorClick}
-                                        className="p-6 min-h-[300px] outline-none text-slate-700 text-base leading-relaxed prose prose-slate max-w-none prose-img:rounded-2xl content-editor"
-                                        data-placeholder="Tulis instruksi di sini..."
-                                    />
-                                </div>
-                                    <input 
-                                        type="file" 
-                                        ref={mediaInputRef} 
-                                        className="hidden" 
-                                        accept=".jpg,.jpeg,.png"
-                                        onChange={(e) => handleFileUpload(e, 'IMAGE')} 
-                                    />
-                                    <input 
-                                        type="file" 
-                                        ref={docInputRef} 
-                                        className="hidden" 
-                                        accept=".pdf,.doc,.docx"
-                                        onChange={(e) => handleFileUpload(e, 'DOC')} 
-                                    />
-                                {isUploading && <p className="text-[10px] font-black text-brand-primary animate-pulse py-2">Mengunggah file...</p>}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Delete Confirmation Modal Mobile */}
             {showDeleteModal && (
                 <div className="fixed inset-0 z-[400] bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 animate-in fade-in duration-300">
                     <div className="bg-white rounded-t-[32px] sm:rounded-[32px] shadow-2xl w-full max-w-sm p-8 animate-in slide-in-from-bottom-10 duration-500">
@@ -541,9 +453,8 @@ export function AcaraMobile({ title }: { title: string }) {
                 </div>
             )}
 
-            {/* Toast Notification */}
             {toast && (
-                <div className="fixed bottom-24 left-6 right-6 z-[300]">
+                <div className="fixed top-10 left-6 right-6 z-[300]">
                     <Toast 
                         title={toast.title} 
                         variant={toast.variant} 

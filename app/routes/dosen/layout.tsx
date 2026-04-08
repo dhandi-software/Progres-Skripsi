@@ -86,7 +86,7 @@ const menuItems = [
   },
   {
     key: "acara" as MenuKey,
-    title: "Acara",
+    title: "Pengumuman",
     icon: Calendar,
     url: "/dosen/acara",
   },

@@ -13,6 +13,7 @@ export interface Acara {
     };
     comments: AcaraComment[];
     isRead?: boolean; // Only present for students
+    isReadByMe?: boolean; // New property for robust sync
 }
 
 export interface AcaraComment {
@@ -30,9 +31,25 @@ export interface AcaraComment {
     };
 }
 
+export interface AcaraResponse {
+    data: Acara[];
+    pagination: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    };
+}
+
 export const acaraApi = {
-    getAcara: async (): Promise<Acara[]> => {
-        const response = await client.get("/acara");
+    getAcara: async (page = 1, limit = 10): Promise<AcaraResponse> => {
+        const response = await client.get("/acara", {
+            params: { page, limit }
+        });
+        return response.data;
+    },
+    getAcaraById: async (id: number): Promise<Acara> => {
+        const response = await client.get(`/acara/${id}`);
         return response.data;
     },
     createAcara: async (data: { title: string; content: string; type?: string }): Promise<Acara> => {

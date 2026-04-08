@@ -3,15 +3,32 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale/id";
 import { 
     ClipboardList, Send, MessageSquare, 
-    Calendar as CalendarIcon, User, 
     X, ChevronRight, 
-    ArrowLeft, MoreVertical, Users
+    ArrowLeft, MoreVertical, Users, 
+    Link as LinkIcon, Check
 } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { useAuth } from "~/hooks/useAuth";
+import { useLocation, useSearchParams } from "react-router"; 
 import { acaraApi } from "~/api/acaraApi";
-import type { Acara } from "~/api/acaraApi";
+import type { Acara, AcaraResponse } from "~/api/acaraApi";
 import { UPLOADS_URL } from "~/api/client";
+import { sanitizeHtml } from "~/lib/sanitize";
+import { Toast } from "~/components/ui/toast";
+import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from "~/components/ui/pagination";
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+} from "~/components/ui/dropdown-menu";
 
 export function AcaraDesktop({ title }: { title: string }) {
     const { user } = useAuth();
@@ -19,12 +36,18 @@ export function AcaraDesktop({ title }: { title: string }) {
     const [isLoading, setIsLoading] = useState(true);
     const [selectedAcara, setSelectedAcara] = useState<Acara | null>(null);
     const [newComment, setNewComment] = useState("");
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState<AcaraResponse["pagination"] | null>(null);
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [toast, setToast] = useState<{title: string, variant: "success" | "destructive"} | null>(null);
+    const [isCopying, setIsCopying] = useState(false);
 
-    const fetchData = async () => {
+    const fetchData = async (currentPage: number) => {
         try {
             setIsLoading(true);
-            const data = await acaraApi.getAcara();
-            setAcaras(data);
+            const response = await acaraApi.getAcara(currentPage, 10);
+            setAcaras(response.data);
+            setPagination(response.pagination);
         } catch (error) {
             console.error("Fetch Acara Error:", error);
         } finally {
@@ -33,34 +56,83 @@ export function AcaraDesktop({ title }: { title: string }) {
     };
 
     useEffect(() => {
-        fetchData();
-    }, []);
+        fetchData(page);
+    }, [page]);
 
-    const handleSelectAcara = async (item: Acara) => {
+    // -- LOGIKA DEEP LINKING (Direct Link via URL) --
+    useEffect(() => {
+        const postId = searchParams.get("post");
+        if (postId && !selectedAcara) {
+            const id = parseInt(postId);
+            // Cari di list yang sudah ter-load
+            const localMatch = acaras.find(a => a.id === id);
+            if (localMatch) {
+                handleSelectAcara(localMatch);
+            } else if (!isLoading && acaras.length > 0) {
+                // Jika tidak ada di list (mungkin di halaman lain), ambil langsung dari API
+                acaraApi.getAcaraById(id).then(data => {
+                    handleSelectAcara(data);
+                }).catch(err => {
+                    console.error("Gagal memuat detail pengumuman dari link:", err);
+                    setSearchParams({}); // Bersihkan parameter jika gagal
+                });
+            }
+        }
+    }, [searchParams, acaras.length, isLoading]);
+
+    const location = useLocation();
+    // Efek ini menangani navigasi internal dari dashboard/notifikasi
+    useEffect(() => {
+        if (location.state?.selectedId && acaras.length > 0 && !selectedAcara) {
+            const item = acaras.find(a => a.id === location.state.selectedId);
+            if (item) {
+                handleSelectAcara(item);
+                // Sinkronkan ke URL
+                setSearchParams({ post: item.id.toString() });
+                window.history.replaceState({}, document.title);
+            }
+        }
+    }, [location.state, acaras]);
+
+    const handleSelectAcara = async (item: Acara & { isReadByMe?: boolean }) => {
         setSelectedAcara(item);
-        if (!item.isRead) {
+        setSearchParams({ post: item.id.toString() });
+        if (!item.isReadByMe) {
+            // Optimistic update
+            setAcaras(prev => prev.map(a => a.id === item.id ? { ...a, isReadByMe: true } : a));
             try {
                 await acaraApi.markAsRead(item.id);
-                setAcaras(prev => prev.map(a => a.id === item.id ? { ...a, isRead: true } : a));
                 window.dispatchEvent(new CustomEvent('update-unread-count'));
             } catch (error) {
                 console.error("Mark Read Error:", error);
+                // Rollback on error
+                setAcaras(prev => prev.map(a => a.id === item.id ? { ...a, isReadByMe: false } : a));
             }
         }
     };
 
     const handleBack = () => {
         setSelectedAcara(null);
-        fetchData();
+        setSearchParams({});
+    };
+
+    const handleCopyLink = () => {
+        const url = `${window.location.origin}${window.location.pathname}?post=${selectedAcara?.id}`;
+        navigator.clipboard.writeText(url);
+        setIsCopying(true);
+        setToast({ title: "Link berhasil disalin ke clipboard!", variant: "success" });
+        setTimeout(() => setIsCopying(false), 2000);
     };
 
     const transformContent = (content: string) => {
         if (!content) return "";
         const baseUploads = UPLOADS_URL.replace(/\/$/, "");
-        return content
+        const transformed = content
             .replace(/src="\/uploads\//g, `src="${baseUploads}/uploads/`)
             .replace(/href="\/uploads\//g, `href="${baseUploads}/uploads/`)
             .replace(/<img /g, '<img class="max-w-[800px] mx-auto block aspect-video object-cover rounded-[32px] my-12 shadow-2xl border border-slate-100" ');
+        
+        return sanitizeHtml(transformed);
     };
 
     const handleAddComment = async (e: React.FormEvent) => {
@@ -76,6 +148,14 @@ export function AcaraDesktop({ title }: { title: string }) {
         } catch (error) {
             alert("Gagal menambah komentar.");
         }
+    };
+
+    const handleCopySpecificLink = (id: number) => {
+        const url = `${window.location.origin}${window.location.pathname}?post=${id}`;
+        navigator.clipboard.writeText(url);
+        setIsCopying(true);
+        setToast({ title: "Link berhasil disalin ke clipboard!", variant: "success" });
+        setTimeout(() => setIsCopying(false), 2000);
     };
 
     if (selectedAcara) {
@@ -101,8 +181,24 @@ export function AcaraDesktop({ title }: { title: string }) {
                             </span>
                         </div>
                     </div>
-                    <div className="text-right">
-                        <MoreVertical className="text-slate-300 ml-auto cursor-pointer hover:text-slate-600 transition-colors" />
+                    <div className="relative group/menu">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger className="p-3 border-none bg-transparent hover:bg-slate-100 rounded-full transition-colors cursor-pointer outline-none">
+                                <MoreVertical className="text-slate-300 group-hover/menu:text-slate-600" />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48 bg-white border border-slate-100 shadow-xl rounded-2xl p-2 z-[200]">
+                                <DropdownMenuItem 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleCopyLink();
+                                    }}
+                                    className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 cursor-pointer text-slate-600 hover:text-[#00bcd4] transition-all font-bold text-sm"
+                                >
+                                    <LinkIcon size={16} />
+                                    Salin Link
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </div>
 
@@ -161,8 +257,8 @@ export function AcaraDesktop({ title }: { title: string }) {
         <div className="flex flex-col min-h-screen w-full bg-slate-50/50">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 p-8 lg:p-12">
                 <div>
-                     <h1 className="text-3xl font-black text-slate-900 tracking-tight">Timeline Kegiatan & Berita Acara</h1>
-                     <p className="text-slate-500 text-sm mt-2 font-medium">Daftar assignment, postingan, dan instruksi akademik untuk mahasiswa.</p>
+                     <h1 className="text-3xl font-black text-slate-900 tracking-tight">Timeline Pengumuman & Instruksi</h1>
+                     <p className="text-slate-500 text-sm mt-2 font-medium">Daftar pengumuman dan instruksi bimbingan dari dosen untuk mahasiswa.</p>
                 </div>
             </div>
 
@@ -194,15 +290,15 @@ export function AcaraDesktop({ title }: { title: string }) {
                                             <h3 className="text-lg lg:text-xl font-black text-slate-900 truncate tracking-tight mb-1">
                                                 {item.dosen.nama} memposting tugas baru: {item.title}
                                             </h3>
-                                            {!item.isRead && (
-                                                <span className="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-brand-primary shadow-sm group-hover:animate-pulse" />
+                                            {(item.isReadByMe === false || item.isReadByMe === undefined) && (
+                                                <span className="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm group-hover:animate-pulse" />
                                             )}
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <span className="text-xs font-bold text-slate-400">{format(new Date(item.createdAt), "dd MMM yyyy", { locale: id })}</span>
                                             <span className="w-1 h-1 rounded-full bg-slate-200" />
                                             <span className="text-[10px] font-black uppercase tracking-wider text-brand-primary/60">
-                                                {item.type === "ASSIGNMENT" ? "Berita Acara" : "Pengumuman"}
+                                                {item.type === "ASSIGNMENT" ? "Instruksi" : "Pengumuman"}
                                             </span>
                                         </div>
                                     </div>
@@ -215,14 +311,85 @@ export function AcaraDesktop({ title }: { title: string }) {
                                         </div>
                                     )}
                                     <div className="p-3 text-slate-300">
-                                        <MoreVertical size={20} />
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger className="p-3 border-none bg-transparent hover:bg-slate-50 rounded-full transition-colors cursor-pointer outline-none">
+                                                <MoreVertical size={20} />
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="w-48 bg-white border border-slate-100 shadow-xl rounded-2xl p-2 z-[50]">
+                                                <DropdownMenuItem 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleCopySpecificLink(item.id);
+                                                    }}
+                                                    className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 cursor-pointer text-slate-600 hover:text-[#00bcd4] transition-all font-bold text-sm"
+                                                >
+                                                    <LinkIcon size={16} />
+                                                    Salin Link
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </div>
                                 </div>
                             </div>
                         ))
                     )}
                 </div>
+
+                {pagination && pagination.totalPages > 1 && (
+                    <div className="mt-12 flex justify-center">
+                        <Pagination>
+                            <PaginationContent>
+                                <PaginationItem>
+                                    <PaginationPrevious
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            if (page > 1) setPage(page - 1);
+                                        }}
+                                        className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                    />
+                                </PaginationItem>
+                                
+                                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((p) => (
+                                    <PaginationItem key={p}>
+                                        <PaginationLink
+                                            href="#"
+                                            isActive={p === page}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                setPage(p);
+                                            }}
+                                            className="cursor-pointer"
+                                        >
+                                            {p}
+                                        </PaginationLink>
+                                    </PaginationItem>
+                                ))}
+
+                                <PaginationItem>
+                                    <PaginationNext
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            if (page < pagination.totalPages) setPage(page + 1);
+                                        }}
+                                        className={page === pagination.totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                    />
+                                </PaginationItem>
+                            </PaginationContent>
+                        </Pagination>
+                    </div>
+                )}
             </div>
+            {toast && (
+                <div className="fixed top-12 left-1/2 -translate-x-1/2 z-[200] w-fit min-w-[300px] animate-in slide-in-from-top duration-500">
+                    <Toast 
+                        title={toast.title} 
+                        variant={toast.variant} 
+                        onClose={() => setToast(null)} 
+                    />
+                </div>
+            )}
         </div>
     );
 }

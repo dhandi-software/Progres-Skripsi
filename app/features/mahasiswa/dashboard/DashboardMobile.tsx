@@ -26,6 +26,16 @@ export function DashboardMobile() {
     const [unreadAcaraCount, setUnreadAcaraCount] = useState(0);
     const [showAllActivities, setShowAllActivities] = useState(false);
 
+    const fetchAcaraData = () => {
+        acaraApi.getAcara()
+            .then(res => setAcaras(res.data))
+            .catch(console.error);
+
+        acaraApi.getUnreadCount()
+            .then(res => setUnreadAcaraCount(res.count))
+            .catch(console.error);
+    };
+
     useEffect(() => {
         pengajuanApi.getProfile().then(setProfile).catch(console.error);
         if (user?.id) {
@@ -41,15 +51,14 @@ export function DashboardMobile() {
                 })
                 .catch(console.error);
             
-            acaraApi.getAcara()
-                .then(setAcaras)
-                .catch(console.error);
-
-            acaraApi.getUnreadCount()
-                .then(res => setUnreadAcaraCount(res.count))
-                .catch(console.error);
+            fetchAcaraData();
         }
     }, [user?.id]);
+
+    useEffect(() => {
+        window.addEventListener('update-unread-count', fetchAcaraData);
+        return () => window.removeEventListener('update-unread-count', fetchAcaraData);
+    }, []);
 
     const getActivities = () => {
         const activities: any[] = [];
@@ -115,13 +124,14 @@ export function DashboardMobile() {
         // 4. Berita Acara (Acara)
         acaras.forEach(a => {
             activities.push({
-                title: a.type === 'ASSIGNMENT' ? `Tugas: ${a.title}` : `Pengumuman: ${a.title}`,
+                title: a.type === 'ASSIGNMENT' ? `Tugas Baru: ${a.title}` : `Pengumuman: ${a.title}`,
                 desc: `${a.dosen.nama} memposting di timeline.`,
                 time: new Date(a.createdAt).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric' }),
                 icon: a.type === 'ASSIGNMENT' ? FileText : AlertCircle,
                 color: a.type === 'ASSIGNMENT' ? "text-cyan-500" : "text-purple-500",
                 rawDate: new Date(a.createdAt),
-                onClick: () => navigate("/mahasiswa/acara")
+                isRead: a.isRead,
+                onClick: () => navigate("/mahasiswa/acara", { state: { selectedId: a.id } })
             });
         });
 
@@ -351,7 +361,12 @@ export function DashboardMobile() {
                                 <div className="flex items-start gap-4">
                                     <div className="mt-1"><item.icon className={`w-5 h-5 ${item.color}`} /></div>
                                     <div>
-                                        <h4 className="font-semibold text-gray-900 text-sm">{item.title}</h4>
+                                        <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                                            {item.title}
+                                            {item.isRead === false && (
+                                                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-sm animate-pulse" />
+                                            )}
+                                        </h4>
                                         <p className="text-xs text-gray-500 mt-0.5 line-clamp-2 pr-2">{item.desc}</p>
                                         <span className="text-[10px] text-gray-400 mt-2 block flex gap-1 items-center"><Clock className="w-3 h-3"/>{item.time}</span>
                                     </div>

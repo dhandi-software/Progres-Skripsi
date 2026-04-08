@@ -3,26 +3,58 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale/id";
 import { 
     ClipboardList, Send, MessageSquare, 
-    ArrowLeft, X, ChevronRight, Users
+    ArrowLeft, X, ChevronRight, Users, 
+    Link as LinkIcon, Check, MoreVertical
 } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { useAuth } from "~/hooks/useAuth";
+import { useLocation, useSearchParams } from "react-router";
 import { acaraApi } from "~/api/acaraApi";
-import type { Acara } from "~/api/acaraApi";
+import type { Acara, AcaraResponse } from "~/api/acaraApi";
 import { UPLOADS_URL } from "~/api/client";
+import { sanitizeHtml } from "~/lib/sanitize";
+import { Toast } from "~/components/ui/toast";
+import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from "~/components/ui/pagination";
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+} from "~/components/ui/dropdown-menu";
 
 export function AcaraMobile({ title }: { title: string }) {
     const { user } = useAuth();
+    
+    // Helper function to escape HTML special characters to prevent XSS
+    const escapeHtml = (text: string) => {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    };
+
     const [acaras, setAcaras] = useState<Acara[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedAcara, setSelectedAcara] = useState<Acara | null>(null);
     const [newComment, setNewComment] = useState("");
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState<AcaraResponse["pagination"] | null>(null);
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [toast, setToast] = useState<{title: string, variant: "success" | "destructive"} | null>(null);
+    const [isCopying, setIsCopying] = useState(false);
 
-    const fetchData = async () => {
+    const fetchData = async (currentPage: number) => {
         try {
             setIsLoading(true);
-            const data = await acaraApi.getAcara();
-            setAcaras(data);
+            const response = await acaraApi.getAcara(currentPage, 10);
+            setAcaras(response.data);
+            setPagination(response.pagination);
         } catch (error) {
             console.error("Fetch Acara Error:", error);
         } finally {
@@ -31,34 +63,87 @@ export function AcaraMobile({ title }: { title: string }) {
     };
 
     useEffect(() => {
-        fetchData();
-    }, []);
+        fetchData(page);
+    }, [page]);
 
-    const handleSelectAcara = async (item: Acara) => {
+    // -- LOGIKA DEEP LINKING (Mobile) --
+    useEffect(() => {
+        const postId = searchParams.get("post");
+        if (postId && !selectedAcara) {
+            const id = parseInt(postId);
+            const localMatch = acaras.find(a => a.id === id);
+            if (localMatch) {
+                handleSelectAcara(localMatch);
+            } else if (!isLoading && acaras.length > 0) {
+                acaraApi.getAcaraById(id).then(data => {
+                    handleSelectAcara(data);
+                }).catch(err => {
+                    console.error("Gagal deep link mobile:", err);
+                    setSearchParams({});
+                });
+            }
+        }
+    }, [searchParams, acaras.length, isLoading]);
+
+    const location = useLocation();
+    useEffect(() => {
+        if (location.state?.selectedId && acaras.length > 0 && !selectedAcara) {
+            const item = acaras.find(a => a.id === location.state.selectedId);
+            if (item) {
+                handleSelectAcara(item);
+                setSearchParams({ post: item.id.toString() });
+                window.history.replaceState({}, document.title);
+            }
+        }
+    }, [location.state, acaras]);
+
+    const handleSelectAcara = async (item: Acara & { isReadByMe?: boolean }) => {
         setSelectedAcara(item);
-        if (!item.isRead) {
+        setSearchParams({ post: item.id.toString() });
+        if (!item.isReadByMe) {
+            // Optimistic update
+            setAcaras(prev => prev.map(a => a.id === item.id ? { ...a, isReadByMe: true } : a));
             try {
                 await acaraApi.markAsRead(item.id);
-                setAcaras(prev => prev.map(a => a.id === item.id ? { ...a, isRead: true } : a));
                 window.dispatchEvent(new CustomEvent('update-unread-count'));
             } catch (error) {
                 console.error("Mark Read Error:", error);
+                // Rollback on error
+                setAcaras(prev => prev.map(a => a.id === item.id ? { ...a, isReadByMe: false } : a));
             }
         }
     };
 
     const handleBack = () => {
         setSelectedAcara(null);
-        fetchData();
+        setSearchParams({});
+    };
+
+    const handleCopyLink = () => {
+        const url = `${window.location.origin}${window.location.pathname}?post=${selectedAcara?.id}`;
+        navigator.clipboard.writeText(url);
+        setIsCopying(true);
+        setToast({ title: "Link disalin!", variant: "success" });
+        setTimeout(() => setIsCopying(false), 2000);
+    };
+
+    const handleCopySpecificLink = (id: number) => {
+        const url = `${window.location.origin}${window.location.pathname}?post=${id}`;
+        navigator.clipboard.writeText(url);
+        setIsCopying(true);
+        setToast({ title: "Link disalin!", variant: "success" });
+        setTimeout(() => setIsCopying(false), 2000);
     };
 
     const transformContent = (content: string) => {
         if (!content) return "";
         const baseUploads = UPLOADS_URL.replace(/\/$/, "");
-        return content
+        const transformed = content
             .replace(/src="\/uploads\//g, `src="${baseUploads}/uploads/`)
             .replace(/href="\/uploads\//g, `href="${baseUploads}/uploads/`)
             .replace(/<img /g, '<img class="w-full aspect-video object-cover rounded-2xl my-6 shadow-lg border border-slate-100" ');
+        
+        return sanitizeHtml(transformed);
     };
 
     const handleAddComment = async (e: React.FormEvent) => {
@@ -93,14 +178,30 @@ export function AcaraMobile({ title }: { title: string }) {
                     >
                         <ArrowLeft size={20} />
                     </button>
-                    <div className="w-10 h-10 rounded-full bg-[#00bcd4] flex items-center justify-center text-white shrink-0 shadow-lg shadow-[#00bcd4]/20">
-                        <ClipboardList size={20} />
-                    </div>
                     <div className="flex-1 min-w-0">
                         <h1 className="text-sm font-black text-slate-900 truncate tracking-tight">{selectedAcara.title}</h1>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-0.5">
-                            {selectedAcara.dosen.nama} • {format(new Date(selectedAcara.createdAt), "dd MMM", { locale: id })}
+                            {selectedAcara.dosen?.nama} • {format(new Date(selectedAcara.createdAt), "dd MMM", { locale: id })}
                         </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger className="p-2 border-none bg-transparent active:bg-slate-100 rounded-full outline-none">
+                                <MoreVertical size={20} className="text-slate-400" />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48 bg-white border border-slate-100 shadow-xl rounded-2xl p-2 z-[200]">
+                                <DropdownMenuItem 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleCopyLink();
+                                    }}
+                                    className="flex items-center gap-3 px-4 py-3 rounded-xl active:bg-slate-50 text-slate-600 font-bold text-sm"
+                                >
+                                    <LinkIcon size={16} />
+                                    Salin Link
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </div>
 
@@ -175,8 +276,8 @@ export function AcaraMobile({ title }: { title: string }) {
     return (
         <div className="flex flex-col min-h-screen w-full bg-white pb-24">
             <div className="flex flex-col gap-2 p-8">
-                <h1 className="text-2xl font-black text-slate-900 tracking-tight">Timeline & Berita Acara</h1>
-                <p className="text-xs text-slate-400 font-medium tracking-wide">Daftar postingan bimbingan & assignment.</p>
+                <h1 className="text-2xl font-black text-slate-900 tracking-tight">Pengumuman & Instruksi</h1>
+                <p className="text-xs text-slate-400 font-medium tracking-wide">Daftar pengumuman & instruksi bimbingan.</p>
             </div>
 
             <div className="flex-1 px-8 space-y-4">
@@ -200,29 +301,102 @@ export function AcaraMobile({ title }: { title: string }) {
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
                                     <h3 className="text-sm font-black text-slate-900 tracking-tight truncate mb-0.5">{item.title}</h3>
-                                    {!item.isRead && <span className="w-2 h-2 rounded-full bg-brand-primary shadow-sm" />}
+                                    {(item.isReadByMe === false || item.isReadByMe === undefined) && (
+                                        <span className="w-2 h-2 rounded-full bg-orange-500 shadow-sm" />
+                                    )}
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <span className="text-[10px] font-bold text-slate-400">{format(new Date(item.createdAt), "dd MMM", { locale: id })}</span>
                                     <span className="w-1 h-1 rounded-full bg-slate-200" />
                                     <span className="text-[10px] font-bold text-[#00bcd4]/60 uppercase">
-                                        {item.type === "ASSIGNMENT" ? "Berita Acara" : "Pengumuman"}
+                                        {item.type === "ASSIGNMENT" ? "Instruksi" : "Pengumuman"}
                                     </span>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2">
+                             <div className="flex items-center gap-1 group/item">
                                 {item.comments.length > 0 && (
                                     <div className="flex items-center gap-1.5 text-slate-400 bg-slate-50 px-2 py-1 rounded-full border border-slate-100/50">
                                         <MessageSquare size={12} />
                                         <span className="text-[10px] font-black">{item.comments.length}</span>
                                     </div>
                                 )}
-                                <ChevronRight size={16} className="text-slate-300" />
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger className="p-2 border-none bg-transparent active:bg-slate-100 rounded-full outline-none" onClick={(e) => e.stopPropagation()}>
+                                        <MoreVertical size={18} className="text-slate-300 group-hover/item:text-slate-400" />
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-48 bg-white border border-slate-100 shadow-xl rounded-2xl p-2 z-[50]">
+                                        <DropdownMenuItem 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleCopySpecificLink(item.id);
+                                            }}
+                                            className="flex items-center gap-3 px-4 py-3 rounded-xl active:bg-slate-50 text-slate-600 font-bold text-sm"
+                                        >
+                                            <LinkIcon size={16} />
+                                            Salin Link
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </div>
                         </div>
                     ))
                 )}
+
+                {pagination && pagination.totalPages > 1 && (
+                    <div className="mt-8 flex justify-center pb-8">
+                        <Pagination>
+                            <PaginationContent>
+                                <PaginationItem>
+                                    <PaginationPrevious
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            if (page > 1) setPage(page - 1);
+                                        }}
+                                        className={page === 1 ? "pointer-events-none opacity-20" : "active:scale-90"}
+                                    />
+                                </PaginationItem>
+                                
+                                {Array.from({ length: Math.min(pagination.totalPages, 5) }, (_, i) => i + 1).map((p) => (
+                                    <PaginationItem key={p}>
+                                        <PaginationLink
+                                            href="#"
+                                            isActive={p === page}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                setPage(p);
+                                            }}
+                                            className="w-8 h-8 text-xs"
+                                        >
+                                            {p}
+                                        </PaginationLink>
+                                    </PaginationItem>
+                                ))}
+
+                                <PaginationItem>
+                                    <PaginationNext
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            if (page < pagination.totalPages) setPage(page + 1);
+                                        }}
+                                        className={page === pagination.totalPages ? "pointer-events-none opacity-20" : "active:scale-90"}
+                                    />
+                                </PaginationItem>
+                            </PaginationContent>
+                        </Pagination>
+                    </div>
+                )}
             </div>
+            {toast && (
+                <div className="fixed top-6 left-6 right-6 z-[200] animate-in slide-in-from-top duration-500">
+                    <Toast 
+                        title={toast.title} 
+                        variant={toast.variant} 
+                        onClose={() => setToast(null)} 
+                    />
+                </div>
+            )}
         </div>
     );
 }
