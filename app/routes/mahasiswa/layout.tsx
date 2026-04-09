@@ -8,7 +8,8 @@ import {
   Users,
   MessageCircle,
   Calendar,
-  Award
+  Award,
+  Trophy
 } from "lucide-react";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
 import { RoleGuard } from "~/routes/RoleGuard";
@@ -32,6 +33,7 @@ type MenuKey =
   | "chat"
   | "acara"
   | "penilaian"
+  | "portfolio"
   | "logout";
 
 const pathToKey = (pathname: string): MenuKey | undefined => {
@@ -41,6 +43,7 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/mahasiswa/chat")) return "chat";
   if (pathname.startsWith("/mahasiswa/acara")) return "acara";
   if (pathname.startsWith("/mahasiswa/penilaian")) return "penilaian";
+  if (pathname.startsWith("/mahasiswa/profilemahasiswa")) return "profilemahasiswa";
   if (pathname === "/mahasiswa" || pathname.startsWith("/mahasiswa/"))
     return "dashboard";
   return undefined;
@@ -88,6 +91,12 @@ const menuItems = [
     title: "Penilaian",
     icon: Award,
     url: "/mahasiswa/penilaian",
+  },
+  {
+    key: "profilemahasiswa" as MenuKey,
+    title: "Profil Mahasiswa",
+    icon: Trophy,
+    url: "/mahasiswa/profilemahasiswa",
   },
 ];
 

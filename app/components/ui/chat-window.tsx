@@ -11,6 +11,7 @@ import { MessageActionMenu } from "./message-action-menu";
 import { DeleteMessageDialog } from "./delete-message-dialog";
 import { RemoveMemberDialog } from "./remove-member-dialog";
 import { DeleteGroupDialog } from "./delete-group-dialog";
+import { profileApi } from "~/api/profileApi";
 
 interface ChatWindowProps {
     activeContact: ChatContact | null;
@@ -87,7 +88,11 @@ export function ChatWindow({
                 .slice(0, 2);
         }
 
-        return { initials, color, image };
+        return { 
+            initials, 
+            color, 
+            image: contact.photo ? profileApi.getProfilePhotoUrl(contact.photo) : image 
+        };
     };
 
     // Scroll to bottom
@@ -469,7 +474,11 @@ export function ChatWindow({
                         
                         {activeContact.members?.map((member) => (
                             <div key={`member-${member.id}`} className="flex items-center px-6 py-3 hover:bg-[#f5f6f6] transition-colors group cursor-pointer border-b border-[#f0f2f5] last:border-0">
-                                <Avatar className="h-12 w-12 mr-3 bg-[#dfe3e5]" src={member.id === currentUser?.id ? "" : ""}>
+                                <Avatar 
+                                    className="h-12 w-12 mr-3 bg-[#dfe3e5]" 
+                                    src={member.photo ? profileApi.getProfilePhotoUrl(member.photo) : ""}
+                                >
+                                    <AvatarImage src={member.photo ? profileApi.getProfilePhotoUrl(member.photo) : ""} />
                                     <AvatarFallback className="text-[15px] font-medium text-[#54656f]">
                                         {(member.username || "U").substring(0, 2).toUpperCase()}
                                     </AvatarFallback>

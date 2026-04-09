@@ -44,7 +44,7 @@ export function PengajuanMobile() {
                     if (latestPengajuan.status === 'PENDING' || latestPengajuan.status === 'APPROVED') {
                         setIsReadOnly(true);
                         setFormData({
-                            peminatan: latestPengajuan.peminatan || "",
+                            peminatan: (latestPengajuan.peminatan || "").trim(),
                             semester: latestPengajuan.semester || "",
                             tahunAkademik: latestPengajuan.tahunAkademik || "",
                             judul: latestPengajuan.judul || "",
@@ -98,6 +98,11 @@ export function PengajuanMobile() {
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+
+        // Toast alert for SKS Grade D
+        if (name === 'sksNilaiD' && Number(value) > 0) {
+            showToast("kamu harus memperbaiki nilai D tersebut", "default");
+        }
     };
 
     const handleSelectChange = (name: string, value: string) => {
@@ -110,6 +115,23 @@ export function PengajuanMobile() {
         // Validasi minimal 100 SKS
         if (Number(formData.sksDicapai) < 100) {
             showToast("Jumlah SKS yang dicapai minimal 100 SKS untuk mengajukan KP.", "destructive");
+            return;
+        }
+
+        // BLOCK submission if SKS Grade D > 0
+        if (Number(formData.sksNilaiD) > 0) {
+            showToast("kamu harus memperbaiki nilai D tersebut", "destructive");
+            return;
+        }
+
+        // Validation for CustomSelect fields
+        if (!formData.peminatan) {
+            showToast("Silakan pilih bidang peminatan terlebih dahulu.", "destructive");
+            return;
+        }
+
+        if (!formData.dosenId) {
+            showToast("Silakan pilih dosen pembimbing yang diusulkan.", "destructive");
             return;
         }
 
@@ -396,8 +418,8 @@ export function PengajuanMobile() {
 
                     {/* Submit Button */}
                     {isReadOnly ? (
-                        <div className="w-full py-3.5 bg-gray-100 text-gray-500 font-bold rounded-xl border border-gray-200 text-center text-sm">
-                            Pengajuan Anda sedang dalam proses
+                        <div className={`w-full py-3.5 font-bold rounded-xl border text-center text-sm ${profile?.pengajuanJudul?.[0]?.status === 'APPROVED' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+                            {profile?.pengajuanJudul?.[0]?.status === 'APPROVED' ? 'Pengajuan Sudah di ACC' : 'Pengajuan Anda sedang dalam proses'}
                         </div>
                     ) : (
                         <button 

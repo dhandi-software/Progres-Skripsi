@@ -30,6 +30,7 @@ export default [
             route("chat", "routes/mahasiswa/chat.tsx"),
             route("acara", "routes/mahasiswa/acara.tsx"),
             route("penilaian", "routes/mahasiswa/penilaian.tsx"),
+            route("profilemahasiswa", "routes/mahasiswa/profilemahasiswa.tsx"),
         ]),
     ]),
 

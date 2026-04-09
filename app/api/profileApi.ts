@@ -141,7 +141,7 @@ export const profileApi = {
         }
 
         const baseUrl =
-            import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+            import.meta.env.VITE_API_BASE_URL || "http://localhost:5002";
 
         if (
             photoPath.startsWith("http://") ||
@@ -159,7 +159,7 @@ export const profileApi = {
         }
 
         const cleanBaseUrl = baseUrl.replace(/\/$/, "");
-        return `${cleanBaseUrl}/api/v1/profile/${filename}`;
+        return `${cleanBaseUrl}/api/pengajuan/profile/${filename}`;
     },
 };
 

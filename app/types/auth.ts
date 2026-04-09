@@ -11,6 +11,7 @@ export interface User {
     role: 'kaprodi' | 'dosen_pembimbing' | 'dosen' | 'staf_univ' | 'staf' | 'mahasiswa' | 'admin' | 'writer' | 'editor';
     token?: string; 
     email?: string;
+    photo?: string;
     jabatan?: string;
     dosenId?: number;
 }

@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { UPLOADS_URL } from "~/api/client";
-import { Users, FileText, Send, Loader2, BookOpen, AlertCircle, FileStack, X, Upload, Download, Eye, Clock, CalendarIcon } from "lucide-react";
+import { Users, FileText, Send, Loader2, BookOpen, AlertCircle, FileStack, X, Upload, Download, Eye, Clock, CalendarIcon, Trophy } from "lucide-react";
 import { CustomSelect } from "~/components/ui/custom-select";
 import { Toast } from "~/components/ui/toast";
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 import { Calendar, MonthYearFilter } from "~/components/ui/calendar";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext } from "~/components/ui/pagination";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { ProgressStats } from "../../mahasiswa/profilemahasiswa/components/progress-stats";
+import { BadgeWall } from "../../mahasiswa/profilemahasiswa/components/badge-wall";
 
 // Use dynamic import for client-side only component
 const SharedPdfViewer = lazy(() => import('../../components/SharedPdfViewer.client').then(m => ({ default: m.SharedPdfViewer })));
@@ -64,12 +66,13 @@ export function BimbinganDesktop() {
 
     // Detail View State
     const [selectedStudent, setSelectedStudent] = useState<any>(null);
-    const [activeTab, setActiveTab] = useState<"aktif" | "riwayat" | "grafik">("aktif");
+    const [activeTab, setActiveTab] = useState<"aktif" | "riwayat" | "grafik" | "portfolio">("aktif");
     const [studentActiveTask, setStudentActiveTask] = useState<any>(null);
     const [completedTasks, setCompletedTasks] = useState<any[]>([]);
     const [studentLoading, setStudentLoading] = useState(false);
     const [isEditingTask, setIsEditingTask] = useState(false);
     const [chartData, setChartData] = useState<any[]>([]);
+    const [allStudentTasks, setAllStudentTasks] = useState<any[]>([]);
 
     // Review Modal State
     const [reviewingTask, setReviewingTask] = useState<any>(null);
@@ -114,6 +117,7 @@ export function BimbinganDesktop() {
         setStudentLoading(true);
         try {
             const tasks = await bimbinganApi.getBimbinganByMahasiswa(mahasiswaId);
+            setAllStudentTasks(tasks);
             const grouped = tasks.reduce((acc: any, task: any) => {
                 if (!acc[task.topik] || task.versi > acc[task.topik].versi) {
                     acc[task.topik] = task;
@@ -577,6 +581,12 @@ export function BimbinganDesktop() {
                             Grafik Kedisiplinan
                         </button>
                         <button
+                            onClick={() => setActiveTab("portfolio")}
+                            className={`py-4 text-sm whitespace-nowrap font-bold border-b-2 transition-colors ${activeTab === 'portfolio' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Portfolio & Capaian
+                        </button>
+                        <button
                             onClick={() => setActiveTab("riwayat")}
                             className={`py-4 text-sm whitespace-nowrap font-bold border-b-2 transition-colors ${activeTab === 'riwayat' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                         >
@@ -893,6 +903,24 @@ export function BimbinganDesktop() {
                                         <p className="text-sm text-gray-500">Mahasiswa ini belum mengumpulkan draf apapun.</p>
                                     </div>
                                 )}
+                            </div>
+                        ) : activeTab === 'portfolio' ? (
+                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <div className="bg-white rounded-3xl overflow-hidden">
+                                     <ProgressStats bimbinganTasks={allStudentTasks} />
+                                </div>
+                                <div className="bg-white rounded-3xl overflow-hidden">
+                                     <BadgeWall bimbinganTasks={allStudentTasks} />
+                                </div>
+                                <div className="p-6 bg-blue-50 border border-blue-100 rounded-2xl">
+                                    <h4 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
+                                        <Trophy className="w-4 h-4" /> Catatan Untuk Dosen
+                                    </h4>
+                                    <p className="text-sm text-blue-700 leading-relaxed">
+                                        Sistem Badge dan Progress di atas didasarkan pada draf bimbingan yang telah dikumpulkan dan disetujui (ACC) dalam sistem. 
+                                        Badge <span className="font-bold">"Tepat Waktu"</span> akan hilang secara otomatis jika mahasiswa memiliki riwayat pengumpulan yang melewati tenggat waktu yang Anda berikan.
+                                    </p>
+                                </div>
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

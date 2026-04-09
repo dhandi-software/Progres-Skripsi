@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { UPLOADS_URL } from "~/api/client";
-import { Users, FileText, Send, Loader2, BookOpen, ChevronLeft, AlertCircle, FileStack, X, Upload, Download, Eye, Clock, CalendarIcon } from "lucide-react";
+import { Users, FileText, Send, Loader2, BookOpen, ChevronLeft, AlertCircle, FileStack, X, Upload, Download, Eye, Clock, CalendarIcon, Trophy } from "lucide-react";
 import { CustomSelect } from "~/components/ui/custom-select";
 import { Toast } from "~/components/ui/toast";
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
@@ -9,6 +9,8 @@ import { Calendar, MonthYearFilter } from "~/components/ui/calendar";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext } from "~/components/ui/pagination";
 import { Link } from "react-router";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ProgressStats } from "../../mahasiswa/profilemahasiswa/components/progress-stats";
+import { BadgeWall } from "../../mahasiswa/profilemahasiswa/components/badge-wall";
 
 // Use dynamic import for client-side only component
 const SharedPdfViewer = lazy(() => import('../../components/SharedPdfViewer.client').then(m => ({ default: m.SharedPdfViewer })));
@@ -65,12 +67,13 @@ export function BimbinganMobile() {
 
     // Detail View State
     const [selectedStudent, setSelectedStudent] = useState<any>(null);
-    const [activeTab, setActiveTab] = useState<"aktif" | "riwayat" | "grafik">("aktif");
+    const [activeTab, setActiveTab] = useState<"aktif" | "riwayat" | "grafik" | "portfolio">("aktif");
     const [studentActiveTask, setStudentActiveTask] = useState<any>(null);
     const [completedTasks, setCompletedTasks] = useState<any[]>([]);
     const [studentLoading, setStudentLoading] = useState(false);
     const [isEditingTask, setIsEditingTask] = useState(false);
     const [chartData, setChartData] = useState<any[]>([]);
+    const [allStudentTasks, setAllStudentTasks] = useState<any[]>([]);
 
     // Review Modal State
     const [reviewingTask, setReviewingTask] = useState<any>(null);
@@ -115,6 +118,7 @@ export function BimbinganMobile() {
         setStudentLoading(true);
         try {
             const tasks = await bimbinganApi.getBimbinganByMahasiswa(mahasiswaId);
+            setAllStudentTasks(tasks);
             const grouped = tasks.reduce((acc: any, task: any) => {
                 if (!acc[task.topik] || task.versi > acc[task.topik].versi) {
                     acc[task.topik] = task;
@@ -533,13 +537,19 @@ export function BimbinganMobile() {
                             onClick={() => setActiveTab("grafik")}
                             className={`py-3 text-sm whitespace-nowrap px-2 font-bold border-b-2 transition-colors flex-1 text-center ${activeTab === 'grafik' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                         >
-                            Grafik Kedisiplinan
+                            Grafik
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("portfolio")}
+                            className={`py-3 text-sm whitespace-nowrap px-2 font-bold border-b-2 transition-colors flex-1 text-center ${activeTab === 'portfolio' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Portfolio
                         </button>
                         <button
                             onClick={() => setActiveTab("riwayat")}
                             className={`py-3 text-sm whitespace-nowrap px-2 font-bold border-b-2 transition-colors flex-1 text-center ${activeTab === 'riwayat' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                         >
-                            Riwayat Selesai
+                            Lulus
                         </button>
                     </div>
 
@@ -827,6 +837,23 @@ export function BimbinganMobile() {
                                         </p>
                                     </div>
                                 )}
+                            </div>
+                        ) : activeTab === 'portfolio' ? (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
+                                <div className="bg-white rounded-[2rem] overflow-hidden scale-[0.9] sm:scale-100 origin-top -mt-2 shadow-sm border border-gray-100">
+                                     <ProgressStats bimbinganTasks={allStudentTasks} />
+                                </div>
+                                <div className="bg-white rounded-[2rem] overflow-hidden scale-[0.9] sm:scale-100 origin-top -mt-8 shadow-sm border border-gray-100">
+                                     <BadgeWall bimbinganTasks={allStudentTasks} />
+                                </div>
+                                <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl mx-2">
+                                    <h4 className="font-bold text-blue-900 text-xs mb-1.5 flex items-center gap-2">
+                                        <Trophy className="w-3.5 h-3.5" /> Info Portfolio
+                                    </h4>
+                                    <p className="text-[10px] text-blue-700 leading-relaxed">
+                                        Data ini sinkron dengan profil mahasiswa. Badge pencapaian diberikan otomatis oleh sistem berdasarkan kedisiplinan pengumpulan draf.
+                                    </p>
+                                </div>
                             </div>
                         ) : (
                             <div className="space-y-4">

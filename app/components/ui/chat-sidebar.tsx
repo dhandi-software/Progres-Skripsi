@@ -3,6 +3,7 @@ import type { ChatContact } from "~/types/chat";
 import { cn } from "~/lib/utils";
 import { Search, MessageSquarePlus, Users } from "lucide-react";
 import { useState } from "react";
+import { profileApi } from "~/api/profileApi";
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -58,7 +59,11 @@ export function ChatSidebar({ contacts, activeContact, onSelectContact, unreadCo
                 .slice(0, 2);
         }
 
-        return { initials, color, image };
+        return { 
+            initials, 
+            color, 
+            image: contact.photo ? profileApi.getProfilePhotoUrl(contact.photo) : image 
+        };
     };
 
     const [searchQuery, setSearchQuery] = useState("");
@@ -97,8 +102,8 @@ export function ChatSidebar({ contacts, activeContact, onSelectContact, unreadCo
         <div className="w-80 border-r border-[#d1d7db] bg-white flex flex-col h-full">
             <div className="px-4 py-3 bg-[#f0f2f5] border-b border-[#d1d7db] flex justify-between items-center h-[59px]">
                  <div className="flex items-center gap-3">
-                     <Avatar className="h-10 w-10" src="">
-                        <AvatarImage src="" />
+                     <Avatar className="h-10 w-10" src={currentUser?.photo ? profileApi.getProfilePhotoUrl(currentUser.photo) : ""}>
+                        <AvatarImage src={currentUser?.photo ? profileApi.getProfilePhotoUrl(currentUser.photo) : ""} />
                         <AvatarFallback className="bg-[#00a884] text-white">
                             {getMyInitials()}
                         </AvatarFallback>

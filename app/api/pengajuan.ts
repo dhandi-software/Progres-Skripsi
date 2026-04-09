@@ -31,5 +31,16 @@ export const pengajuanApi = {
     updateStatus: async (id: number, status: 'APPROVED' | 'REJECTED' | 'REVISION', remarks?: string) => {
         const response = await client.put(`/pengajuan/${id}/status`, { status, remarks });
         return response.data;
+    },
+
+    updateProfile: async (data: { nama?: string, photo?: File }) => {
+        const formData = new FormData();
+        if (data.nama) formData.append('nama', data.nama);
+        if (data.photo) formData.append('photo', data.photo);
+
+        const response = await client.put("/pengajuan/profile", formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
     }
 };
