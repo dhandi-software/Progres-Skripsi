@@ -6,17 +6,12 @@ import { adminApi } from "~/api/admin";
 import { cn } from "~/lib/utils";
 import { Link, useSearchParams, useNavigate } from "react-router";
 import { DataTable, type Column } from "~/components/ui/table-user-dosen";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "~/components/ui/pagination";
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "~/components/ui/pagination";
 import { DeleteConfirmationModal } from "~/components/ui/delete-confirmation-modal";
+import { ForceDeleteModal } from "~/components/ui/force-delete-modal";
 import { CustomSelect } from "~/components/ui/custom-select";
+import { Checkbox } from "~/components/ui/checkbox";
+import { Toast, type ToastProps } from "~/components/ui/toast";
 
 export default function UserListDesktop() {
   const navigate = useNavigate();
@@ -34,10 +29,22 @@ export default function UserListDesktop() {
   // Modal State
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [forceDeleteModalOpen, setForceDeleteModalOpen] = useState(false);
+  const [blockingMessage, setBlockingMessage] = useState("");
 
+  // Selection State
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  
   // Filter Dropdown State
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
+
+  // Toast State
+  const [toastProps, setToastProps] = useState<ToastProps | null>(null);
+  const showToast = (title: string, variant: "success" | "destructive" = "success") => {
+    setToastProps({ title, variant });
+    setTimeout(() => setToastProps(null), 5000);
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -59,6 +66,7 @@ export default function UserListDesktop() {
     setSearch(""); // Reset search on tab change
     setFilterYear("");
     setIsFilterOpen(false);
+    setSelectedIds([]); // Clear selection on tab change
   }, [activeTab]);
 
   const handleTabChange = (tab: "mahasiswa" | "dosen") => {
@@ -77,18 +85,71 @@ export default function UserListDesktop() {
   };
 
   const handleDelete = async () => {
+      // If we are deleting a batch
+      if (selectedIds.length > 0 && !userToDelete) {
+          try {
+              const res = await adminApi.deleteUsersBatch(selectedIds);
+              fetchUsers();
+              setDeleteModalOpen(false);
+              setSelectedIds([]);
+              showToast(res.message);
+          } catch (error: any) {
+              const msg = error.response?.data?.message || "Failed to delete selected users";
+              showToast(msg, "destructive");
+              setDeleteModalOpen(false);
+          }
+          return;
+      }
+
       if (!userToDelete) return;
       
       try {
-          await adminApi.deleteUser(userToDelete.id);
+          const res = await adminApi.deleteUser(userToDelete.id);
           fetchUsers(); // Refresh list
           setDeleteModalOpen(false);
           setUserToDelete(null);
-      } catch (error) {
-          console.error("Failed to delete user", error);
-          alert("Failed to delete user");
+          setSelectedIds(prev => prev.filter(id => id !== userToDelete.id)); // Remove from selection if it was there
+          showToast(res.message || "User deleted successfully");
+      } catch (error: any) {
+          const message = error.response?.data?.message || "";
+          // If the failure is due to active data, offer force delete via modal
+          if (error.response?.status === 400 && (message.includes("data aktif") || message.includes("bimbingan"))) {
+              setBlockingMessage(message);
+              setDeleteModalOpen(false); // Close first modal
+              setTimeout(() => setForceDeleteModalOpen(true), 300); // Small delay for smooth transition
+              return;
+          } else {
+              const msg = error.response?.data?.message || "Failed to delete user";
+              showToast(msg, "destructive");
+              setDeleteModalOpen(false);
+          }
       }
   };
+
+  const handleForceDelete = async () => {
+      if (!userToDelete) return;
+      
+      try {
+          const res = await adminApi.deleteUser(userToDelete.id, true);
+          fetchUsers();
+          setForceDeleteModalOpen(false);
+          setUserToDelete(null);
+          setSelectedIds(prev => prev.filter(id => id !== userToDelete.id));
+          showToast(res.message || "User deleted successfully");
+      } catch (error: any) {
+          const msg = error.response?.data?.message || "Failed to force delete user";
+          showToast(msg, "destructive");
+          setForceDeleteModalOpen(false);
+      }
+  };
+
+  const handleToggleSelect = (id: number) => {
+      setSelectedIds(prev => 
+          prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+      );
+  };
+
+
 
   // Filter & Pagination Logic
   const uniqueYears = useMemo(() => {
@@ -129,6 +190,23 @@ export default function UserListDesktop() {
     return filteredUsers.slice(start, start + itemsPerPage);
   }, [filteredUsers, currentPage]);
 
+  const handleSelectAll = (checked: boolean) => {
+      if (checked) {
+          const allIds = paginatedUsers.map(u => u.user?.id || u.userId || u.id);
+          setSelectedIds(prev => {
+              const newSet = new Set([...prev, ...allIds]);
+              return Array.from(newSet);
+          });
+      } else {
+          const pageIds = paginatedUsers.map(u => u.user?.id || u.userId || u.id);
+          setSelectedIds(prev => prev.filter(id => !pageIds.includes(id)));
+      }
+  };
+
+  const isAllPageSelected = paginatedUsers.length > 0 && paginatedUsers.every(u => 
+      selectedIds.includes(u.user?.id || u.userId || u.id)
+  );
+
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
@@ -137,6 +215,29 @@ export default function UserListDesktop() {
 
   // Columns definition
   const columns: Column<any>[] = [
+    {
+      header: (
+        <Checkbox 
+          checked={isAllPageSelected}
+          onCheckedChange={(checked) => handleSelectAll(!!checked)}
+          aria-label="Select all"
+          className="translate-y-[2px]"
+        />
+      ),
+      cell: (user) => {
+        const id = user.user?.id || user.userId || user.id;
+        return (
+          <Checkbox 
+            checked={selectedIds.includes(id)}
+            onCheckedChange={() => handleToggleSelect(id)}
+            aria-label="Select row"
+            className="translate-y-[2px]"
+          />
+        )
+      },
+      width: "40px",
+      stopRowClick: true,
+    },
     {
       header: "No",
       cell: (_, index) => (currentPage - 1) * itemsPerPage + index + 1,
@@ -195,14 +296,20 @@ export default function UserListDesktop() {
       cell: (user) => (
         <div className="flex justify-end gap-2">
            <button 
-                onClick={() => navigate(`/admin/edit-account/${user.user?.id || user.userId}`)} 
+                onClick={(e) => {
+                     e.stopPropagation();
+                     navigate(`/admin/edit-account/${user.user?.id || user.userId || user.id}`)
+                }} 
                 className="p-2 text-gray-400 hover:text-blue-600 transition-colors" 
                 title="Edit"
            >
                 <Pencil size={18} />
            </button>
            <button 
-                onClick={() => confirmDelete(user)}
+                onClick={(e) => {
+                     e.stopPropagation();
+                     confirmDelete(user);
+                }}
                 className="p-2 text-gray-400 hover:text-red-600 transition-colors" 
                 title="Delete"
            >
@@ -332,10 +439,29 @@ export default function UserListDesktop() {
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={handleDelete}
-        title="Delete User"
-        itemName={userToDelete?.name}
-        description="Are you sure you want to delete this user? This action cannot be undone."
+        title={selectedIds.length > 0 && !userToDelete ? "Delete Multiple Users" : "Delete User"}
+        itemName={userToDelete ? userToDelete.name : (selectedIds.length > 0 ? `${selectedIds.length} users` : "")}
+        description={`Are you sure you want to delete ${userToDelete ? "this user" : "the selected users"}? This action cannot be undone.`}
       />
+
+      <ForceDeleteModal
+        isOpen={forceDeleteModalOpen}
+        onClose={() => { setForceDeleteModalOpen(false); setUserToDelete(null); }}
+        onConfirm={handleForceDelete}
+        title="Hapus Paksa Akun"
+        itemName={userToDelete?.name || ""}
+        description={blockingMessage}
+      />
+
+      {/* Toast Notification */}
+      {toastProps && (
+        <div className="fixed top-6 right-6 z-[100] animate-in slide-in-from-right-full">
+            <Toast 
+                {...toastProps} 
+                onClose={() => setToastProps(null)} 
+            />
+        </div>
+      )}
 
       {/* Search and Filters Header */}
       <div className="flex flex-col gap-6 mb-8">
@@ -362,6 +488,19 @@ export default function UserListDesktop() {
                     </div>
                     Create New {activeTab === "mahasiswa" ? "Mahasiswa" : "Dosen"}
                   </Link>
+
+                  {selectedIds.length > 0 && (
+                      <button
+                        onClick={() => {
+                            setUserToDelete(null); // Ensure single user is null for batch mode
+                            setDeleteModalOpen(true);
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors shadow-sm animate-in fade-in slide-in-from-right-2"
+                      >
+                        <Trash2 size={16} />
+                        Delete {selectedIds.length} Selected
+                      </button>
+                  )}
              </div>
         </div>
 

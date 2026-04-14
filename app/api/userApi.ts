@@ -88,6 +88,42 @@ export const userApi = {
     },
 
     /**
+     * Create Mahasiswa Massal
+     * POST /api/v1/admin/create-mahasiswa-massal
+     */
+    createMahasiswaMassal: async (data: any[]): Promise<any> => {
+        try {
+            const response = await client.post("/admin/create-mahasiswa-massal", { users: data });
+            return response.data;
+        } catch (error: any) {
+            console.error("❌ Create Mahasiswa Massal error:", {
+                status: error.response?.status,
+                data: error.response?.data,
+                message: error.message,
+            });
+            throw error;
+        }
+    },
+
+    /**
+     * Create Dosen Massal
+     * POST /api/admin/create-dosen-massal
+     */
+    createDosenMassal: async (data: any[]): Promise<any> => {
+        try {
+            const response = await client.post("/admin/create-dosen-massal", { users: data });
+            return response.data;
+        } catch (error: any) {
+            console.error("❌ Create Dosen Massal error:", {
+                status: error.response?.status,
+                data: error.response?.data,
+                message: error.message,
+            });
+            throw error;
+        }
+    },
+
+    /**
      * Create Dosen
      * POST /api/admin/create-dosen
      */
@@ -179,11 +215,12 @@ export const userApi = {
 
     /**
      * Delete user
-     * DELETE /api/v1/admin/:id
+     * DELETE /api/admin/:id
      */
-    deleteUser: async (id: string): Promise<any> => {
+    deleteUser: async (id: string, force: boolean = false): Promise<any> => {
         try {
-            const response = await client.delete(`/admin/${id}`);
+            const url = force ? `/admin/${id}?force=true` : `/admin/${id}`;
+            const response = await client.delete(url);
             return response.data;
         } catch (error: any) {
              console.error("❌ Delete user error:", {

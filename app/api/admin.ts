@@ -56,8 +56,18 @@ export const adminApi = {
      * Delete user
      * DELETE /admin/users/:id
      */
-    deleteUser: async (id: string | number): Promise<ApiResponse<any>> => {
-        const response = await client.delete<ApiResponse<any>>(`/admin/users/${id}`);
+    deleteUser: async (id: string | number, force: boolean = false): Promise<ApiResponse<any>> => {
+        const url = force ? `/admin/users/${id}?force=true` : `/admin/users/${id}`;
+        const response = await client.delete<ApiResponse<any>>(url);
+        return response.data;
+    },
+
+    /**
+     * Delete users in batch
+     * POST /admin/users/batch-delete
+     */
+    deleteUsersBatch: async (ids: number[]): Promise<ApiResponse<any>> => {
+        const response = await client.post<ApiResponse<any>>("/admin/users/batch-delete", { ids });
         return response.data;
     },
 
