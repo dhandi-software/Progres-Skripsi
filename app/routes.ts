@@ -29,6 +29,7 @@ export default [
             route("bimbingan", "routes/mahasiswa/bimbingan.tsx"),
             route("chat", "routes/mahasiswa/chat.tsx"),
             route("acara", "routes/mahasiswa/acara.tsx"),
+            route("sidang", "routes/mahasiswa/sidang.tsx"),
             route("penilaian", "routes/mahasiswa/penilaian.tsx"),
             route("profilemahasiswa", "routes/mahasiswa/profilemahasiswa.tsx"),
         ]),
@@ -51,6 +52,7 @@ export default [
             route("laporan", "routes/dosen/laporan.tsx"),
             route("prodi/sidang", "routes/dosen/prodi.sidang.tsx"),
             route("prodi/bimbingan", "routes/dosen/prodi.bimbingan.tsx"),
+            route("profile", "routes/dosen/profile.tsx"),
         ]),
     ]),
     // Admin

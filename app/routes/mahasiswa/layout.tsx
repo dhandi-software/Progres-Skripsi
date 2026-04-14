@@ -32,7 +32,9 @@ type MenuKey =
   | "bimbingan"
   | "chat"
   | "acara"
+  | "sidang"
   | "penilaian"
+  | "profilemahasiswa"
   | "portfolio"
   | "logout";
 
@@ -42,6 +44,7 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/mahasiswa/bimbingan")) return "bimbingan";
   if (pathname.startsWith("/mahasiswa/chat")) return "chat";
   if (pathname.startsWith("/mahasiswa/acara")) return "acara";
+  if (pathname.startsWith("/mahasiswa/sidang")) return "sidang";
   if (pathname.startsWith("/mahasiswa/penilaian")) return "penilaian";
   if (pathname.startsWith("/mahasiswa/profilemahasiswa")) return "profilemahasiswa";
   if (pathname === "/mahasiswa" || pathname.startsWith("/mahasiswa/"))
@@ -85,6 +88,12 @@ const menuItems = [
     title: "Pengumuman",
     icon: Calendar,
     url: "/mahasiswa/acara",
+  },
+  {
+    key: "sidang" as MenuKey,
+    title: "Jadwal Sidang",
+    icon: Calendar,
+    url: "/mahasiswa/sidang",
   },
   {
     key: "penilaian" as MenuKey,

@@ -2,6 +2,8 @@ import { ChatSidebar } from "~/components/ui/chat-sidebar";
 import { ChatWindow } from "~/components/ui/chat-window";
 import { useChat } from "~/hooks/useChat";
 import { Toast } from "~/components/ui/toast";
+import { useEffect } from "react";
+import { useSearchParams } from "react-router";
 
 export function ChatDesktop({ title }: { title: string }) {
     const {
@@ -21,6 +23,19 @@ export function ChatDesktop({ title }: { title: string }) {
         toastProps,
         setToastProps
     } = useChat();
+
+    const [searchParams] = useSearchParams();
+
+    useEffect(() => {
+        const userId = searchParams.get("userId");
+        if (userId && contacts.length > 0 && !activeContact) {
+            const targetId = parseInt(userId);
+            const contact = contacts.find(c => c.id === targetId);
+            if (contact) {
+                setActiveContact(contact);
+            }
+        }
+    }, [searchParams, contacts, activeContact, setActiveContact]);
 
     const handleSelectContact = (contact: any) => {
         setActiveContact(contact);

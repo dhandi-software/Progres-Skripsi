@@ -5,6 +5,8 @@ import { useChat } from "~/hooks/useChat";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Toast } from "~/components/ui/toast";
+import { useEffect } from "react";
+import { useSearchParams } from "react-router";
 
 export function ChatMobile({ title }: { title: string }) {
     const {
@@ -24,6 +26,19 @@ export function ChatMobile({ title }: { title: string }) {
     } = useChat();
 
     const [view, setView] = useState<"list" | "chat">("list");
+    const [searchParams] = useSearchParams();
+
+    useEffect(() => {
+        const userId = searchParams.get("userId");
+        if (userId && contacts.length > 0 && !activeContact) {
+            const targetId = parseInt(userId);
+            const contact = contacts.find(c => c.id === targetId);
+            if (contact) {
+                setActiveContact(contact);
+                setView("chat");
+            }
+        }
+    }, [searchParams, contacts, activeContact, setActiveContact]);
 
     const handleSelectContact = (contact: any) => {
         setActiveContact(contact);

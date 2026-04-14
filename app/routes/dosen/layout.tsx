@@ -12,6 +12,7 @@ import {
   Calendar,
   Award,
   ClipboardList,
+  User,
 } from "lucide-react";
 import { Outlet, useRouteLoaderData } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
@@ -35,6 +36,7 @@ type MenuKey =
   | "laporan"
   | "prodiSidang"
   | "prodiBimbingan"
+  | "profile"
   | "logout";
 
 const pathToKey = (pathname: string): MenuKey | undefined => {
@@ -48,6 +50,7 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/dosen/laporan")) return "laporan";
   if (pathname.startsWith("/dosen/prodi/sidang")) return "prodiSidang";
   if (pathname.startsWith("/dosen/prodi/bimbingan")) return "prodiBimbingan";
+  if (pathname.startsWith("/dosen/profile")) return "profile";
   if (pathname === "/dosen" || pathname.startsWith("/dosen/"))
     return "dashboard";
   return undefined;
@@ -121,6 +124,12 @@ const menuItems = [
     icon: Users,
     url: "/dosen/prodi/bimbingan",
     prodiOnly: true
+  },
+  {
+    key: "profile" as MenuKey,
+    title: "Profil Saya",
+    icon: User,
+    url: "/dosen/profile",
   },
 ];
 

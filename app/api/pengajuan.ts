@@ -42,5 +42,22 @@ export const pengajuanApi = {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
         return response.data;
+    },
+
+    getDosenProfile: async () => {
+        const response = await client.get("/pengajuan/profile/dosen");
+        return response.data;
+    },
+
+    updateDosenProfile: async (data: { nama?: string, jabatan?: string, photo?: File }) => {
+        const formData = new FormData();
+        if (data.nama) formData.append('nama', data.nama);
+        if (data.jabatan) formData.append('jabatan', data.jabatan);
+        if (data.photo) formData.append('photo', data.photo);
+
+        const response = await client.put("/pengajuan/profile/dosen", formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
     }
 };

@@ -70,7 +70,14 @@ export function ProfileHeader({ profile, onUpdate }: ProfileHeaderProps) {
             )}
             
             {/* Header Background Cover */}
-            <div className="h-48 md:h-64 bg-gradient-to-r from-[#119DA4] to-[#0D7C82] rounded-3xl" />
+            <div className="h-48 md:h-64 rounded-3xl relative overflow-hidden bg-gray-900 border border-gray-100">
+                <img 
+                    src="/images/Banner_Universitas_Pancasila.png" 
+                    alt="University Banner" 
+                    className="absolute inset-0 w-full h-full object-cover opacity-70"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+            </div>
             
             {/* Profile Info Overlay */}
             <div className="px-6 md:px-12 -mt-20 md:-mt-24 pb-8 flex flex-col md:flex-row items-center md:items-end gap-6 text-center md:text-left">

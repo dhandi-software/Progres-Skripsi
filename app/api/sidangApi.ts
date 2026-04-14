@@ -48,5 +48,9 @@ export const sidangApi = {
     confirmScheduleByKaprodi: async (id: number) => {
         const response = await client.put(`/sidang/confirm-jadwal-kaprodi/${id}`);
         return response.data;
+    },
+    getSidangMahasiswa: async () => {
+        const response = await client.get("/sidang/mahasiswa");
+        return response.data;
     }
 };
