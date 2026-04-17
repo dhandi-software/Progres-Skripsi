@@ -1,2 +1,2 @@
-export * from "./ChatDesktop";
-export * from "./ChatMobile";
+export * from "~/features/dosen/chat/ChatDesktop";
+export * from "~/features/dosen/chat/ChatMobile";

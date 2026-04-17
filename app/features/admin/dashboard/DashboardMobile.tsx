@@ -11,7 +11,7 @@ import { adminApi } from "~/api/admin";
 import { StatisticCard } from "~/features/admin/dashboard/components";
 import { useSidebar } from "~/components/ui/sidebar";
 
-export default function DashboardMobile() {
+export function DashboardMobile() {
     const { setOpenMobile } = useSidebar();
     const [loading, setLoading] = useState(true);
     const [statsData, setStatsData] = useState({

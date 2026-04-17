@@ -1,5 +1,2 @@
-export * from "./ManageAccountDesktop";
-export * from "./ManageAccountMobile";
-export * from "./UseManageAccount";
-export * from "./components/AccountDetailDesktop";
-export * from "./components/AccountDetailMobile";
+export * from "~/features/admin/manage-account/ManageAccountDesktop";
+export * from "~/features/admin/manage-account/ManageAccountMobile";

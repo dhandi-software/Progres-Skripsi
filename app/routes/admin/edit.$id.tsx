@@ -1,6 +1,5 @@
 import { useParams, useOutletContext } from "react-router";
-import CreateArticleDesktop from "../../features/admin/create-article/CreateArticleDesktop";
-import CreateArticleMobile from "../../features/admin/create-article/CreateArticleMobile";
+import { CreateArticleDesktop, CreateArticleMobile } from "~/features/admin/create-article";
 
 export default function EditArticlePage() {
   const { id } = useParams<{ id: string }>();

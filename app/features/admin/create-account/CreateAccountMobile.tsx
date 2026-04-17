@@ -26,6 +26,7 @@ export const CreateAccountMobile = () => {
     fileName,
     massData,
     handleDownloadPreview,
+    clearExcel,
   } = useCreateAccount();
 
   const [isRoleOpen, setIsRoleOpen] = useState(false);
@@ -259,9 +260,17 @@ export const CreateAccountMobile = () => {
                     <div className="flex items-center gap-3 p-3 bg-orange-50 border border-orange-100 rounded-xl text-orange-800">
                         <FileSpreadsheet className="w-5 h-5 text-orange-600 flex-shrink-0" />
                         <div className="flex flex-col">
-                            <span className="font-semibold text-xs truncate max-w-[200px]">{fileName}</span>
+                            <span className="font-semibold text-xs truncate max-w-[150px]">{fileName}</span>
                             <span className="text-[10px] opacity-80">{massData.length} records parsed</span>
                         </div>
+                        <button 
+                            type="button"
+                            onClick={clearExcel}
+                            className="ml-auto p-1.5 text-orange-600 hover:bg-orange-100 rounded-lg transition-colors group"
+                            aria-label="Remove uploaded file"
+                        >
+                            <X size={16} className="group-active:scale-95 transition-transform" />
+                        </button>
                     </div>
                 )}
 

@@ -5,7 +5,8 @@ import {
   UserPlus,
   Users,
   Settings,
-  FileText
+  FileText,
+  BarChart3
 } from "lucide-react";
 import { Outlet, useRouteLoaderData } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
@@ -19,10 +20,12 @@ import { cn } from "~/lib/utils";
 type MenuKey =
   | "dashboard"
   | "users"
+  | "monitoring"
   | "logout";
 
 const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/admin/users") || pathname.startsWith("/admin/create-account") || pathname.startsWith("/admin/edit-account")) return "users";
+  if (pathname.startsWith("/admin/monitoring")) return "monitoring";
   if (pathname === "/admin" || pathname.startsWith("/admin/"))
     return "dashboard";
   return undefined;
@@ -40,6 +43,12 @@ const menuItems = [
     title: "User Management",
     icon: Users,
     url: "/admin/users",
+  },
+  {
+    key: "monitoring" as MenuKey,
+    title: "Monitoring Bimbingan",
+    icon: BarChart3,
+    url: "/admin/monitoring",
   },
 ];
 

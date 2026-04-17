@@ -1,7 +1,6 @@
 import { useOutletContext } from "react-router";
 import type { ContextType } from "~/root";
-import UserListDesktop from "~/features/admin/users/UserListDesktop";
-import UserListMobile from "~/features/admin/users/UserListMobile";
+import { UserListDesktop, UserListMobile } from "~/features/admin/users";
 
 export default function UsersRoute() {
   const { isMobile } = useOutletContext<ContextType>();

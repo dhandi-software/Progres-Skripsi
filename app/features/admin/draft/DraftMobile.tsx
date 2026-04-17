@@ -6,7 +6,7 @@ import StatusCard from "~/components/ui/StatusCard";
 import { Toast } from "~/components/ui/toast";
 import { mediaApi } from "~/api/mediaApi";
 
-export default function DraftMobile() {
+export function DraftMobile() {
     const navigate = useNavigate();
     const { setOpenMobile } = useSidebar();
     const {

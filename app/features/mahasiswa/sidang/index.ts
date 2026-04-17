@@ -1,2 +1,2 @@
-export * from "./SidangDesktop";
-export * from "./SidangMobile";
+export * from "~/features/mahasiswa/sidang/SidangDesktop";
+export * from "~/features/mahasiswa/sidang/SidangMobile";

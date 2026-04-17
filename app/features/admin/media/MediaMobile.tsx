@@ -21,7 +21,7 @@ interface MediaMobileProps {
     onImageSelect?: (image: MediaItem) => void;
 }
 
-export default function MediaMobile({
+export function MediaMobile({
     standalone = true,
     onClose,
     onImageSelect,

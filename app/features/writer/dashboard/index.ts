@@ -1,3 +1,2 @@
-export * from "./DashboardDesktop";
-export * from "./DashboardMobile";
-export * from "./UseDashboard";
+export * from "~/features/writer/dashboard/DashboardDesktop";
+export * from "~/features/writer/dashboard/DashboardMobile";

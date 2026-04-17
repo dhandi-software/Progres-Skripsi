@@ -26,6 +26,7 @@ export const CreateAccountDesktop = () => {
     fileName,
     massData,
     handleDownloadPreview,
+    clearExcel,
   } = useCreateAccount();
 
   const [isRoleOpen, setIsRoleOpen] = useState(false);
@@ -292,6 +293,14 @@ export const CreateAccountDesktop = () => {
                             <span className="font-semibold text-sm">{fileName}</span>
                             <span className="text-xs opacity-80">{massData.length} records parsed</span>
                         </div>
+                        <button 
+                            type="button"
+                            onClick={clearExcel}
+                            className="ml-auto p-1.5 text-orange-600 hover:bg-orange-100 rounded-lg transition-colors group"
+                            aria-label="Remove uploaded file"
+                        >
+                            <X size={18} className="group-active:scale-95 transition-transform" />
+                        </button>
                     </div>
                 )}
 

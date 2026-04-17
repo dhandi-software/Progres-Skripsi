@@ -1,2 +1,2 @@
-export { default as MediaDesktop } from "./MediaDesktop";
-export { default as MediaMobile } from "./MediaMobile";
+export * from "~/features/admin/media/MediaDesktop";
+export * from "~/features/admin/media/MediaMobile";

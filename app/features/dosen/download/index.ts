@@ -1,2 +1,2 @@
-export * from "./DownloadDesktop";
-export * from "./DownloadMobile";
+export * from "~/features/dosen/download/DownloadDesktop";
+export * from "~/features/dosen/download/DownloadMobile";

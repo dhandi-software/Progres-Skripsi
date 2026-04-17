@@ -1,2 +1,2 @@
-export * from "./DashboardDesktop";
-export * from "./DashboardMobile";
+export * from "~/features/dosen/dashboard/DashboardDesktop";
+export * from "~/features/dosen/dashboard/DashboardMobile";

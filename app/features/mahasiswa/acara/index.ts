@@ -1,2 +1,2 @@
-export * from "./AcaraDesktop";
-export * from "./AcaraMobile";
+export * from "~/features/mahasiswa/acara/AcaraDesktop";
+export * from "~/features/mahasiswa/acara/AcaraMobile";

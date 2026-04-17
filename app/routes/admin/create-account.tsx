@@ -1,7 +1,6 @@
 import { useOutletContext } from "react-router";
 import type { ContextType } from "~/root";
-import { CreateAccountDesktop } from "~/features/admin/create-account/CreateAccountDesktop";
-import { CreateAccountMobile } from "~/features/admin/create-account/CreateAccountMobile";
+import { CreateAccountDesktop, CreateAccountMobile } from "~/features/admin/create-account";
 
 export default function CreateAccountRoute() {
   const { isMobile } = useOutletContext<ContextType>();

@@ -11,7 +11,8 @@ import {
   UserCog,
   FileText,
   History,
-  ChevronDown
+  ChevronDown,
+  BarChart3
 } from "lucide-react";
 import { Outlet, useRouteLoaderData } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
@@ -32,6 +33,7 @@ type MenuKey =
   | "article-and-media"
   | "draft"
   | "log-activity"
+  | "monitoring-bimbingan"
   | "logout"
   | "upload";
 
@@ -47,6 +49,7 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/admin/media")) return "article-and-media";
   if (pathname.startsWith("/admin/draft")) return "draft";
   if (pathname.startsWith("/admin/log")) return "log-activity";
+  if (pathname.startsWith("/admin/monitoring")) return "monitoring-bimbingan";
   if (pathname.startsWith("/admin/create")) return "create-news-video";
   if (pathname === "/admin" || pathname.startsWith("/admin/"))
     return "dashboard";
@@ -106,6 +109,12 @@ const menuItems = [
     title: "Log Activity",
     icon: History,
     url: "/admin/log",
+  },
+  {
+    key: "monitoring-bimbingan" as MenuKey,
+    title: "Monitoring Bimbingan",
+    icon: BarChart3,
+    url: "/admin/monitoring",
   },
 ];
 

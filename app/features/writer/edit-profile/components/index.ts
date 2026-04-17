@@ -1,2 +1,2 @@
-export { default as PasswordDesktop } from "./PasswordDesktop";
-export { default as PasswordMobile } from "./PasswordMobile";
+export * from "~/features/writer/edit-profile/components/ProfileForm";
+export * from "~/features/writer/edit-profile/components/SettingsSection";

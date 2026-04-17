@@ -41,7 +41,7 @@ export default [
             index("routes/dosen/dashboard.tsx"),
             route("download", "routes/dosen/download.tsx"),
             route("peninjauan", "routes/dosen/peninjauan.tsx"),
-            route("peninjauan/:id", "routes/dosen/pengajuan.$id.tsx"),
+            route("peninjauan/:id", "routes/dosen/peninjauan.$id.tsx"),
             route("bimbingan", "routes/dosen/bimbingan.tsx"),
             route("chat", "routes/dosen/chat.tsx"),
             route("acara", "routes/dosen/acara.tsx"),
@@ -63,6 +63,7 @@ export default [
             route("users", "routes/admin/users.tsx"),
             route("create-account", "routes/admin/create-account.tsx"),
             route("edit-account/:id", "routes/admin/edit-account.$id.tsx"),
+            route("monitoring", "routes/admin/monitoring.tsx"),
         ]),
     ]),
 ] satisfies RouteConfig;

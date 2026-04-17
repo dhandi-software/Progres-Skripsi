@@ -3,7 +3,7 @@ import { cn } from "~/lib/utils";
 import { CustomSelect } from "~/components/ui/custom-select";
 import { useEditAccount } from "./UseEditAccount";
 
-export default function EditAccountMobile() {
+export function EditAccountMobile() {
   const {
       formData,
       initialLoading,

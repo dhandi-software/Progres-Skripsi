@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Plus, Search, Filter, Monitor, Pencil, Trash2, Check, X, ChevronRight, MoreVertical } from "lucide-react";
+import { Plus, Search, Filter, Monitor, Pencil, Trash2, Check, X, ChevronRight, MoreVertical, AlertTriangle } from "lucide-react";
 import { adminApi } from "~/api/admin";
 import { cn } from "~/lib/utils";
 import { CreateAccountMobile } from "../create-account/CreateAccountMobile";
@@ -15,7 +15,7 @@ import {
 } from "~/components/ui/drawer";
 import { useSidebar } from "~/components/ui/sidebar";
 
-export default function UserListMobile() {
+export function UserListMobile() {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<"mahasiswa" | "dosen">("mahasiswa");
     const [users, setUsers] = useState<any[]>([]);
@@ -140,6 +140,57 @@ export default function UserListMobile() {
         }
     };
 
+    // --- Clear All Flow ---
+    const [clearAllConfirmOpen, setClearAllConfirmOpen] = useState(false);
+    const [forceClearAllModal1Open, setForceClearAllModal1Open] = useState(false);
+    const [forceClearAllModal2Open, setForceClearAllModal2Open] = useState(false);
+    const [clearAllInput, setClearAllInput] = useState("");
+    const [clearAllBlockingMessage, setClearAllBlockingMessage] = useState("");
+
+    const handleClearAllAccounts = async () => {
+        try {
+            const res = activeTab === "mahasiswa" 
+                ? await adminApi.clearAllMahasiswa(false)
+                : await adminApi.clearAllDosen(false);
+            
+            fetchUsers();
+            setClearAllConfirmOpen(false);
+            setSelectedIds([]);
+            showToast(res.message);
+        } catch (error: any) {
+            const resData = error.response?.data;
+            if (resData?.requireForceAll) {
+                setClearAllBlockingMessage(resData.message);
+                setClearAllConfirmOpen(false);
+                setTimeout(() => setForceClearAllModal1Open(true), 300);
+            } else {
+                showToast(resData?.message || `Gagal menghapus semua ${activeTab}`, "destructive");
+                setClearAllConfirmOpen(false);
+            }
+        }
+    };
+
+    const handleForceClearAllAccounts = async () => {
+        if (clearAllInput !== "HAPUS SEMUA") {
+            showToast("Teks konfirmasi tidak sesuai", "destructive");
+            return;
+        }
+        try {
+            const res = activeTab === "mahasiswa"
+                ? await adminApi.clearAllMahasiswa(true)
+                : await adminApi.clearAllDosen(true);
+                
+            fetchUsers();
+            setForceClearAllModal2Open(false);
+            setClearAllInput("");
+            setSelectedIds([]);
+            showToast(res.message);
+        } catch (error: any) {
+            showToast(error.response?.data?.message || `Gagal menghapus paksa semua ${activeTab}`, "destructive");
+            setForceClearAllModal2Open(false);
+        }
+    };
+
     const confirmDelete = (user: any) => {
         const id = user.user?.id || user.userId || user.id;
         setUserToDelete({ id, name: user.nama });
@@ -165,6 +216,67 @@ export default function UserListMobile() {
                 itemName={userToDelete?.name || ""}
                 description={blockingMessage}
             />
+
+            {/* Clear All Flow Modals */}
+            <DeleteConfirmationModal 
+                isOpen={clearAllConfirmOpen}
+                onClose={() => setClearAllConfirmOpen(false)}
+                onConfirm={handleClearAllAccounts}
+                title={`Hapus Seluruh ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`}
+                itemName=""
+                description={`Apakah Anda yakin ingin menghapus seluruh akun ${activeTab}? Akun tanpa data terikat akan dihapus seketika.`}
+            />
+
+            <ForceDeleteModal
+                isOpen={forceClearAllModal1Open}
+                onClose={() => setForceClearAllModal1Open(false)}
+                onConfirm={() => {
+                    setForceClearAllModal1Open(false);
+                    setTimeout(() => setForceClearAllModal2Open(true), 300);
+                }}
+                title="Peringatan Data Aktif"
+                itemName={`SEMUA ${activeTab.toUpperCase()} TERSISA`}
+                description={clearAllBlockingMessage}
+            />
+
+            {/* Validation 2 Modal: Require Input */}
+            {forceClearAllModal2Open && (
+                <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm transition-all animate-in fade-in-0">
+                   <div className="w-[90%] max-w-[450px] bg-white rounded-2xl shadow-2xl border border-red-100 overflow-hidden animate-in zoom-in-95 duration-200">
+                     <div className="bg-red-50 p-6 flex flex-col items-center text-center space-y-3">
+                        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center text-red-600">
+                           <AlertTriangle size={32} strokeWidth={2.5} />
+                        </div>
+                        <h3 className="text-xl font-bold text-red-900">Validasi Tahap Akhir!</h3>
+                     </div>
+                     <div className="p-6 text-center space-y-4">
+                        <p className="text-sm text-gray-700">
+                            Anda akan menghapus <span className="font-bold">SELURUH</span> {activeTab} beserta <span className="font-bold underline text-red-600">SELURUH RIWAYAT DATA</span> mereka.
+                        </p>
+                        <div className="space-y-2 mt-4 text-left">
+                           <label className="text-xs font-semibold text-gray-500">Ketik <span className="text-red-600">HAPUS SEMUA</span> untuk mengkonfirmasi:</label>
+                           <input 
+                               type="text" 
+                               value={clearAllInput}
+                               onChange={(e) => setClearAllInput(e.target.value)}
+                               className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm text-center font-bold tracking-widest focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none uppercase"
+                               placeholder="HAPUS SEMUA"
+                           />
+                        </div>
+                     </div>
+                     <div className="p-6 pt-0 flex gap-3">
+                        <button onClick={() => setForceClearAllModal2Open(false)} className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">Batal</button>
+                        <button 
+                            onClick={handleForceClearAllAccounts} 
+                            disabled={clearAllInput !== "HAPUS SEMUA"}
+                            className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Hapus Permanen
+                        </button>
+                     </div>
+                   </div>
+                </div>
+            )}
 
             {/* Toast Notification */}
             {toastProps && (
@@ -210,6 +322,14 @@ export default function UserListMobile() {
                         </button>
                     ))}
                 </div>
+
+                <button
+                    onClick={() => setClearAllConfirmOpen(true)}
+                    className="w-full mb-4 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-xl text-sm font-bold hover:bg-red-100 transition-colors shadow-sm"
+                >
+                    <Trash2 size={16} />
+                    Hapus Semua {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                </button>
 
                 {/* Search */}
                 <div className="relative">

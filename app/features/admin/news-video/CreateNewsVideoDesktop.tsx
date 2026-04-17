@@ -6,7 +6,7 @@ import { Textarea } from "~/components/ui/textarea";
 
 const MAX_TITLE_LENGTH = 500;
 
-export default function CreateNewsVideoDesktop() {
+export function CreateNewsVideoDesktop() {
   const {
     formData,
     setTitle,

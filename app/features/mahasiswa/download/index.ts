@@ -1,2 +1,2 @@
-export * from "./DownloadDesktop";
-export * from "./DownloadMobile";
+export * from "~/features/mahasiswa/download/DownloadDesktop";
+export * from "~/features/mahasiswa/download/DownloadMobile";

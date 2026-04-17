@@ -1,2 +1,2 @@
-export * from "./PengajuanDesktop";
-export * from "./PengajuanMobile";
+export * from "~/features/mahasiswa/pengajuan/PengajuanDesktop";
+export * from "~/features/mahasiswa/pengajuan/PengajuanMobile";

@@ -46,7 +46,7 @@ interface CreateArticleMobileProps {
   articleId?: string;
 }
 
-export default function CreateArticleMobile({ articleId }: CreateArticleMobileProps) {
+export function CreateArticleMobile({ articleId }: CreateArticleMobileProps) {
   const { states, setters, handlers, refs } = useCreateArticle({ articleId });
   const { setOpenMobile } = useSidebar();
 

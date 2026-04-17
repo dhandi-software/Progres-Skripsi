@@ -5,7 +5,7 @@ import { StatisticCard } from "~/features/admin/dashboard/components";
 import { Toast } from "~/components/ui/toast";
 import { cn } from "~/lib/utils";
 
-export default function DashboardDesktop() {
+export function DashboardDesktop() {
     const [loading, setLoading] = useState(true);
     const [showWelcomeToast, setShowWelcomeToast] = useState(false);
     const [statsData, setStatsData] = useState({

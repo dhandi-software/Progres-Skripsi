@@ -62,22 +62,24 @@ export const useCreateAccount = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const [rawExcelBinary, setRawExcelBinary] = useState<any>(null);
+
   const handleRoleChange = (role: string) => {
     setFormData((prev) => ({ ...prev, role }));
+    // User requested to reset the excel file when switching roles
+    setMassData([]);
+    setFileName(null);
+    setRawExcelBinary(null);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Clear previous data before parsing new file
+  const clearExcel = () => {
     setMassData([]);
-    setFileName(file.name);
+    setFileName(null);
+    setRawExcelBinary(null);
+  };
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const bstr = evt.target?.result;
+  const parseExcelData = (bstr: any, role: string) => {
+    try {
         const wb = XLSX.read(bstr, { type: 'binary' });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
@@ -89,7 +91,7 @@ export const useCreateAccount = () => {
         let emailColIdx = -1;
         let jabatanColIdx = -1;
         
-        const isMahasiswa = formData.role === 'mahasiswa';
+        const isMahasiswa = role === 'mahasiswa';
 
         for (let i = 0; i < data.length; i++) {
              const row = data[i] as any[];
@@ -127,6 +129,7 @@ export const useCreateAccount = () => {
         if (headerRowIdx === -1 || idColIdx === -1 || namaColIdx === -1) {
              const idLabel = isMahasiswa ? "NIM/NPM" : "NIDN/NIP";
              showToast(`Could not find ${idLabel} and Nama columns in Excel`, "destructive");
+             setMassData([]);
              return;
         }
 
@@ -193,7 +196,24 @@ export const useCreateAccount = () => {
     } catch (error) {
         console.error("Error parsing excel:", error);
         showToast("Failed to parse Excel file. Make sure format is correct.", "destructive");
-      }
+        setMassData([]);
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Clear previous data before parsing new file
+    setMassData([]);
+    setFileName(file.name);
+    setRawExcelBinary(null);
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+        const bstr = evt.target?.result;
+        setRawExcelBinary(bstr);
+        parseExcelData(bstr, formData.role);
     };
     reader.readAsBinaryString(file);
     
@@ -370,5 +390,6 @@ export const useCreateAccount = () => {
     handleSubmit,
     handleCancel,
     handleDownloadPreview,
+    clearExcel,
   };
 };

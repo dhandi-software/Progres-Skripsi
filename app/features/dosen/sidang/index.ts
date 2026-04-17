@@ -1,2 +1,2 @@
-export * from "./SidangDesktop";
-export * from "./SidangMobile";
+export * from "~/features/dosen/sidang/SidangDesktop";
+export * from "~/features/dosen/sidang/SidangMobile";

@@ -1,3 +1,2 @@
-export * from "./CreateArticleDesktop";
-export * from "./CreateArticleMobile";
-export * from "./UseCreateArticle";
+export * from "~/features/admin/create-article/CreateArticleDesktop";
+export * from "~/features/admin/create-article/CreateArticleMobile";

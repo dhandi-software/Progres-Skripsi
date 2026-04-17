@@ -1,2 +1,2 @@
-export * from "~/features/landing/article/ArticleDesktop";
-export * from "~/features/landing/article/ArticleMobile";
+export * from "~/features/landing/Article/ArticleDesktop";
+export * from "~/features/landing/Article/ArticleMobile";
