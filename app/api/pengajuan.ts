@@ -59,5 +59,29 @@ export const pengajuanApi = {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
         return response.data;
+    },
+
+    cancelPengajuan: async (id: number) => {
+        const response = await client.delete(`/pengajuan/${id}`);
+        return response.data;
+    },
+
+    // Staf
+    getStafProfile: async () => {
+        const response = await client.get("/pengajuan/profile/staf");
+        return response.data;
+    },
+
+    updateStafProfile: async (data: { nama?: string, email?: string, photo?: File }) => {
+        const formData = new FormData();
+        if (data.nama) formData.append('nama', data.nama);
+        if (data.email) formData.append('email', data.email);
+        if (data.photo) formData.append('photo', data.photo);
+
+        const response = await client.put("/pengajuan/profile/staf", formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
     }
 };
+

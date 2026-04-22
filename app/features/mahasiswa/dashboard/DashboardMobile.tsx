@@ -282,9 +282,9 @@ export function DashboardMobile() {
                             <ClipboardList className="w-5 h-5" />
                         </div>
                         <div className="flex-1">
-                            <h3 className="text-blue-800 font-bold text-sm">Pengumuman/Instruksi Baru</h3>
+                            <h3 className="text-blue-800 font-bold text-sm">Pengumuman Baru</h3>
                             <p className="text-blue-600 text-[10px] mt-1 pr-2 leading-relaxed">
-                                Ada {unreadAcaraCount} informasi atau instruksi baru yang belum Anda baca.
+                                Ada {unreadAcaraCount} pengumuman atau berita acara baru yang belum Anda baca.
                             </p>
                             <button 
                                 onClick={() => navigate("/mahasiswa/acara")}

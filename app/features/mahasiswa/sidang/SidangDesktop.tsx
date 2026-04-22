@@ -30,6 +30,7 @@ interface SidangItem {
     status: string;
     pembimbingApproved: boolean;
     prodiApproved: boolean;
+    mahasiswaSeen: boolean;
     catatan: string | null;
     createdAt: string;
 }
@@ -57,6 +58,26 @@ export function SidangDesktop({ title }: { title: string }) {
     useEffect(() => {
         if (user) fetchData();
     }, [user]);
+
+    useEffect(() => {
+        const markSeen = async () => {
+            if (sidangs.length > 0) {
+                const latest = sidangs[0];
+                if (!latest.mahasiswaSeen) {
+                    try {
+                        await sidangApi.markAsSeen(latest.id);
+                        // Update local state to remove badge immediately
+                        const updatedSidangs = [...sidangs];
+                        updatedSidangs[0] = { ...latest, mahasiswaSeen: true };
+                        setSidangs(updatedSidangs);
+                    } catch (error) {
+                        console.error("Mark As Seen Error:", error);
+                    }
+                }
+            }
+        };
+        markSeen();
+    }, [sidangs]);
 
     const getStatusInfo = (status: string) => {
         switch (status) {
@@ -182,7 +203,7 @@ export function SidangDesktop({ title }: { title: string }) {
                                     <Bookmark size={12} /> Judul Laporan KP
                                 </span>
                                 <h2 className="text-2xl lg:text-3xl font-black leading-snug tracking-tight mb-5 line-clamp-2">
-                                    "{(!latestSidang.judul || latestSidang.judul.toLowerCase() === 'sdfsdf') ? 'Sistem Keamanan Jaringan Berbasis AI untuk Smart City' : latestSidang.judul}"
+                                    "{latestSidang.judul || 'Sistem Informasi Akademik'}"
                                 </h2>
                                 <div className="flex flex-wrap gap-8 pt-5 border-t border-white/10">
                                     <div className="flex items-center gap-3">

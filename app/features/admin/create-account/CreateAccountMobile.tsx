@@ -82,7 +82,7 @@ export const CreateAccountMobile = () => {
         <div className="flex flex-col gap-2">
            <label className="text-[0.875rem] font-medium text-[#18181B]">Role</label>
            <div className="flex gap-3">
-               {['Mahasiswa', 'Dosen'].map((role) => (
+               {['Mahasiswa', 'Dosen', 'Staf'].map((role) => (
                    <button
                        key={role}
                        type="button"
@@ -124,7 +124,7 @@ export const CreateAccountMobile = () => {
             name="email"
             value={formData.email}
             onChange={handleInputChange}
-             placeholder={formData.role === 'mahasiswa' ? "mahasiswa@student.univ.ac.id" : "dosen@univ.ac.id"}
+            placeholder={formData.role === 'mahasiswa' ? "mahasiswa@student.univ.ac.id" : formData.role === 'dosen' ? "dosen@univ.ac.id" : "staf@univ.ac.id"}
             disabled={isLoading}
             className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50"
           />

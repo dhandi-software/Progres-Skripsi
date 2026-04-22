@@ -106,4 +106,22 @@ export const adminApi = {
         const response = await client.get<ApiResponse<any>>("/admin/dashboard-stats");
         return response.data;
     },
+
+    /**
+     * Get students without proposal
+     * GET /admin/mahasiswa-tanpa-pengajuan
+     */
+    getMahasiswaTanpaPengajuan: async (): Promise<ApiResponse<any[]>> => {
+        const response = await client.get<ApiResponse<any[]>>("/admin/mahasiswa-tanpa-pengajuan");
+        return response.data;
+    },
+
+    /**
+     * Get students with proposal
+     * GET /admin/mahasiswa-sudah-pengajuan
+     */
+    getMahasiswaSudahPengajuan: async (): Promise<ApiResponse<any[]>> => {
+        const response = await client.get<ApiResponse<any[]>>("/admin/mahasiswa-sudah-pengajuan");
+        return response.data;
+    },
 };

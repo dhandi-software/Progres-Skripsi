@@ -16,6 +16,7 @@ export function ChatDesktop({ title }: { title: string }) {
         messages,
         sendMessage,
         isLoadingHistory,
+        isSending,
         user,
         unreadCounts,
         resetUnreadCount,
@@ -52,6 +53,7 @@ export function ChatDesktop({ title }: { title: string }) {
                 onSendMessage={sendMessage}
                 onEditMessage={editMessage}
                 isLoadingHistory={isLoadingHistory}
+                isSending={isSending}
                 onMarkAsRead={markAsRead}
                 onDeleteMessage={deleteMessage}
                 onDeleteMessageForMe={deleteMessageForMe}

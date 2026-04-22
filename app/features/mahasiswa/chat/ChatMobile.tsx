@@ -22,7 +22,8 @@ export function ChatMobile({ title }: { title: string }) {
         markAsRead,
         deleteMessage,
         toastProps,
-        setToastProps
+        setToastProps,
+        isSending
     } = useChat();
 
     const [view, setView] = useState<"list" | "chat">("list");
@@ -71,6 +72,7 @@ export function ChatMobile({ title }: { title: string }) {
                         onBack={handleBack}
                         onMarkAsRead={markAsRead}
                         onDeleteMessage={deleteMessage}
+                        isSending={isSending}
                     />
                 </div>
             )}

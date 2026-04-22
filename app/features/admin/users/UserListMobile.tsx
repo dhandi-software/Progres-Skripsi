@@ -3,7 +3,7 @@ import { Plus, Search, Filter, Monitor, Pencil, Trash2, Check, X, ChevronRight, 
 import { adminApi } from "~/api/admin";
 import { cn } from "~/lib/utils";
 import { CreateAccountMobile } from "../create-account/CreateAccountMobile";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { Checkbox } from "~/components/ui/checkbox";
 import { DeleteConfirmationModal } from "~/components/ui/delete-confirmation-modal";
 import { ForceDeleteModal } from "~/components/ui/force-delete-modal";
@@ -17,7 +17,9 @@ import { useSidebar } from "~/components/ui/sidebar";
 
 export function UserListMobile() {
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<"mahasiswa" | "dosen">("mahasiswa");
+    const [searchParams, setSearchParams] = useSearchParams();
+    const activeTab = (searchParams.get("tab") as "mahasiswa" | "dosen" | "staf") || "mahasiswa";
+    const setActiveTab = (tab: "mahasiswa" | "dosen" | "staf") => setSearchParams({ tab });
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -63,7 +65,10 @@ export function UserListMobile() {
                 user.nama?.toLowerCase().includes(searchLower) ||
                 user.email?.toLowerCase().includes(searchLower) ||
                 (user.nim && user.nim.toLowerCase().includes(searchLower)) ||
-                (user.nidn && user.nidn.toLowerCase().includes(searchLower))
+                (user.nidn && user.nidn.toLowerCase().includes(searchLower)) ||
+                (user.user?.username && user.user.username.toLowerCase().includes(searchLower)) ||
+                (user.jurusan && user.jurusan.toLowerCase().includes(searchLower)) ||
+                (user.jabatan && user.jabatan.toLowerCase().includes(searchLower))
             );
         });
     }, [users, search]);
@@ -151,7 +156,9 @@ export function UserListMobile() {
         try {
             const res = activeTab === "mahasiswa" 
                 ? await adminApi.clearAllMahasiswa(false)
-                : await adminApi.clearAllDosen(false);
+                : activeTab === "dosen"
+                    ? await adminApi.clearAllDosen(false)
+                    : { message: "Fitur hapus seluruh staf belum didukung" };
             
             fetchUsers();
             setClearAllConfirmOpen(false);
@@ -178,7 +185,9 @@ export function UserListMobile() {
         try {
             const res = activeTab === "mahasiswa"
                 ? await adminApi.clearAllMahasiswa(true)
-                : await adminApi.clearAllDosen(true);
+                : activeTab === "dosen"
+                    ? await adminApi.clearAllDosen(true)
+                    : { message: "Fitur hapus seluruh staf belum didukung" };
                 
             fetchUsers();
             setForceClearAllModal2Open(false);
@@ -290,7 +299,10 @@ export function UserListMobile() {
 
              <div className="bg-white px-5 py-6 sticky top-0 z-10 border-b border-gray-100 shadow-sm">
                 <div className="flex justify-between items-center mb-4">
-                    <h1 className="text-xl font-bold text-gray-900">User Management</h1>
+                    <div>
+                        <h1 className="text-xl font-bold tracking-tight text-gray-900">Users</h1>
+                        <p className="text-gray-500 text-xs mt-0.5">Manage {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} accounts</p>
+                    </div>
                     <Drawer open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                         <DrawerTrigger asChild>
                              <button className="w-10 h-10 bg-[#D25026] text-white rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform">
@@ -306,8 +318,8 @@ export function UserListMobile() {
                 </div>
 
                 {/* Tabs */}
-                <div className="flex p-1 bg-gray-100 rounded-xl mb-4">
-                    {(["mahasiswa", "dosen"] as const).map((tab) => (
+                <div className="flex bg-gray-100 p-1 rounded-xl mb-4">
+                    {(["mahasiswa", "dosen", "staf"] as const).map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
@@ -414,7 +426,7 @@ export function UserListMobile() {
                                     <div className="flex flex-col min-w-0">
                                         <span className="font-bold text-gray-900 text-sm truncate">{user.nama}</span>
                                         <span className="text-xs text-gray-500 font-mono truncate">
-                                            {activeTab === 'mahasiswa' ? user.nim : user.nidn}
+                                            {activeTab === 'mahasiswa' ? user.nim : activeTab === 'dosen' ? user.nidn : user.user?.username}
                                         </span>
                                         <span className="text-[10px] text-gray-400 truncate mt-0.5">{user.email || user.user?.email || '-'}</span>
                                     </div>

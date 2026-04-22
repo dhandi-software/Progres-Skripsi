@@ -52,5 +52,9 @@ export const sidangApi = {
     getSidangMahasiswa: async () => {
         const response = await client.get("/sidang/mahasiswa");
         return response.data;
+    },
+    markAsSeen: async (id: number) => {
+        const response = await client.put(`/sidang/mark-as-seen/${id}`);
+        return response.data;
     }
 };

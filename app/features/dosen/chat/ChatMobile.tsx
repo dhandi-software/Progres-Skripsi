@@ -28,7 +28,8 @@ export function ChatMobile() {
         createGroup,
         deleteGroup,
         addMembersToGroup,
-        removeMemberFromGroup
+        removeMemberFromGroup,
+        isSending
     } = useChat();
 
     const [view, setView] = useState<"list" | "chat">("list");
@@ -80,6 +81,7 @@ export function ChatMobile() {
                                 return deleteGroup(activeContact.realId);
                             }
                         }}
+                        isSending={isSending}
                     />
                 </div>
             )}

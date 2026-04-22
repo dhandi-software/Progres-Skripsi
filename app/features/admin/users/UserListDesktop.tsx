@@ -16,7 +16,7 @@ import { Toast, type ToastProps } from "~/components/ui/toast";
 export function UserListDesktop() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = (searchParams.get("tab") as "mahasiswa" | "dosen") || "mahasiswa";
+  const activeTab = (searchParams.get("tab") as "mahasiswa" | "dosen" | "staf") || "mahasiswa";
 
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,7 +69,7 @@ export function UserListDesktop() {
     setSelectedIds([]); // Clear selection on tab change
   }, [activeTab]);
 
-  const handleTabChange = (tab: "mahasiswa" | "dosen") => {
+  const handleTabChange = (tab: "mahasiswa" | "dosen" | "staf") => {
     setSearchParams((prev) => {
       const newParams = new URLSearchParams(prev);
       newParams.set("tab", tab);
@@ -154,7 +154,9 @@ export function UserListDesktop() {
       try {
           const res = activeTab === "mahasiswa" 
               ? await adminApi.clearAllMahasiswa(false)
-              : await adminApi.clearAllDosen(false);
+              : activeTab === "dosen"
+                  ? await adminApi.clearAllDosen(false)
+                  : { message: "Clear all staf not implemented" }; // Placeholder if needed
               
           fetchUsers();
           setClearAllConfirmOpen(false);
@@ -181,7 +183,9 @@ export function UserListDesktop() {
       try {
           const res = activeTab === "mahasiswa"
               ? await adminApi.clearAllMahasiswa(true)
-              : await adminApi.clearAllDosen(true);
+              : activeTab === "dosen"
+                  ? await adminApi.clearAllDosen(true)
+                  : { message: "Clear all staf not implemented" };
               
           fetchUsers();
           setForceClearAllModal2Open(false);
@@ -218,6 +222,7 @@ export function UserListDesktop() {
           user.email?.toLowerCase().includes(searchLower) ||
           (user.nim && user.nim.toLowerCase().includes(searchLower)) ||
           (user.nidn && user.nidn.toLowerCase().includes(searchLower)) ||
+          (user.user?.username && user.user.username.toLowerCase().includes(searchLower)) ||
           (user.jurusan && user.jurusan.toLowerCase().includes(searchLower)) ||
           (user.jabatan && user.jabatan.toLowerCase().includes(searchLower));
 
@@ -309,11 +314,11 @@ export function UserListDesktop() {
       )
     },
     {
-      header: activeTab === "mahasiswa" ? "NIM" : "NIDN",
-      accessorKey: activeTab === "mahasiswa" ? "nim" : "nidn",
+      header: activeTab === "mahasiswa" ? "NIM" : activeTab === "dosen" ? "NIDN" : "Username",
+      accessorKey: activeTab === "mahasiswa" ? "nim" : activeTab === "dosen" ? "nidn" : "username",
       cell: (user) => (
         <span className="font-mono text-gray-600">
-          {activeTab === "mahasiswa" ? user.nim : user.nidn}
+          {activeTab === "mahasiswa" ? user.nim : activeTab === "dosen" ? user.nidn : user.user?.username}
         </span>
       ),
     },
@@ -322,15 +327,15 @@ export function UserListDesktop() {
       accessorKey: "email", 
       cell: (user) => <span className="text-gray-600">{user.email || user.user?.email || "-"}</span>,
     },
-    {
+    ...(activeTab !== "staf" ? [{
       header: activeTab === "mahasiswa" ? "Jurusan" : "Jabatan",
       accessorKey: activeTab === "mahasiswa" ? "jurusan" : "jabatan",
-      cell: (user) => (
+      cell: (user: any) => (
         <span className="inline-flex px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">
           {activeTab === "mahasiswa" ? user.jurusan : user.jabatan}
         </span>
       ),
-    },
+    }] : []),
     ...(activeTab === "mahasiswa"
       ? [
           {
@@ -410,7 +415,7 @@ export function UserListDesktop() {
 
       // Document Title
       doc.setFontSize(12);
-      doc.text(`DATA ${activeTab === "mahasiswa" ? "MAHASISWA" : "DOSEN"}`, centerX, 55, { align: "center" });
+      doc.text(`DATA ${activeTab.toUpperCase()}`, centerX, 55, { align: "center" });
 
       // Info Section (Tahun Akademik & Tanggal Cetak)
       doc.setFontSize(10);
@@ -440,14 +445,18 @@ export function UserListDesktop() {
       // Define columns and rows
       const tableColumn = activeTab === "mahasiswa"
         ? ["No", "Name", "NIM", "Email", "Jurusan", "Tahun Masuk"]
-        : ["No", "Name", "NIDN", "Email", "Jabatan"];
+        : activeTab === "dosen"
+            ? ["No", "Name", "NIDN", "Email", "Jabatan"]
+            : ["No", "Name", "Username", "Email"];
 
       const tableRows = users.map((u, index) => {
         const email = u.email || u.user?.email || "-";
         if (activeTab === "mahasiswa") {
           return [index + 1, u.nama, u.nim, email, u.jurusan, u.tahunMasuk];
-        } else {
+        } else if (activeTab === "dosen") {
           return [index + 1, u.nama, u.nidn, email, u.jabatan];
+        } else {
+          return [index + 1, u.nama, u.user?.username, email];
         }
       });
 
@@ -580,7 +589,7 @@ export function UserListDesktop() {
         <div className="flex justify-between items-center">
             <div>
                  <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-                 <p className="text-gray-500 text-sm mt-1">Manage {activeTab === "mahasiswa" ? "Mahasiswa" : "Dosen"} accounts.</p>
+                 <p className="text-gray-500 text-sm mt-1">Manage {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} accounts.</p>
             </div>
              <div className="flex gap-3">
                  <button
@@ -606,7 +615,7 @@ export function UserListDesktop() {
                     <div className="bg-white/20 p-0.5 rounded">
                        <Plus size={16} className="text-white" />
                     </div>
-                    Create New {activeTab === "mahasiswa" ? "Mahasiswa" : "Dosen"}
+                    Create New {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
                   </Link>
 
                   {selectedIds.length > 0 && (
@@ -730,7 +739,7 @@ export function UserListDesktop() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit mb-6">
-        {(["mahasiswa", "dosen"] as const).map((tab) => (
+        {(["mahasiswa", "dosen", "staf"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => handleTabChange(tab)}

@@ -5,6 +5,7 @@ import { useNavigate } from "react-router";
 import { Loader2, Send, ChevronLeft, MessageSquare, RotateCcw } from "lucide-react";
 import { Link } from "react-router";
 import { Toast } from "~/components/ui/toast";
+import { DeleteConfirmationModal } from "~/components/ui/delete-confirmation-modal";
 
 export function PengajuanMobile() {
     const navigate = useNavigate();
@@ -23,6 +24,8 @@ export function PengajuanMobile() {
     });
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const [cancelling, setCancelling] = useState(false);
+    const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
     const [isReadOnly, setIsReadOnly] = useState(false);
     const [toastProps, setToastProps] = useState<{title: string, variant?: "success" | "destructive" | "default"} | null>(null);
 
@@ -149,6 +152,32 @@ export function PengajuanMobile() {
         }
     };
 
+    const handleCancel = () => {
+        if (!profile?.pengajuanJudul?.[0]?.id) return;
+        setIsCancelDialogOpen(true);
+    };
+
+    const confirmCancel = async () => {
+        setIsCancelDialogOpen(false);
+        setCancelling(true);
+        try {
+            await pengajuanApi.cancelPengajuan(profile!.pengajuanJudul[0].id);
+            showToast("Pengajuan berhasil dibatalkan. Silakan edit dan kirim ulang jika perlu.", "success");
+            
+            // Allow editing with current data instead of reloading
+            setIsReadOnly(false);
+            setProfile((prev: any) => ({
+                ...prev,
+                pengajuanJudul: []
+            }));
+            setCancelling(false);
+        } catch (error) {
+            console.error("Cancel error", error);
+            showToast("Gagal membatalkan pengajuan", "destructive");
+            setCancelling(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex h-screen items-center justify-center bg-gray-50">
@@ -159,12 +188,20 @@ export function PengajuanMobile() {
 
     return (
         <div className="min-h-screen bg-gray-50 pb-20 font-geist relative">
+            {/* Modals & Popups */}
+            <DeleteConfirmationModal
+                isOpen={isCancelDialogOpen}
+                onClose={() => setIsCancelDialogOpen(false)}
+                onConfirm={confirmCancel}
+                title="Batalkan Pengajuan"
+                description="Apakah Anda yakin ingin membatalkan pengajuan ini? Data akan dihapus dan Anda bisa mengisi ulang formulir."
+            />
+
             {toastProps && (
-                <div className="fixed top-4 right-4 left-4 z-50">
+                <div className="fixed top-4 right-4 left-4 z-[100] animate-in fade-in slide-in-from-top-4">
                     <Toast
                         title={toastProps.title}
                         variant={toastProps.variant}
-                        duration={toastProps.variant === 'success' ? 3000 : 5000}
                         onClose={() => setToastProps(null)}
                     />
                 </div>
@@ -418,8 +455,20 @@ export function PengajuanMobile() {
 
                     {/* Submit Button */}
                     {isReadOnly ? (
-                        <div className={`w-full py-3.5 font-bold rounded-xl border text-center text-sm ${profile?.pengajuanJudul?.[0]?.status === 'APPROVED' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
-                            {profile?.pengajuanJudul?.[0]?.status === 'APPROVED' ? 'Pengajuan Sudah di ACC' : 'Pengajuan Anda sedang dalam proses'}
+                        <div className="space-y-3">
+                            <div className={`w-full py-3.5 font-bold rounded-xl border text-center text-sm ${profile?.pengajuanJudul?.[0]?.status === 'APPROVED' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+                                {profile?.pengajuanJudul?.[0]?.status === 'APPROVED' ? 'Pengajuan Sudah di ACC' : 'Pengajuan Anda sedang dalam proses'}
+                            </div>
+                            {profile?.pengajuanJudul?.[0]?.status === 'PENDING' && (
+                                <button
+                                    type="button"
+                                    onClick={handleCancel}
+                                    disabled={cancelling}
+                                    className="w-full text-center text-sm font-bold text-red-600 active:scale-95 transition-all py-2 disabled:opacity-50"
+                                >
+                                    {cancelling ? "Membatalkan..." : "Batalkan Pengajuan"}
+                                </button>
+                            )}
                         </div>
                     ) : (
                         <button 

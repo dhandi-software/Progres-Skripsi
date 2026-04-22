@@ -190,7 +190,12 @@ export function ChatSidebar({ contacts, activeContact, onSelectContact, unreadCo
                                                 "text-sm truncate max-w-[180px]",
                                                 unread > 0 ? "text-[#111b21] font-medium" : "text-[#667781]"
                                             )}>
-                                                {contact.lastMessage?.content || "No messages yet"}
+                                                {contact.lastMessage ? (
+                                                    contact.lastMessage.content || 
+                                                    (contact.lastMessage.attachmentType === 'image' ? '📷 Foto' : 
+                                                     contact.lastMessage.attachmentType === 'document' ? `📎 ${contact.lastMessage.fileName || 'File'}` : 
+                                                     'Pesan baru')
+                                                ) : "No messages yet"}
                                             </p>
                                             
                                             {unread > 0 && (

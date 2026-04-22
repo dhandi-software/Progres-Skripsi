@@ -27,6 +27,7 @@ interface ChatWindowProps {
     onAddMembers?: () => void;
     onRemoveMember?: (memberId: number) => Promise<void> | void;
     onDeleteGroup?: () => Promise<void> | void;
+    isSending?: boolean;
 }
 
 export function ChatWindow({
@@ -42,7 +43,8 @@ export function ChatWindow({
     onDeleteMessageForMe,
     onAddMembers,
     onRemoveMember,
-    onDeleteGroup
+    onDeleteGroup,
+    isSending = false
 }: ChatWindowProps) {
     const [inputValue, setInputValue] = useState("");
     const [replyingTo, setReplyingTo] = useState<Message | null>(null);
@@ -129,6 +131,7 @@ export function ChatWindow({
     };
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (isSending) return;
         const file = e.target.files?.[0];
         if (file) {
             onSendMessage("", file);
@@ -303,7 +306,7 @@ export function ChatWindow({
                                                         >
                                                             <FileText size={20} className="text-[#54656f]" />
                                                             <span className="truncate flex-1 text-[#111b21] font-medium">
-                                                                {msg.attachmentUrl.split('/').pop()}
+                                                                {msg.fileName || msg.attachmentUrl.split('/').pop()}
                                                             </span>
                                                         </a>
                                                     )}
@@ -323,7 +326,7 @@ export function ChatWindow({
                                             </span>
                                             {isMe && !isPublic && (
                                                 <span className={cn(msg.isRead ? "text-[#53bdeb]" : "text-[#667781]")}>
-                                                    {msg.isRead ? <CheckCheck size={14} /> : <CheckCheck size={14} />}
+                                                    {msg.isRead ? <CheckCheck size={14} /> : <Check size={14} />}
                                                 </span>
                                             )}
                                         </div>
@@ -371,7 +374,13 @@ export function ChatWindow({
                     onChange={handleFileUpload}
                 />
                 
-                <Button variant="ghost" size="icon" className="text-[#54656f] hover:text-[#111b21] hover:bg-[#d1d7db]" onClick={() => fileInputRef.current?.click()}>
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="text-[#54656f] hover:text-[#111b21] hover:bg-[#d1d7db]" 
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isSending}
+                >
                     <Paperclip size={20} />
                 </Button>
                 
@@ -399,7 +408,7 @@ export function ChatWindow({
                 
                 <Button 
                     onClick={handleSend} 
-                    disabled={!inputValue.trim()}
+                    disabled={!inputValue.trim() || isSending}
                     className={cn(
                         "rounded-full p-2 h-10 w-10 transition-colors",
                          inputValue.trim() ? "bg-[#00a884] text-white hover:bg-[#008f6f]" : "bg-[#f0f2f5] text-[#8696a0]"

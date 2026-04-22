@@ -30,6 +30,7 @@ interface SidangItem {
     status: string;
     pembimbingApproved: boolean;
     prodiApproved: boolean;
+    mahasiswaSeen: boolean;
     catatan: string | null;
     createdAt: string;
 }
@@ -57,6 +58,26 @@ export function SidangMobile({ title }: { title: string }) {
     useEffect(() => {
         if (user) fetchData();
     }, [user]);
+
+    useEffect(() => {
+        const markSeen = async () => {
+            if (sidangs.length > 0) {
+                const latest = sidangs[0];
+                if (!latest.mahasiswaSeen) {
+                    try {
+                        await sidangApi.markAsSeen(latest.id);
+                        // Update local state to remove badge immediately
+                        const updatedSidangs = [...sidangs];
+                        updatedSidangs[0] = { ...latest, mahasiswaSeen: true };
+                        setSidangs(updatedSidangs);
+                    } catch (error) {
+                        console.error("Mark As Seen Error Mobile:", error);
+                    }
+                }
+            }
+        };
+        markSeen();
+    }, [sidangs]);
 
     const getStatusInfo = (status: string) => {
         switch (status) {
@@ -141,7 +162,7 @@ export function SidangMobile({ title }: { title: string }) {
                         <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#FF7A00] uppercase tracking-widest bg-[#FF7A00]/10 px-3 py-1 rounded-full w-fit">
                             <Bookmark size={12} /> Judul Laporan
                         </span>
-                        <h2 className="text-lg font-black text-slate-900 leading-snug">"{latestSidang.judul || 'Judul Belum Ditentukan'}"</h2>
+                        <h2 className="text-lg font-black text-slate-900 leading-snug">"{latestSidang.judul || 'Sistem Informasi Akademik'}"</h2>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 py-5 border-y border-slate-100">

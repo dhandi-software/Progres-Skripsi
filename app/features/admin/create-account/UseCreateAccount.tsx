@@ -32,7 +32,7 @@ export const useCreateAccount = () => {
 
   // Sync role with URL param on mount
   useEffect(() => {
-    if (roleParam && (roleParam === "mahasiswa" || roleParam === "dosen")) {
+    if (roleParam && (roleParam === "mahasiswa" || roleParam === "dosen" || roleParam === "staf")) {
         setFormData(prev => ({ ...prev, role: roleParam }));
     }
   }, [roleParam]);
@@ -169,7 +169,7 @@ export const useCreateAccount = () => {
 
              // Password Generation
              const length = 12;
-             const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+~`|}{[]:;?><,./-=";
+             const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*";
              let generatedPassword = "";
              for (let j = 0; j < length; ++j) {
                  generatedPassword += charset.charAt(Math.floor(Math.random() * charset.length));
@@ -316,6 +316,12 @@ export const useCreateAccount = () => {
                   nama: formData.name,
                   nidn: formData.nidn,
                   jabatan: formData.jabatan
+              });
+          } else if (formData.role.toLowerCase() === 'staf') {
+              await userApi.createStaf({
+                  email: formData.email,
+                  password: formData.password,
+                  nama: formData.name,
               });
           } else {
             throw new Error("Invalid role selected");

@@ -16,6 +16,7 @@ export function useChat() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [unreadCounts, setUnreadCounts] = useState<Record<string | number, number>>({});
   const [toastProps, setToastProps] = useState<{title: string, variant: 'default'|'destructive', description?: string} | null>(null);
+  const [isSending, setIsSending] = useState(false);
   
   const activeContactRef = useRef<ChatContact | null>(null);
 
@@ -90,6 +91,27 @@ export function useChat() {
 
       setMessages((prev) => {
           const currentActive = activeContactRef.current;
+          
+          // --- CEK DUPLIKASI ---
+          if (prev.find(m => m.id === message.id)) return prev;
+
+          // --- CEK OPTIMISTIK ---
+          // Jika pesan ini dikirim oleh saya (tab lain atau broadcast), 
+          // coba ganti pesan yang sedang loading (optimistic) jika ada.
+          if (message.senderId === user.id) {
+              const tempIdx = prev.findIndex(m => 
+                  (m as any).isOptimistic === true && 
+                  (m.content === message.content || (!m.content && !message.content)) &&
+                  (m.attachmentUrl === message.attachmentUrl || m.fileName === message.fileName)
+              );
+
+              if (tempIdx !== -1) {
+                  const next = [...prev];
+                  next[tempIdx] = message;
+                  return next;
+              }
+          }
+
           // Check if message belongs to current active conversation
           // Case 1: Public Chat
           if (currentActive?.id === 0 && message.isPublic) {
@@ -159,8 +181,8 @@ export function useChat() {
                     // Cari pesan optimistik yang sesuai, ganti dengan yang asli
                     const tempIdx = prev.findIndex(m => 
                         (m as any).isOptimistic === true && 
-                        m.content === message.content && 
-                        m.senderId === message.senderId
+                        (m.content === message.content || (!m.content && !message.content)) &&
+                        (m.attachmentUrl === message.attachmentUrl || m.fileName === message.fileName)
                     );
 
                     if (tempIdx !== -1) {
@@ -332,7 +354,10 @@ export function useChat() {
   }, [socket, user]);
 
   const sendMessage = useCallback(async (content: string, file?: File, replyToId?: number) => {
-    if (!user || !activeContact || !socket) return;
+    if (!user || !activeContact || !socket || isSending) return;
+    
+    setIsSending(true);
+    try {
 
     let attachmentUrl = null;
     let attachmentType: "image" | "document" | "none" = "none";
@@ -359,6 +384,7 @@ export function useChat() {
       content: content || undefined,
       attachmentUrl: attachmentUrl || undefined,
       attachmentType: attachmentType === "none" ? undefined : attachmentType,
+      fileName: file ? file.name : undefined,
       isPublic: activeContact.id === 0,
       replyToId
     };
@@ -378,6 +404,7 @@ export function useChat() {
       isEdited: false,
       attachmentUrl: payload.attachmentUrl || null,
       attachmentType: payload.attachmentType || null,
+      fileName: payload.fileName || null,
       replyToId: payload.replyToId,
       sender: { username: "Anda", role: user.role || "dosen" } // Dummy
     };
@@ -387,7 +414,12 @@ export function useChat() {
     setMessages(prev => [...prev, optimisticMessage]);
 
     socket.emit("send_message", payload);
-  }, [user, activeContact, socket]);
+    } catch (error) {
+        console.error("SendMessage Error:", error);
+    } finally {
+        setIsSending(false);
+    }
+  }, [user, activeContact, socket, isSending]);
 
   const markAsRead = useCallback((targetId: number | string, isGroup?: boolean) => {
       if (!socket || !user) return;
@@ -559,6 +591,7 @@ export function useChat() {
     addMembersToGroup,
     removeMemberFromGroup,
     toastProps,
-    setToastProps
+    setToastProps,
+    isSending
   };
 }

@@ -291,8 +291,8 @@ export function DashboardDesktop() {
                             <ClipboardList className="w-6 h-6" />
                         </div>
                         <div>
-                            <h3 className="text-blue-800 font-bold text-lg">Informasi Tugas Baru</h3>
-                            <p className="text-blue-600 text-sm mt-1 mb-0">Ada {unreadAcaraCount} berita acara atau tugas baru dari dosen pembimbing yang belum Anda baca.</p>
+                            <h3 className="text-blue-800 font-bold text-lg">Pengumuman Baru</h3>
+                            <p className="text-blue-600 text-sm mt-1 mb-0">Ada {unreadAcaraCount} pengumuman atau berita acara baru dari dosen pembimbing yang belum Anda baca.</p>
                         </div>
                     </div>
                     <button 

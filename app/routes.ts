@@ -55,7 +55,16 @@ export default [
             route("profile", "routes/dosen/profile.tsx"),
         ]),
     ]),
-    // Admin
+    // Staf
+    layout("routes/staf/layout.tsx", [
+        ...prefix("staf", [
+            index("routes/staf/dashboard.tsx"),
+            route("sidang", "routes/staf/sidang.tsx"),
+            route("chat", "routes/staf/chat.tsx"),
+            route("profile", "routes/staf/profile.tsx"),
+        ]),
+    ]),
+
     // Admin
     layout("routes/admin/layout.tsx", [
         ...prefix("admin", [

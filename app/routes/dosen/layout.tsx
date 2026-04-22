@@ -20,6 +20,7 @@ import { RoleGuard } from "~/routes/RoleGuard";
 import { useAuth } from "~/hooks/useAuth";
 import type { ContextType } from "~/root";
 import { chatService } from "~/services/chatService";
+import { sidangApi } from "~/api/sidangApi";
 
 import { SidebarProvider, Sidebar, SidebarContent, useSidebar, SidebarTrigger } from "~/components/ui/sidebar";
 import { cn } from "~/lib/utils";
@@ -146,6 +147,8 @@ export function AppSidebar() {
   const [pendingCount, setPendingCount] = React.useState(0);
   const [unreadCount, setUnreadCount] = React.useState(0);
   const [bimbinganBadgeCount, setBimbinganBadgeCount] = React.useState(0);
+  const [sidangBadgeCount, setSidangBadgeCount] = React.useState(0);
+  const [prodiSidangBadgeCount, setProdiSidangBadgeCount] = React.useState(0);
 
   React.useEffect(() => {
     const fetchPendingCount = async () => {
@@ -191,16 +194,40 @@ export function AppSidebar() {
       }
     };
 
+    const fetchSidangBadge = async () => {
+      try {
+        const data = await sidangApi.getSidangByDosen();
+        if (data && Array.isArray(data)) {
+            // Advisor badge: status MENUNGGU_PERSETUJUAN_PEMBIMBING
+            const advisorCount = data.filter((item: any) => 
+                item.status === 'MENUNGGU_PERSETUJUAN_PEMBIMBING' && item.dosenId === user?.dosenId
+            ).length;
+            setSidangBadgeCount(advisorCount);
+
+            // Prodi badge: status MENUNGGU_PENJADWALAN_PRODI, MENUNGGU_VERIFIKASI_KAPRODI, MENUNGGU_KONFIRMASI_JADWAL_KAPRODI
+            const prodiStatuses = ['MENUNGGU_PENJADWALAN_PRODI', 'MENUNGGU_VERIFIKASI_KAPRODI', 'MENUNGGU_KONFIRMASI_JADWAL_KAPRODI'];
+            const prodiCount = data.filter((item: any) => 
+                prodiStatuses.includes(item.status)
+            ).length;
+            setProdiSidangBadgeCount(prodiCount);
+        }
+      } catch (error) {
+        console.error("Failed to fetch sidang badge:", error);
+      }
+    };
+
     // Initial fetch
     fetchPendingCount();
     fetchUnread();
     fetchBimbinganBadge();
+    fetchSidangBadge();
     
     // Setup interval to periodically check (optional, but good for real-time feel)
     const intervalId = setInterval(() => {
         fetchPendingCount();
         fetchUnread();
         fetchBimbinganBadge();
+        fetchSidangBadge();
     }, 30000); // Check every 30s
     return () => clearInterval(intervalId);
   }, [user]);
@@ -295,6 +322,16 @@ export function AppSidebar() {
                           {unreadCount}
                         </div>
                       )}
+                      {item.key === "sidang" && sidangBadgeCount > 0 && (
+                        <div className="bg-[#D25026] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
+                          {sidangBadgeCount}
+                        </div>
+                      )}
+                      {item.key === "prodiSidang" && prodiSidangBadgeCount > 0 && (
+                        <div className="bg-[#D25026] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
+                          {prodiSidangBadgeCount}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -314,14 +351,6 @@ export function AppSidebar() {
           </button>
         </div>
 
-        {/* Debug Section - Can be removed after confirmation */}
-        <div className="mt-4 px-4 py-2 bg-gray-100 rounded-lg border border-gray-200">
-            <p className="text-[9px] text-gray-500 uppercase font-black mb-1">System Debug</p>
-            <div className="flex flex-col gap-1">
-                <span className="text-[10px] text-gray-700">Role: {user?.role || "N/A"}</span>
-                <span className="text-[10px] text-gray-700">Jabatan: {user?.jabatan || "N/A"}</span>
-            </div>
-        </div>
       </SidebarContent>
     </Sidebar>
   );

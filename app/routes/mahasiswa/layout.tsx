@@ -18,6 +18,7 @@ import type { ContextType } from "~/root";
 import { chatService } from "~/services/chatService";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { acaraApi } from "~/api/acaraApi";
+import { sidangApi } from "~/api/sidangApi";
 import React from "react";
 import { io } from "socket.io-client";
 import { UPLOADS_URL } from "~/api/client";
@@ -121,6 +122,7 @@ export function AppSidebar() {
   const [unreadCount, setUnreadCount] = React.useState(0);
   const [bimbinganBadgeCount, setBimbinganBadgeCount] = React.useState(0);
   const [acaraBadgeCount, setAcaraBadgeCount] = React.useState(0);
+  const [sidangBadgeCount, setSidangBadgeCount] = React.useState(0);
 
   React.useEffect(() => {
     if (!user) return;
@@ -151,6 +153,21 @@ export function AppSidebar() {
             setAcaraBadgeCount(data.count || 0);
         })
         .catch(err => console.error("Sidebar Acara Error:", err));
+
+      // Fetch Sidang Notification
+      sidangApi.getSidangMahasiswa()
+        .then(data => {
+            if (data && Array.isArray(data) && data.length > 0) {
+                const latest = data[0];
+                // Show badge if not seen by student
+                if (!latest.mahasiswaSeen) {
+                    setSidangBadgeCount(1);
+                } else {
+                    setSidangBadgeCount(0);
+                }
+            }
+        })
+        .catch(err => console.error("Sidebar Sidang Error:", err));
     };
     fetchData();
     const intervalId = setInterval(fetchData, 30000);
@@ -286,6 +303,11 @@ export function AppSidebar() {
                       {item.key === "acara" && acaraBadgeCount > 0 && (
                         <div className="bg-[#D25026] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
                           {acaraBadgeCount}
+                        </div>
+                      )}
+                      {item.key === "sidang" && sidangBadgeCount > 0 && (
+                        <div className="bg-[#FF7A00] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
+                          {sidangBadgeCount}
                         </div>
                       )}
                     </div>

@@ -142,6 +142,24 @@ export const userApi = {
     },
 
     /**
+     * Create Staf
+     * POST /api/admin/create-staf
+     */
+    createStaf: async (data: any): Promise<any> => {
+        try {
+            const response = await client.post("/admin/create-staf", data);
+            return response.data;
+        } catch (error: any) {
+            console.error("❌ Create Staf error:", {
+                status: error.response?.status,
+                data: error.response?.data,
+                message: error.message,
+            });
+            throw error;
+        }
+    },
+
+    /**
      * Get all users
      * GET /api/v1/admin/users
      */

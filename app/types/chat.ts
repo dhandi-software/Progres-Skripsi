@@ -3,6 +3,7 @@ export interface Message {
   content: string | null;
   attachmentUrl: string | null;
   attachmentType: 'image' | 'document' | 'none' | null;
+  fileName?: string | null;
   senderId: number;
   receiverId?: number;
   roomId?: number;
@@ -49,5 +50,6 @@ export interface SendMessagePayload {
   content?: string;
   attachmentUrl?: string;
   attachmentType?: 'image' | 'document' | 'none';
+  fileName?: string;
   isPublic?: boolean;
 }
