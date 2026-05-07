@@ -9,7 +9,8 @@ import {
   MessageCircle,
   Calendar,
   Award,
-  Trophy
+  Trophy,
+  BookOpen
 } from "lucide-react";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
 import { RoleGuard } from "~/routes/RoleGuard";
@@ -37,6 +38,7 @@ type MenuKey =
   | "penilaian"
   | "profilemahasiswa"
   | "portfolio"
+  | "logbook"
   | "logout";
 
 const pathToKey = (pathname: string): MenuKey | undefined => {
@@ -48,6 +50,7 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/mahasiswa/sidang")) return "sidang";
   if (pathname.startsWith("/mahasiswa/penilaian")) return "penilaian";
   if (pathname.startsWith("/mahasiswa/profilemahasiswa")) return "profilemahasiswa";
+  if (pathname.startsWith("/mahasiswa/logbook")) return "logbook";
   if (pathname === "/mahasiswa" || pathname.startsWith("/mahasiswa/"))
     return "dashboard";
   return undefined;
@@ -107,6 +110,12 @@ const menuItems = [
     title: "Profil Mahasiswa",
     icon: Trophy,
     url: "/mahasiswa/profilemahasiswa",
+  },
+  {
+    key: "logbook" as MenuKey,
+    title: "Logbook KP",
+    icon: BookOpen,
+    url: "/mahasiswa/logbook",
   },
 ];
 
@@ -350,7 +359,7 @@ export default function MahasiswaLayout() {
               {isMobile && !location.pathname.includes("/chat") && (
                 <div className="md:hidden flex items-center p-4 bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
                   <SidebarTrigger className="p-2 -ml-2 text-gray-700" />
-                  <span className="ml-2 font-bold text-[#119DA4] text-lg tracking-tight">UP Akademik</span>
+                  <span className="ml-2 font-bold text-[#119DA4] text-lg tracking-tight">Kerja Praktik</span>
                 </div>
               )}
               {isMobile && location.pathname.includes("/chat") && (

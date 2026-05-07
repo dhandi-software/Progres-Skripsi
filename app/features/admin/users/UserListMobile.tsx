@@ -24,6 +24,10 @@ export function UserListMobile() {
     const [loading, setLoading] = useState(true);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [search, setSearch] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const itemsPerPage = 10;
     
     // Selection & Delete state
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -42,8 +46,11 @@ export function UserListMobile() {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const res = await adminApi.getUsersByRole(activeTab);
+            const res = await adminApi.getUsersByRole(activeTab, currentPage, itemsPerPage, debouncedSearch);
             setUsers(Array.isArray(res.data) ? res.data : []);
+            if (res.pagination) {
+                setTotalPages(res.pagination.totalPages);
+            }
         } catch (error) {
             console.error("Failed to fetch users", error);
             setUsers([]);
@@ -52,26 +59,27 @@ export function UserListMobile() {
         }
     };
 
+    // Debounce search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(search);
+            setCurrentPage(1);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [search]);
+
     useEffect(() => {
         fetchUsers();
+    }, [activeTab, currentPage, debouncedSearch]);
+
+    useEffect(() => {
+        setCurrentPage(1);
         setSelectedIds([]);
         setSearch("");
     }, [activeTab]);
 
-    const filteredUsers = useMemo(() => {
-        return users.filter((user) => {
-            const searchLower = search.toLowerCase();
-            return (
-                user.nama?.toLowerCase().includes(searchLower) ||
-                user.email?.toLowerCase().includes(searchLower) ||
-                (user.nim && user.nim.toLowerCase().includes(searchLower)) ||
-                (user.nidn && user.nidn.toLowerCase().includes(searchLower)) ||
-                (user.user?.username && user.user.username.toLowerCase().includes(searchLower)) ||
-                (user.jurusan && user.jurusan.toLowerCase().includes(searchLower)) ||
-                (user.jabatan && user.jabatan.toLowerCase().includes(searchLower))
-            );
-        });
-    }, [users, search]);
+    // Server-side filtered results
+    const filteredUsers = users;
 
     const handleToggleSelect = (id: number) => {
         setSelectedIds(prev => 
@@ -462,6 +470,29 @@ export function UserListMobile() {
                     })
                 )}
             </div>
+
+            {/* Pagination */}
+            {!loading && totalPages > 1 && (
+                <div className="px-4 py-6 flex justify-center gap-2 mb-20">
+                    <button 
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 shadow-sm disabled:opacity-50 active:scale-95 transition-all"
+                    >
+                        Prev
+                    </button>
+                    <div className="flex items-center px-6 bg-white border border-gray-100 rounded-xl text-sm font-black text-[#D25026] shadow-inner">
+                        {currentPage} / {totalPages}
+                    </div>
+                    <button 
+                        disabled={currentPage === totalPages}
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 shadow-sm disabled:opacity-50 active:scale-95 transition-all"
+                    >
+                        Next
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

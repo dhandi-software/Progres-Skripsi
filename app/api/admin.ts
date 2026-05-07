@@ -6,6 +6,12 @@ interface ApiResponse<T> {
     status: string;
     message: string;
     data: T;
+    pagination?: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    };
 }
 
 export interface CountResponse {
@@ -29,8 +35,10 @@ export const adminApi = {
      * Get users by role
      * GET /admin/users-role?role=...
      */
-    getUsersByRole: async (role: string): Promise<ApiResponse<any[]>> => {
-        const response = await client.get<ApiResponse<any[]>>(`/admin/users-role?role=${role}`);
+    getUsersByRole: async (role: string, page: number = 1, limit: number = 10, search: string = ''): Promise<ApiResponse<any[]>> => {
+        const response = await client.get<ApiResponse<any[]>>(`/admin/users-role`, {
+            params: { role, page, limit, search }
+        });
         return response.data;
     },
 

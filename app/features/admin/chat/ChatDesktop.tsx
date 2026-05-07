@@ -1,15 +1,11 @@
-import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router";
 import { ChatSidebar } from "~/components/ui/chat-sidebar";
 import { ChatWindow } from "~/components/ui/chat-window";
 import { useChat } from "~/hooks/useChat";
-import { CreateGroupModal } from "./CreateGroupModal";
-import { AddMemberModal } from "./AddMemberModal";
+import { Toast } from "~/components/ui/toast";
+import { useEffect } from "react";
+import { useSearchParams } from "react-router";
 
 export function ChatDesktop({ title }: { title: string }) {
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
-    
     const {
         contacts,
         activeContact,
@@ -17,7 +13,6 @@ export function ChatDesktop({ title }: { title: string }) {
         messages,
         sendMessage,
         isLoadingHistory,
-        isSending,
         user,
         unreadCounts,
         resetUnreadCount,
@@ -25,13 +20,13 @@ export function ChatDesktop({ title }: { title: string }) {
         deleteMessage,
         deleteMessageForMe,
         editMessage,
-        createGroup,
-        deleteGroup,
-        addMembersToGroup,
-        removeMemberFromGroup,
         publicMembers,
+        fetchPublicMembers,
         kickFromPublic,
-        unbanFromPublic
+        unbanFromPublic,
+        toastProps,
+        setToastProps,
+        isSending
     } = useChat();
 
     const [searchParams] = useSearchParams();
@@ -59,9 +54,6 @@ export function ChatDesktop({ title }: { title: string }) {
                 activeContact={activeContact}
                 onSelectContact={handleSelectContact}
                 unreadCounts={unreadCounts}
-                currentUserRole={user?.role}
-                currentUser={user}
-                onCreateGroup={() => setIsCreateModalOpen(true)}
             />
             <ChatWindow
                 activeContact={activeContact}
@@ -70,42 +62,22 @@ export function ChatDesktop({ title }: { title: string }) {
                 onSendMessage={sendMessage}
                 onEditMessage={editMessage}
                 isLoadingHistory={isLoadingHistory}
-                isSending={isSending}
                 onMarkAsRead={markAsRead}
                 onDeleteMessage={deleteMessage}
                 onDeleteMessageForMe={deleteMessageForMe}
                 publicMembers={publicMembers}
                 onKickPublic={kickFromPublic}
                 onUnbanPublic={unbanFromPublic}
-                onAddMembers={() => setIsAddMemberOpen(true)}
-                onRemoveMember={(memberId) => {
-                    if (activeContact?.isGroup && activeContact.realId) {
-                        return removeMemberFromGroup(activeContact.realId, memberId);
-                    }
-                }}
-                onDeleteGroup={() => {
-                    if (activeContact?.isGroup && activeContact.realId) {
-                        return deleteGroup(activeContact.realId);
-                    }
-                }}
+                isSending={isSending}
             />
-            <CreateGroupModal
-                isOpen={isCreateModalOpen}
-                onClose={() => setIsCreateModalOpen(false)}
-                contacts={contacts}
-                onCreate={createGroup}
-            />
-            
-            {activeContact?.isGroup && (
-               <AddMemberModal
-                   isOpen={isAddMemberOpen}
-                   onClose={() => setIsAddMemberOpen(false)}
-                   contacts={contacts}
-                   currentMemberIds={activeContact.members?.map(m => m.id) || []}
-                   onAdd={async (participantIds) => {
-                       await addMembersToGroup(activeContact.realId!, participantIds);
-                   }}
-               />
+            {toastProps && (
+                <div className="absolute bottom-4 right-4 z-50">
+                    <Toast
+                        title={toastProps.title}
+                        variant={toastProps.variant}
+                        onClose={() => setToastProps(null)}
+                    />
+                </div>
             )}
         </div>
     );

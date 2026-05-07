@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
 import { ChatSidebar } from "~/components/ui/chat-sidebar";
 import { ChatWindow } from "~/components/ui/chat-window";
 import { useChat } from "~/hooks/useChat";
-import { ChevronLeft } from "lucide-react";
 import { Toast } from "~/components/ui/toast";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
+import { ChevronLeft } from "lucide-react";
 
 export function ChatMobile({ title }: { title: string }) {
     const {
@@ -22,6 +22,7 @@ export function ChatMobile({ title }: { title: string }) {
         deleteMessageForMe,
         editMessage,
         publicMembers,
+        fetchPublicMembers,
         kickFromPublic,
         unbanFromPublic,
         toastProps,
@@ -29,8 +30,8 @@ export function ChatMobile({ title }: { title: string }) {
         isSending
     } = useChat();
 
-    const [view, setView] = useState<'list' | 'chat'>('list');
     const [searchParams] = useSearchParams();
+    const [view, setView] = useState<"list" | "chat">("list");
 
     useEffect(() => {
         const userId = searchParams.get("userId");
@@ -39,59 +40,40 @@ export function ChatMobile({ title }: { title: string }) {
             const contact = contacts.find(c => c.id === targetId);
             if (contact) {
                 setActiveContact(contact);
-                setView('chat');
+                setView("chat");
             }
         }
     }, [searchParams, contacts, activeContact, setActiveContact]);
 
-    useEffect(() => {
-        if (activeContact) {
-            setView('chat');
-        } else {
-            setView('list');
-        }
-    }, [activeContact]);
-
     const handleSelectContact = (contact: any) => {
         setActiveContact(contact);
         resetUnreadCount(contact.id);
-        setView('chat');
+        setView("chat");
     };
 
     const handleBack = () => {
-        setView('list');
+        setView("list");
         setActiveContact(null);
     };
 
     return (
-        <div className="flex flex-col h-full overflow-hidden bg-white relative">
-            {view === 'list' ? (
-                <div className="flex flex-col h-full pt-16">
-                    <ChatSidebar
-                        contacts={contacts}
-                        activeContact={activeContact}
-                        onSelectContact={handleSelectContact}
-                        unreadCounts={unreadCounts}
-                    />
+        <div className="flex flex-col h-full bg-white relative overflow-hidden">
+            {view === "list" ? (
+                <div className="flex-1 flex flex-col overflow-hidden">
+                    <div className="p-4 border-b">
+                        <h1 className="text-xl font-bold text-gray-800">{title}</h1>
+                    </div>
+                    <div className="flex-1 overflow-y-auto">
+                        <ChatSidebar
+                            contacts={contacts}
+                            activeContact={activeContact}
+                            onSelectContact={handleSelectContact}
+                            unreadCounts={unreadCounts}
+                        />
+                    </div>
                 </div>
             ) : (
-                <div className="flex flex-col h-full">
-                    <div className="flex items-center px-4 py-3 border-b border-gray-100 bg-white sticky top-0 z-10 pt-16">
-                        <button
-                            onClick={handleBack}
-                            className="p-2 -ml-2 mr-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
-                        >
-                            <ChevronLeft className="w-6 h-6" />
-                        </button>
-                        <div className="flex-1 min-w-0">
-                            <h2 className="font-bold text-gray-900 truncate">
-                                {activeContact?.username}
-                            </h2>
-                            <p className="text-xs text-gray-500 truncate uppercase tracking-wider font-semibold">
-                                {activeContact?.role}
-                            </p>
-                        </div>
-                    </div>
+                <div className="flex-1 flex flex-col overflow-hidden">
                     <div className="flex-1 overflow-hidden">
                         <ChatWindow
                             activeContact={activeContact}
@@ -103,6 +85,7 @@ export function ChatMobile({ title }: { title: string }) {
                             onMarkAsRead={markAsRead}
                             onDeleteMessage={deleteMessage}
                             onDeleteMessageForMe={deleteMessageForMe}
+                            onBack={handleBack}
                             publicMembers={publicMembers}
                             onKickPublic={kickFromPublic}
                             onUnbanPublic={unbanFromPublic}
@@ -112,7 +95,7 @@ export function ChatMobile({ title }: { title: string }) {
                 </div>
             )}
             {toastProps && (
-                <div className="absolute bottom-20 right-4 left-4 z-50">
+                <div className="absolute bottom-20 left-4 right-4 z-50">
                     <Toast
                         title={toastProps.title}
                         variant={toastProps.variant}

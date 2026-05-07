@@ -347,9 +347,10 @@ interface MonthYearFilterProps {
   setDate: (date: Date | undefined) => void;
   showLabel?: boolean;
   className?: string;
+  compact?: boolean;
 }
 
-function MonthYearFilter({ date, setDate, showLabel = true, className }: MonthYearFilterProps) {
+function MonthYearFilter({ date, setDate, showLabel = true, className, compact = false }: MonthYearFilterProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [view, setView] = useState<'days' | 'months' | 'years'>('days');
   const [browsingDate, setBrowsingDate] = useState<Date>(date || new Date());
@@ -367,8 +368,11 @@ function MonthYearFilter({ date, setDate, showLabel = true, className }: MonthYe
       }
   };
 
-  const currentMonth = date ? date.getMonth() : undefined;
-  const currentYear = date ? date.getFullYear() : undefined;
+  const isValidDate = date && !isNaN(date.getTime());
+  const currentMonth = isValidDate ? date.getMonth() : undefined;
+  const currentYear = isValidDate ? date.getFullYear() : undefined;
+
+  const displayDate = isValidDate ? date : new Date();
 
   return (
     <div className={cn("w-auto inline-flex flex-col justify-start items-start gap-1", className)}>
@@ -390,40 +394,52 @@ function MonthYearFilter({ date, setDate, showLabel = true, className }: MonthYe
 
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverAnchor asChild>
-            <div className="min-h-[40px] flex flex-row flex-wrap justify-start items-center gap-2 select-none border border-transparent shrink-0">
+            <div className={cn(
+                "min-h-[32px] flex flex-row flex-wrap justify-start items-center select-none border border-transparent shrink-0 w-full",
+                compact ? "gap-1" : "gap-2"
+            )}>
                 
                 <div 
                     onClick={() => toggleOpen('days')} 
-                    className="self-stretch px-3 rounded outline outline-offset-[-1px] outline-Border-subtle inline-flex justify-center items-center cursor-pointer hover:bg-gray-50 bg-white"
+                    className={cn(
+                        "rounded outline outline-offset-[-1px] outline-Border-subtle inline-flex justify-center items-center cursor-pointer hover:bg-gray-50 bg-white min-w-[35px]",
+                        compact ? "px-1 h-8 flex-1" : "px-3 self-stretch"
+                    )}
                 >
-                    <div className="h-6 flex justify-center items-center overflow-hidden">
-                        <div className="text-center justify-center text-black text-sm font-normal font-['Geist'] leading-5">
-                            {date ? format(date, "dd") : "DD"}
+                    <div className="flex justify-center items-center overflow-hidden">
+                        <div className={cn("text-center justify-center text-black font-normal font-['Geist'] leading-tight", compact ? "text-[11px]" : "text-sm")}>
+                            {isValidDate ? format(date, "dd") : "DD"}
                         </div>
                     </div>
                 </div>
 
                 <div 
                     onClick={() => toggleOpen('days')} 
-                    className="flex-1 self-stretch px-4 py-2 bg-white rounded shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] outline outline-1 outline-Border-subtle inline-flex justify-center items-center gap-1.5 cursor-pointer hover:bg-gray-50 min-w-[120px]"
+                    className={cn(
+                        "bg-white rounded shadow-[0px_1px_2px_0px_rgba(0,0,0,0.05)] outline outline-1 outline-Border-subtle inline-flex justify-center items-center cursor-pointer hover:bg-gray-50",
+                        compact ? "px-2 h-8 flex-[2]" : "flex-1 self-stretch px-4 py-2 min-w-[120px]"
+                    )}
                 >
-                    <div className="flex-1 self-stretch inline-flex flex-col justify-center items-center gap-0.5">
-                        <div className="self-stretch text-center justify-center text-Base-elevated-foreground text-sm font-medium font-['Geist'] leading-5">
-                            {currentMonth !== undefined ? format(new Date(2000, currentMonth, 1), "MMMM") : "Month"}
+                    <div className="flex-1 inline-flex flex-col justify-center items-center gap-0.5">
+                        <div className={cn("self-stretch text-center justify-center text-Base-elevated-foreground font-medium font-['Geist'] leading-tight", compact ? "text-[11px]" : "text-sm")}>
+                            {currentMonth !== undefined ? format(new Date(2000, currentMonth, 1), "MMM") : "Month"}
                         </div>
                     </div>
                 </div>
 
                 <div 
                     onClick={() => toggleOpen('days')} 
-                    className="self-stretch px-4 bg-white rounded outline outline-1 outline-offset-[-1px] outline-Border-subtle inline-flex justify-center items-center cursor-pointer hover:bg-gray-50 min-w-[70px]"
+                    className={cn(
+                        "bg-white rounded outline outline-1 outline-offset-[-1px] outline-Border-subtle inline-flex justify-center items-center cursor-pointer hover:bg-gray-50",
+                        compact ? "px-2 h-8 flex-1.5 min-w-[50px]" : "self-stretch px-4 min-w-[70px]"
+                    )}
                 >
-                    <div className="flex-1 self-stretch text-center justify-center flex flex-col text-black text-sm font-normal font-['Geist'] leading-5">
+                    <div className={cn("flex-1 text-center justify-center flex flex-col text-black font-normal font-['Geist'] leading-tight", compact ? "text-[11px]" : "text-sm")}>
                         {currentYear !== undefined ? currentYear : "YYYY"}
                     </div>
                 </div>
 
-                <CalendarDays onClick={() => toggleOpen('days')} className="w-6 h-6 text-black/80 shrink-0 cursor-pointer hover:opacity-80 ml-1" />
+                {!compact && <CalendarDays onClick={() => toggleOpen('days')} className="w-6 h-6 text-black/80 shrink-0 cursor-pointer hover:opacity-80 ml-1" />}
             
             </div>
         </PopoverAnchor>

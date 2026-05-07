@@ -17,6 +17,34 @@ export function useChat() {
   const [unreadCounts, setUnreadCounts] = useState<Record<string | number, number>>({});
   const [toastProps, setToastProps] = useState<{title: string, variant: 'default'|'destructive', description?: string} | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [publicMembers, setPublicMembers] = useState<any[]>([]);
+
+  const fetchPublicMembers = useCallback(async () => {
+    try {
+      const data = await chatService.getPublicMembers();
+      setPublicMembers(data);
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const kickFromPublic = useCallback(async (userId: number) => {
+      try {
+          await chatService.kickFromPublic(userId);
+          await fetchPublicMembers();
+      } catch (e) {
+          console.error(e);
+      }
+  }, [fetchPublicMembers]);
+
+  const unbanFromPublic = useCallback(async (userId: number) => {
+      try {
+          await chatService.unbanFromPublic(userId);
+          await fetchPublicMembers();
+      } catch (e) {
+          console.error(e);
+      }
+  }, [fetchPublicMembers]);
   
   const activeContactRef = useRef<ChatContact | null>(null);
 
@@ -162,7 +190,25 @@ export function useChat() {
       });
     });
     
-    // Also listen for my own messages sent from other tabs/devices or confirmed by server
+    newSocket.on("public_banned", () => {
+        fetchContacts();
+        setActiveContact(prev => prev?.id === 0 ? null : prev);
+    });
+
+    newSocket.on("public_unbanned", () => {
+        fetchContacts();
+    });
+
+    newSocket.on("group_member_removed", ({ groupId }) => {
+        fetchContacts();
+        setActiveContact(prev => (prev?.isGroup && prev.realId === groupId) ? null : prev);
+    });
+
+    newSocket.on("group_deleted", ({ groupId }) => {
+        fetchContacts();
+        setActiveContact(prev => (prev?.isGroup && prev.realId === groupId) ? null : prev);
+    });
+
     newSocket.on("message_sent", (message: Message) => {
         const currentActive = activeContactRef.current;
         const isGroupMessage = !!message.roomId;
@@ -249,7 +295,11 @@ export function useChat() {
             return 0;
         });
         
-        setContacts([publicRoom, ...validContacts]);
+        if (!response.isBannedFromPublic) {
+            setContacts([publicRoom, ...validContacts]);
+        } else {
+            setContacts(validContacts);
+        }
 
         const initialUnread: Record<string | number, number> = {};
         if (!Array.isArray(response) && response.publicUnreadCount) {
@@ -275,6 +325,10 @@ export function useChat() {
   useEffect(() => {
     if (!user || activeContact === null) return;
 
+    if (activeContact.id === 0) {
+        fetchPublicMembers();
+    }
+
     setIsLoadingHistory(true);
     const targetId = activeContact.id === 0 ? 'public' : activeContact.id as number | string;
     
@@ -282,7 +336,7 @@ export function useChat() {
       .then(setMessages)
       .catch(console.error)
       .finally(() => setIsLoadingHistory(false));
-  }, [user, activeContact]);
+  }, [user, activeContact, fetchPublicMembers]);
 
   // Request Notification Permission
   useEffect(() => {
@@ -590,8 +644,12 @@ export function useChat() {
     deleteGroup,
     addMembersToGroup,
     removeMemberFromGroup,
+    publicMembers,
+    fetchPublicMembers,
+    kickFromPublic,
+    unbanFromPublic,
     toastProps,
     setToastProps,
     isSending
   };
-}
+};

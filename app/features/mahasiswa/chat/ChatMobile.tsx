@@ -21,6 +21,11 @@ export function ChatMobile({ title }: { title: string }) {
         resetUnreadCount,
         markAsRead,
         deleteMessage,
+        deleteMessageForMe,
+        editMessage,
+        publicMembers,
+        kickFromPublic,
+        unbanFromPublic,
         toastProps,
         setToastProps,
         isSending
@@ -68,10 +73,15 @@ export function ChatMobile({ title }: { title: string }) {
                         messages={messages}
                         currentUser={user}
                         onSendMessage={sendMessage}
+                        onEditMessage={editMessage}
                         isLoadingHistory={isLoadingHistory}
                         onBack={handleBack}
                         onMarkAsRead={markAsRead}
                         onDeleteMessage={deleteMessage}
+                        onDeleteMessageForMe={deleteMessageForMe}
+                        publicMembers={publicMembers}
+                        onKickPublic={kickFromPublic}
+                        onUnbanPublic={unbanFromPublic}
                         isSending={isSending}
                     />
                 </div>

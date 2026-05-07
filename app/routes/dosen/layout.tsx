@@ -13,6 +13,7 @@ import {
   Award,
   ClipboardList,
   User,
+  BookOpen,
 } from "lucide-react";
 import { Outlet, useRouteLoaderData } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
@@ -35,6 +36,7 @@ type MenuKey =
   | "sidang"
   | "penilaian"
   | "laporan"
+  | "logbook"
   | "prodiSidang"
   | "prodiBimbingan"
   | "profile"
@@ -52,6 +54,7 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/dosen/prodi/sidang")) return "prodiSidang";
   if (pathname.startsWith("/dosen/prodi/bimbingan")) return "prodiBimbingan";
   if (pathname.startsWith("/dosen/profile")) return "profile";
+  if (pathname.startsWith("/dosen/logbook")) return "logbook";
   if (pathname === "/dosen" || pathname.startsWith("/dosen/"))
     return "dashboard";
   return undefined;
@@ -75,6 +78,12 @@ const menuItems = [
     title: "Peninjauan Formulir",
     icon: FileText,
     url: "/dosen/peninjauan",
+  },
+  {
+    key: "logbook" as MenuKey,
+    title: "Logbook Mahasiswa",
+    icon: BookOpen,
+    url: "/dosen/logbook",
   },
   {
     key: "bimbingan" as MenuKey,

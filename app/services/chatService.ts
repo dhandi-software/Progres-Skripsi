@@ -51,5 +51,20 @@ export const chatService = {
       data: { adminId },
     });
     return response.data;
+  },
+
+  async getPublicMembers() {
+    const response = await client.get("/chat/public/members");
+    return response.data;
+  },
+
+  async kickFromPublic(userId: number) {
+    const response = await client.post("/chat/public/kick", { userId });
+    return response.data;
+  },
+
+  async unbanFromPublic(userId: number) {
+    const response = await client.post("/chat/public/unban", { userId });
+    return response.data;
   }
 };

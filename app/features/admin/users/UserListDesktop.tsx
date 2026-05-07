@@ -21,9 +21,11 @@ export function UserListDesktop() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [filterYear, setFilterYear] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
 
   // Modal State
@@ -49,9 +51,11 @@ export function UserListDesktop() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await adminApi.getUsersByRole(activeTab);
-      // Ensure data is array
+      const res = await adminApi.getUsersByRole(activeTab, currentPage, itemsPerPage, debouncedSearch);
       setUsers(Array.isArray(res.data) ? res.data : []);
+      if (res.pagination) {
+        setTotalPages(res.pagination.totalPages);
+      }
     } catch (error) {
       console.error("Failed to fetch users", error);
       setUsers([]);
@@ -60,8 +64,20 @@ export function UserListDesktop() {
     }
   };
 
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setCurrentPage(1); // Reset to first page on search
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   useEffect(() => {
     fetchUsers();
+  }, [activeTab, currentPage, debouncedSearch]);
+
+  useEffect(() => {
     setCurrentPage(1); // Reset page on tab change
     setSearch(""); // Reset search on tab change
     setFilterYear("");
@@ -216,21 +232,11 @@ export function UserListDesktop() {
   const filteredUsers = useMemo(() => {
     return users
       .filter((user) => {
-        const searchLower = search.toLowerCase();
-        const matchesSearch =
-          user.nama?.toLowerCase().includes(searchLower) ||
-          user.email?.toLowerCase().includes(searchLower) ||
-          (user.nim && user.nim.toLowerCase().includes(searchLower)) ||
-          (user.nidn && user.nidn.toLowerCase().includes(searchLower)) ||
-          (user.user?.username && user.user.username.toLowerCase().includes(searchLower)) ||
-          (user.jurusan && user.jurusan.toLowerCase().includes(searchLower)) ||
-          (user.jabatan && user.jabatan.toLowerCase().includes(searchLower));
-
         const matchesYear = filterYear
           ? user.tahunMasuk?.toString() === filterYear
           : true;
 
-        return matchesSearch && matchesYear;
+        return matchesYear;
       })
       .sort((a, b) => {
         const nameA = a.nama?.toLowerCase() || "";
@@ -238,13 +244,11 @@ export function UserListDesktop() {
         if (sortOrder === "asc") return nameA.localeCompare(nameB);
         return nameB.localeCompare(nameA);
       });
-  }, [users, search, sortOrder, filterYear]);
+  }, [users, sortOrder, filterYear]);
 
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
-  const paginatedUsers = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredUsers.slice(start, start + itemsPerPage);
-  }, [filteredUsers, currentPage]);
+  // Use filtered results directly as they are already paginated from server (mostly)
+  // but we still apply client-side sorting/year filter on the current page slice
+  const paginatedUsers = filteredUsers;
 
   const handleSelectAll = (checked: boolean) => {
       if (checked) {

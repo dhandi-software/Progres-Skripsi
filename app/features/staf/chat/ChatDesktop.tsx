@@ -20,6 +20,9 @@ export function ChatDesktop({ title }: { title: string }) {
         deleteMessage,
         deleteMessageForMe,
         editMessage,
+        publicMembers,
+        kickFromPublic,
+        unbanFromPublic,
         toastProps,
         setToastProps,
         isSending
@@ -61,6 +64,9 @@ export function ChatDesktop({ title }: { title: string }) {
                 onMarkAsRead={markAsRead}
                 onDeleteMessage={deleteMessage}
                 onDeleteMessageForMe={deleteMessageForMe}
+                publicMembers={publicMembers}
+                onKickPublic={kickFromPublic}
+                onUnbanPublic={unbanFromPublic}
                 isSending={isSending}
             />
             {toastProps && (

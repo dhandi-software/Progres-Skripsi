@@ -6,7 +6,8 @@ import {
   Users,
   Settings,
   FileText,
-  BarChart3
+  BarChart3,
+  MessageSquare
 } from "lucide-react";
 import { Outlet, useRouteLoaderData } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
@@ -21,11 +22,13 @@ type MenuKey =
   | "dashboard"
   | "users"
   | "monitoring"
+  | "chat"
   | "logout";
 
 const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/admin/users") || pathname.startsWith("/admin/create-account") || pathname.startsWith("/admin/edit-account")) return "users";
   if (pathname.startsWith("/admin/monitoring")) return "monitoring";
+  if (pathname.startsWith("/admin/chat")) return "chat";
   if (pathname === "/admin" || pathname.startsWith("/admin/"))
     return "dashboard";
   return undefined;
@@ -49,6 +52,12 @@ const menuItems = [
     title: "Monitoring Bimbingan",
     icon: BarChart3,
     url: "/admin/monitoring",
+  },
+  {
+    key: "chat" as MenuKey,
+    title: "Chat",
+    icon: MessageSquare,
+    url: "/admin/chat",
   },
 ];
 

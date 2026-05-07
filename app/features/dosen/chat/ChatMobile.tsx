@@ -29,6 +29,9 @@ export function ChatMobile() {
         deleteGroup,
         addMembersToGroup,
         removeMemberFromGroup,
+        publicMembers,
+        kickFromPublic,
+        unbanFromPublic,
         isSending
     } = useChat();
 
@@ -76,13 +79,16 @@ export function ChatMobile() {
                                 return removeMemberFromGroup(activeContact.realId, memberId);
                             }
                         }}
-                        onDeleteGroup={() => {
-                            if (activeContact?.isGroup && activeContact.realId) {
-                                return deleteGroup(activeContact.realId);
-                            }
-                        }}
-                        isSending={isSending}
-                    />
+                            onDeleteGroup={() => {
+                                if (activeContact?.isGroup && activeContact.realId) {
+                                    return deleteGroup(activeContact.realId);
+                                }
+                            }}
+                            publicMembers={publicMembers}
+                            onKickPublic={kickFromPublic}
+                            onUnbanPublic={unbanFromPublic}
+                            isSending={isSending}
+                        />
                 </div>
             )}
             <CreateGroupModal

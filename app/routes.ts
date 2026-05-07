@@ -32,6 +32,7 @@ export default [
             route("sidang", "routes/mahasiswa/sidang.tsx"),
             route("penilaian", "routes/mahasiswa/penilaian.tsx"),
             route("profilemahasiswa", "routes/mahasiswa/profilemahasiswa.tsx"),
+            route("logbook", "routes/mahasiswa/logbook.tsx"),
         ]),
     ]),
 
@@ -40,6 +41,8 @@ export default [
         ...prefix("dosen", [
             index("routes/dosen/dashboard.tsx"),
             route("download", "routes/dosen/download.tsx"),
+            route("download/create", "routes/dosen/download.create.tsx"),
+            route("download/edit/:id", "routes/dosen/download.edit.$id.tsx"),
             route("peninjauan", "routes/dosen/peninjauan.tsx"),
             route("peninjauan/:id", "routes/dosen/peninjauan.$id.tsx"),
             route("bimbingan", "routes/dosen/bimbingan.tsx"),
@@ -53,6 +56,8 @@ export default [
             route("prodi/sidang", "routes/dosen/prodi.sidang.tsx"),
             route("prodi/bimbingan", "routes/dosen/prodi.bimbingan.tsx"),
             route("profile", "routes/dosen/profile.tsx"),
+            route("logbook", "routes/dosen/logbook.tsx"),
+            route("logbook/:id", "routes/dosen/logbook.$id.tsx"),
         ]),
     ]),
     // Staf
@@ -73,6 +78,7 @@ export default [
             route("create-account", "routes/admin/create-account.tsx"),
             route("edit-account/:id", "routes/admin/edit-account.$id.tsx"),
             route("monitoring", "routes/admin/monitoring.tsx"),
+            route("chat", "routes/admin/chat.tsx"),
         ]),
     ]),
 ] satisfies RouteConfig;

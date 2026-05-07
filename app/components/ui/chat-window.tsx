@@ -16,7 +16,7 @@ import { profileApi } from "~/api/profileApi";
 interface ChatWindowProps {
     activeContact: ChatContact | null;
     messages: Message[];
-    currentUser: { id: number; username: string } | null;
+    currentUser: { id: number; username: string; role?: string } | null;
     onSendMessage: (content: string, file?: File, replyToId?: number) => void;
     onEditMessage?: (messageId: number, newContent: string) => void;
     isLoadingHistory: boolean;
@@ -27,6 +27,9 @@ interface ChatWindowProps {
     onAddMembers?: () => void;
     onRemoveMember?: (memberId: number) => Promise<void> | void;
     onDeleteGroup?: () => Promise<void> | void;
+    publicMembers?: any[];
+    onKickPublic?: (userId: number) => void;
+    onUnbanPublic?: (userId: number) => void;
     isSending?: boolean;
 }
 
@@ -44,6 +47,9 @@ export function ChatWindow({
     onAddMembers,
     onRemoveMember,
     onDeleteGroup,
+    publicMembers = [],
+    onKickPublic,
+    onUnbanPublic,
     isSending = false
 }: ChatWindowProps) {
     const [inputValue, setInputValue] = useState("");
@@ -105,7 +111,7 @@ export function ChatWindow({
     // Mark as read when messages load or activeContact changes
     useEffect(() => {
         if (activeContact && onMarkAsRead) {
-            const isGroup = activeContact.isGroup || activeContact.id === 0;
+            const isGroup = activeContact.isGroup || Number(activeContact.id) === 0;
             onMarkAsRead(activeContact.id, isGroup);
         }
     }, [messages.length, activeContact?.id, onMarkAsRead]);
@@ -181,8 +187,8 @@ export function ChatWindow({
 
             {/* Header */}
             <div 
-                className={cn("flex items-center p-3 bg-[#f0f2f5] border-b border-[#d1d7db] z-10 shrink-0 h-[60px]", activeContact.isGroup && "cursor-pointer hover:bg-[#e9edef] transition-colors")}
-                onClick={() => activeContact.isGroup && setIsGroupInfoOpen(true)}
+                className={cn("flex items-center p-3 bg-[#f0f2f5] border-b border-[#d1d7db] z-10 shrink-0 h-[60px]", (activeContact.isGroup || Number(activeContact.id) === 0) && "cursor-pointer hover:bg-[#e9edef] transition-colors")}
+                onClick={() => (activeContact.isGroup || Number(activeContact.id) === 0) && setIsGroupInfoOpen(true)}
             >
                 <div className="flex items-center flex-1">
                     <Button variant="ghost" size="icon" className="md:hidden mr-2 text-[#54656f]" onClick={(e) => { e.stopPropagation(); onBack?.(); }}>
@@ -198,7 +204,13 @@ export function ChatWindow({
                     
                     <div className="flex flex-col">
                         <span className="text-[#111b21] font-medium">{activeContact.username}</span>
-                        <span className="text-xs text-[#667781]">{activeContact.isGroup ? `${activeContact.members?.length || 0} anggota` : 'online'}</span>
+                        <span className="text-xs text-[#667781]">
+                            {Number(activeContact.id) === 0 
+                                ? `${publicMembers.length} anggota` 
+                                : activeContact.isGroup 
+                                    ? `${activeContact.members?.length || 0} anggota` 
+                                    : 'online'}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -213,7 +225,7 @@ export function ChatWindow({
                     ) : (
                         messages.map((msg, idx) => {
                             const isMe = msg.senderId === currentUser?.id;
-                            const isPublic = activeContact.id === 0;
+                            const isPublic = Number(activeContact.id) === 0;
                             const senderColor = isPublic ? ['#FF5733', '#33FF57', '#3357FF', '#FF33F5'][msg.senderId % 4] : undefined;
 
                             if (msg.isDeleted) {
@@ -461,14 +473,14 @@ export function ChatWindow({
                             </AvatarFallback>
                         </Avatar>
                         <h2 className="text-xl font-medium text-[#111b21] text-center px-4 break-words max-w-full leading-tight">{activeContact.username}</h2>
-                        <p className="text-[15px] text-[#667781] mt-1.5">Grup · {activeContact.members?.length || 0} anggota</p>
+                        <p className="text-[15px] text-[#667781] mt-1.5">{Number(activeContact.id) === 0 ? 'Grup Publik' : 'Grup'} · {Number(activeContact.id) === 0 ? publicMembers.length : (activeContact.members?.length || 0)} anggota</p>
                     </div>
                     
                     {/* Members List Area */}
                     <div className="bg-white w-full py-2 shadow-sm border-t border-b border-[#d1d7db] flex flex-col mb-10">
                         <div className="px-6 py-4 text-[#8696a0] text-sm font-medium flex justify-between items-center bg-white border-b border-[#f0f2f5]">
-                            <span>{activeContact.members?.length || 0} anggota</span>
-                            {activeContact.adminId === currentUser?.id && onAddMembers && (
+                            <span>{Number(activeContact.id) === 0 ? publicMembers.length : (activeContact.members?.length || 0)} anggota</span>
+                            {Number(activeContact.id) !== 0 && activeContact.adminId === currentUser?.id && onAddMembers && (
                                 <Button 
                                     variant="ghost" 
                                     size="sm" 
@@ -481,7 +493,22 @@ export function ChatWindow({
                             )}
                         </div>
                         
-                        {activeContact.members?.map((member) => (
+                        {(activeContact.id === 0 
+                            ? [...publicMembers]
+                                .sort((a, b) => {
+                                    const modRoles = ['ADMIN', 'DOSEN', 'STAF', 'KAPRODI'];
+                                    const isAMod = modRoles.includes(a.role?.toUpperCase() || '');
+                                    const isBMod = modRoles.includes(b.role?.toUpperCase() || '');
+                                    if (isAMod && !isBMod) return -1;
+                                    if (!isAMod && isBMod) return 1;
+                                    return 0;
+                                })
+                                .filter(m => {
+                                    const isModerator = ['ADMIN', 'DOSEN', 'STAF', 'KAPRODI'].includes(currentUser?.role?.toUpperCase() || '');
+                                    return !m.isBanned || isModerator;
+                                }) 
+                            : activeContact.members
+                        )?.map((member) => (
                             <div key={`member-${member.id}`} className="flex items-center px-6 py-3 hover:bg-[#f5f6f6] transition-colors group cursor-pointer border-b border-[#f0f2f5] last:border-0">
                                 <Avatar 
                                     className="h-12 w-12 mr-3 bg-[#dfe3e5]" 
@@ -496,13 +523,17 @@ export function ChatWindow({
                                     <div className="flex items-center justify-between">
                                         <span className={cn("text-[16px] truncate leading-tight", member.id === currentUser?.id ? "text-[#111b21] font-medium" : "text-[#111b21]")}>
                                             {member.id === currentUser?.id ? "Anda" : member.username}
+                                            {Number(activeContact.id) === 0 && member.isBanned && <span className="ml-2 text-xs text-red-500 font-bold">(Dikeluarkan)</span>}
                                         </span>
-                                        {activeContact.adminId === member.id && (
-                                            <div className="text-[11px] text-[#00a884] border border-[#00a884] rounded px-1.5 py-[2px] ml-3 font-medium opacity-80 border-opacity-30 leading-none">
-                                                Admin grup
+                                        {/* Badge for Groups or Public moderators */}
+                                        {((Number(activeContact.id) !== 0 && activeContact.adminId === member.id) || 
+                                          (Number(activeContact.id) === 0 && ['ADMIN', 'DOSEN', 'STAF', 'KAPRODI'].includes(member.role?.toUpperCase() || ''))) && (
+                                            <div className="text-[10px] text-white bg-[#00a884] rounded-full px-2 py-[1px] ml-2 font-bold uppercase tracking-wider shadow-sm">
+                                                {Number(activeContact.id) === 0 ? (member.role || 'Admin') : 'Admin'}
                                             </div>
                                         )}
-                                        {activeContact.adminId === currentUser?.id && member.id !== currentUser?.id && onRemoveMember && (
+                                        {/* Group Kick (Non-Public) */}
+                                        {Number(activeContact.id) !== 0 && activeContact.adminId === currentUser?.id && member.id !== currentUser?.id && onRemoveMember && (
                                             <Button 
                                                 variant="ghost" 
                                                 size="sm" 
@@ -514,6 +545,32 @@ export function ChatWindow({
                                                 title="Keluarkan dari grup"
                                             >
                                                 <Trash2 className="w-5 h-5" />
+                                            </Button>
+                                        )}
+                                        {/* Public Room Kick (Admin/Dosen/Staf only) */}
+                                        {Number(activeContact.id) === 0 && 
+                                         ['ADMIN', 'DOSEN', 'STAF'].includes(currentUser?.role?.toUpperCase() || '') && 
+                                         member.id !== currentUser?.id && 
+                                         !(['ADMIN', 'DOSEN', 'STAF'].includes(member.role?.toUpperCase() || '')) && (
+                                            <Button 
+                                                variant="ghost" 
+                                                size="sm" 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (member.isBanned) {
+                                                        onUnbanPublic?.(member.id);
+                                                    } else {
+                                                        onKickPublic?.(member.id);
+                                                    }
+                                                }} 
+                                                className={cn(
+                                                    "ml-auto h-8 px-3 rounded-full text-xs font-bold",
+                                                    member.isBanned 
+                                                        ? "text-green-600 hover:bg-green-50 border border-green-200" 
+                                                        : "text-red-600 hover:bg-red-50 border border-red-200"
+                                                )}
+                                            >
+                                                {member.isBanned ? 'Masukan Kembali' : 'Keluarkan'}
                                             </Button>
                                         )}
                                     </div>
