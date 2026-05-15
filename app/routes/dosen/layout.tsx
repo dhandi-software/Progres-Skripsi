@@ -275,13 +275,21 @@ export function AppSidebar() {
             <div className="flex flex-col gap-1">
               {menuItems.filter(item => {
                 const jabatan = (user?.jabatan || "").toLowerCase().trim();
-                const isAuthorized = jabatan === "pejabat prodi" || jabatan === "penjabat prodi";
+                const isAuthorized = jabatan === "pejabat prodi" || 
+                                   jabatan === "penjabat prodi" || 
+                                   jabatan === "dosen reguler";
+                
+                const isDosenReguler = jabatan === "dosen reguler";
                 
                 // Whitelist for Prodi-only areas
                 const isProdiItem = (item as any).prodiOnly || 
                                    item.key === "prodiSidang" || 
                                    item.key === "prodiBimbingan";
-                
+
+                // Hide active supervision menus for Dosen Reguler
+                const hiddenForReguler = ["peninjauan", "bimbingan", "chat", "penilaian", "sidang", "logbook", "laporan"];
+                if (isDosenReguler && hiddenForReguler.includes(item.key || "")) return false;
+
                 if (isProdiItem) return isAuthorized;
                 return true;
               }).map((item) => {

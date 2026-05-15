@@ -25,8 +25,10 @@ export function ProdiGuard({ children }: ProdiGuardProps) {
 
   const userJabatan = (user.jabatan || "").toLowerCase().trim();
   
-  // Strict check for Prodi membership (Only Pejabat/Penjabat Prodi)
-  const isAuthorized = userJabatan === "pejabat prodi" || userJabatan === "penjabat prodi";
+  // Strict check for Prodi membership or Dosen Reguler (Viewer role)
+  const isAuthorized = userJabatan === "pejabat prodi" || 
+                      userJabatan === "penjabat prodi" || 
+                      userJabatan === "dosen reguler";
 
   if (!isAuthorized) {
     // If not a prodi member, send them back to the lecturer dashboard

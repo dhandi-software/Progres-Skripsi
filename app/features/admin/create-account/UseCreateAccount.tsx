@@ -24,7 +24,7 @@ export const useCreateAccount = () => {
     role: "mahasiswa", 
     // Specific fields
     nim: "",
-    jurusan: "",
+    jurusan: "Teknik Informatika",
     tahunMasuk: "",
     nidn: "",
     jabatan: "",
@@ -33,7 +33,12 @@ export const useCreateAccount = () => {
   // Sync role with URL param on mount
   useEffect(() => {
     if (roleParam && (roleParam === "mahasiswa" || roleParam === "dosen" || roleParam === "staf")) {
-        setFormData(prev => ({ ...prev, role: roleParam }));
+        setFormData(prev => ({ 
+            ...prev, 
+            role: roleParam,
+            jurusan: roleParam === 'mahasiswa' ? "Teknik Informatika" : prev.jurusan,
+            jabatan: roleParam === 'dosen' ? "Dosen Reguler" : prev.jabatan
+        }));
     }
   }, [roleParam]);
 
@@ -65,7 +70,12 @@ export const useCreateAccount = () => {
   const [rawExcelBinary, setRawExcelBinary] = useState<any>(null);
 
   const handleRoleChange = (role: string) => {
-    setFormData((prev) => ({ ...prev, role }));
+    setFormData((prev) => ({ 
+        ...prev, 
+        role,
+        jurusan: role === 'mahasiswa' ? "TEKNIK INFORMATIKA" : prev.jurusan,
+        jabatan: role === 'dosen' ? "Dosen Reguler" : prev.jabatan
+    }));
     // User requested to reset the excel file when switching roles
     setMassData([]);
     setFileName(null);
@@ -183,7 +193,7 @@ export const useCreateAccount = () => {
              };
 
              if (isMahasiswa) {
-                 item.jurusan = "Teknik Informatika";
+                 item.jurusan = "TEKNIK INFORMATIKA";
                  item.tahunMasuk = tahunMasuk;
              } else {
                  item.jabatan = jabatan;

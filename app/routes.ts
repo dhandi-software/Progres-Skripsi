@@ -36,6 +36,9 @@ export default [
         ]),
     ]),
 
+    // Standalone Dosen Routes
+    route("dosen/bimbingan/:mahasiswaId/review/:taskId", "routes/dosen.bimbingan.review.tsx"),
+
     // Dosen
     layout("routes/dosen/layout.tsx", [
         ...prefix("dosen", [

@@ -1,10 +1,13 @@
+import { useOutletContext } from "react-router";
+import type { ContextType } from "~/root";
 import { ProdiGuard } from "~/routes/ProdiGuard";
-import { ProdiBimbingan } from "~/features/dosen/prodi/ProdiBimbingan";
+import { ProdiBimbingan, ProdiBimbinganMobile } from "~/features/dosen/prodi";
 
 export default function ProdiBimbinganRoute() {
+  const { isMobile } = useOutletContext<ContextType>();
   return (
     <ProdiGuard>
-      <ProdiBimbingan />
+      {isMobile ? <ProdiBimbinganMobile /> : <ProdiBimbingan />}
     </ProdiGuard>
   );
 }
