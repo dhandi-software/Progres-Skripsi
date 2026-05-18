@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense, useMemo } from "react";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { UPLOADS_URL } from "~/api/client";
-import { Users, FileText, Send, Loader2, BookOpen, ChevronLeft, AlertCircle, FileStack, X, Upload, Download, Eye, Clock, CalendarIcon, Trophy } from "lucide-react";
+import { Users, FileText, Send, Loader2, BookOpen, ChevronLeft, AlertCircle, FileStack, X, Upload, Download, Eye, Clock, CalendarIcon, Trophy, Search } from "lucide-react";
 import { CustomSelect } from "~/components/ui/custom-select";
 import { Toast } from "~/components/ui/toast";
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
@@ -56,6 +56,9 @@ export function BimbinganMobile() {
     const [toastProps, setToastProps] = useState<{title: string, variant?: "success" | "destructive" | "default"} | null>(null);
     const navigate = useNavigate();
 
+    const [searchQuery, setSearchQuery] = useState("");
+    const [statusFilter, setStatusFilter] = useState("Semua");
+
     // List Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 5;
@@ -78,20 +81,10 @@ export function BimbinganMobile() {
         setToastProps({ title, variant });
     };
 
-    const fetchStudents = async () => {
+    const fetchStudents = async (currentSearch = searchQuery, currentStatus = statusFilter) => {
         try {
-            const data = await bimbinganApi.getDosenBimbinganStudents();
-            
-            // Sort students so that SUBMITTED tasks appear at the top
-            const sortedData = (data || []).sort((a: any, b: any) => {
-                const aActive = a.mahasiswa?.bimbingan?.[0];
-                const bActive = b.mahasiswa?.bimbingan?.[0];
-                const aSub = aActive?.status === 'SUBMITTED' ? 1 : 0;
-                const bSub = bActive?.status === 'SUBMITTED' ? 1 : 0;
-                return bSub - aSub;
-            });
-            
-            setStudents(sortedData);
+            const data = await bimbinganApi.getDosenBimbinganStudents(currentSearch, currentStatus);
+            setStudents(data || []);
         } catch (error) {
             console.error("Failed to fetch students:", error);
         } finally {
@@ -99,9 +92,20 @@ export function BimbinganMobile() {
         }
     };
 
+    // Use debounce for search query
     useEffect(() => {
-        fetchStudents();
-    }, []);
+        const timer = setTimeout(() => {
+            fetchStudents(searchQuery, statusFilter);
+            setCurrentPage(1);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    // Fetch immediately on status change
+    useEffect(() => {
+        fetchStudents(searchQuery, statusFilter);
+        setCurrentPage(1);
+    }, [statusFilter]);
 
     const fetchStudentTasks = async (mahasiswaId: number) => {
         setStudentLoading(true);
@@ -329,19 +333,72 @@ export function BimbinganMobile() {
 
             {!selectedStudent ? (
                 <div className="p-4 space-y-4">
+                    {/* Search and Filter Controls ALWAYS VISIBLE */}
+                    <div className="flex flex-col gap-3 px-1">
+                        <div className="text-sm font-bold text-gray-500 uppercase tracking-wider">
+                            Daftar Mahasiswa ({students.length})
+                        </div>
+                        <div className="flex gap-2">
+                            <div className="relative flex-1">
+                                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <input 
+                                    type="text"
+                                    placeholder="Cari..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-[#119DA4] focus:ring-1 focus:ring-[#119DA4] transition-all"
+                                />
+                            </div>
+                            <div className="w-[140px]">
+                                <CustomSelect
+                                    options={[
+                                        { label: "Semua", value: "Semua" },
+                                        { label: "Belum Target", value: "Belum Ditargetkan" },
+                                        { label: "Perlu Revisi", value: "Perlu Revisi" },
+                                        { label: "Tunggu Reviu", value: "Menunggu Reviu" },
+                                        { label: "Dikerjakan", value: "Sedang Dikerjakan" },
+                                    ]}
+                                    value={statusFilter}
+                                    onChange={(val) => setStatusFilter(val || "Semua")}
+                                    placeholder="Status"
+                                    className="py-2 px-3 text-xs"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
                     {students.length === 0 ? (
-                        <div className="bg-white p-8 rounded-2xl border border-gray-100 text-center flex flex-col items-center">
-                            <Users className="w-12 h-12 text-gray-200 mb-3" />
-                            <h3 className="text-sm font-bold text-gray-900 mb-1">Belum ada mahasiswa</h3>
-                            <p className="text-xs text-gray-500">
-                                Mahasiswa yang disetujui akan muncul di sini.
-                            </p>
+                        <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm text-center flex flex-col items-center justify-center min-h-[250px]">
+                            {searchQuery || statusFilter !== "Semua" ? (
+                                <>
+                                    <div className="w-14 h-14 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100">
+                                        <Search className="w-6 h-6 text-gray-300" />
+                                    </div>
+                                    <h3 className="text-sm font-bold text-gray-900 mb-1">Data Tidak Ditemukan</h3>
+                                    <p className="text-xs text-gray-500 max-w-[200px] mx-auto">
+                                        Tidak ada mahasiswa yang sesuai dengan kata kunci atau filter status.
+                                    </p>
+                                    <button 
+                                        onClick={() => { setSearchQuery(""); setStatusFilter("Semua"); }}
+                                        className="mt-5 px-4 py-2 text-xs font-bold text-[#119DA4] bg-[#119DA4]/10 hover:bg-[#119DA4]/20 rounded-xl transition-colors"
+                                    >
+                                        Hapus Filter
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="w-14 h-14 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100">
+                                        <Users className="w-6 h-6 text-gray-300" />
+                                    </div>
+                                    <h3 className="text-sm font-bold text-gray-900 mb-1">Belum ada mahasiswa</h3>
+                                    <p className="text-xs text-gray-500">
+                                        Mahasiswa yang disetujui akan muncul di sini.
+                                    </p>
+                                </>
+                            )}
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            <div className="text-sm font-bold text-gray-500 uppercase tracking-wider pl-1">
-                                Daftar Mahasiswa ({students.length})
-                            </div>
                             {paginatedStudents.map((pengajuan, idx) => {
                                 const mhs = pengajuan.mahasiswa;
                                 const bimbinganList = mhs.bimbingan || [];

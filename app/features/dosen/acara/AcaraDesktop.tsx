@@ -12,6 +12,7 @@ import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { useAuth } from "~/hooks/useAuth";
 import { acaraApi } from "~/api/acaraApi";
+import { profileApi } from "~/api/profileApi";
 import type { Acara, AcaraResponse } from "~/api/acaraApi";
 import { UPLOADS_URL } from "~/api/client";
 import { Toast } from "~/components/ui/toast";
@@ -33,6 +34,10 @@ import { sanitizeHtml } from "~/lib/sanitize";
 
 export function AcaraDesktop({ title }: { title: string }) {
     const { user } = useAuth();
+    const currentUserPhoto = typeof window !== "undefined" ? (localStorage.getItem("userPhoto") || user?.photo) : user?.photo;
+    const hasUserPhoto = currentUserPhoto && currentUserPhoto !== "null" && currentUserPhoto !== "undefined" && currentUserPhoto !== "/images/avatar.svg";
+    const myName = user?.name || user?.username || "?";
+    const myInitial = myName.charAt(0).toUpperCase();
     const navigate = useNavigate();
 
     const [acaras, setAcaras] = useState<Acara[]>([]);
@@ -89,7 +94,7 @@ export function AcaraDesktop({ title }: { title: string }) {
         const transformed = content
             .replace(/src="\/uploads\//g, `src="${baseUploads}/uploads/`)
             .replace(/href="\/uploads\//g, `href="${baseUploads}/uploads/`)
-            .replace(/<img /g, '<img class="max-w-[800px] mx-auto block aspect-video object-cover rounded-[32px] my-12 shadow-2xl border border-slate-100" ');
+            .replace(/<img /g, '<img class="max-w-[800px] w-full h-auto max-h-[600px] mx-auto block rounded-[32px] my-12 shadow-2xl border border-slate-100 object-contain bg-slate-50/30" ');
         
         return sanitizeHtml(transformed);
     };
@@ -222,33 +227,54 @@ export function AcaraDesktop({ title }: { title: string }) {
                                 {selectedAcara.comments.length === 0 ? (
                                     <p className="text-sm text-slate-400 italic font-medium ml-10">Belum ada komentar kelas.</p>
                                 ) : (
-                                    selectedAcara.comments.map(comment => (
-                                        <div key={comment.id} className="flex gap-6 group">
-                                            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 shrink-0 font-black text-lg border border-slate-200">
-                                                {comment.user.username.charAt(0).toUpperCase()}
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-3 mb-1.5">
-                                                    <span className="text-sm font-black text-slate-900">
-                                                    {comment.user.mahasiswa?.nama || comment.user.dosen?.nama || comment.user.username}
-                                                </span>
-                                                    <span className="text-[11px] font-bold text-slate-400">
-                                                        {format(new Date(comment.createdAt), "dd MMM, HH:mm", { locale: id })}
-                                                    </span>
+                                    selectedAcara.comments.map(comment => {
+                                        const displayName = comment.user.mahasiswa?.nama || comment.user.dosen?.nama || comment.user.username;
+                                        const initial = displayName.charAt(0).toUpperCase();
+                                        const hasPhoto = comment.user.photo && comment.user.photo !== "null" && comment.user.photo !== "undefined";
+                                        return (
+                                            <div key={comment.id} className="flex gap-6 group">
+                                                {hasPhoto ? (
+                                                    <img 
+                                                        src={profileApi.getProfilePhotoUrl(comment.user.photo!)} 
+                                                        alt={displayName} 
+                                                        className="w-12 h-12 rounded-full object-cover shrink-0 border border-slate-200 shadow-sm"
+                                                    />
+                                                ) : (
+                                                    <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 shrink-0 font-black text-lg border border-slate-200">
+                                                        {initial}
+                                                    </div>
+                                                )}
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-3 mb-1.5">
+                                                        <span className="text-sm font-black text-slate-900">
+                                                            {displayName}
+                                                        </span>
+                                                        <span className="text-[11px] font-bold text-slate-400">
+                                                            {format(new Date(comment.createdAt), "dd MMM, HH:mm", { locale: id })}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                                                        {comment.content}
+                                                    </p>
                                                 </div>
-                                                <p className="text-sm text-slate-700 leading-relaxed font-medium">
-                                                    {comment.content}
-                                                </p>
                                             </div>
-                                        </div>
-                                    ))
+                                        );
+                                    })
                                 )}
                             </div>
 
                             <form onSubmit={handleAddComment} className="flex gap-6 mt-16 items-center">
-                                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 shrink-0 font-black text-lg border border-slate-200 shadow-sm">
-                                    {user?.username?.charAt(0).toUpperCase()}
-                                </div>
+                                {hasUserPhoto ? (
+                                    <img 
+                                        src={currentUserPhoto} 
+                                        alt={myName} 
+                                        className="w-12 h-12 rounded-full object-cover shrink-0 border border-slate-200 shadow-sm" 
+                                    />
+                                ) : (
+                                    <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 shrink-0 font-black text-lg border border-slate-200 shadow-sm">
+                                        {myInitial}
+                                    </div>
+                                )}
                                 <div className="flex-1 group relative">
                                     <input 
                                         value={newComment}

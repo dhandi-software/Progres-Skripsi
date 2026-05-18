@@ -146,7 +146,7 @@ export function CreateAcaraMobile() {
                 const safeFileName = escapeHtml(res.originalName);
 
                 if (type === 'IMAGE') {
-                    const img = `<img src="${absoluteUrl}" alt="${safeFileName}" class="w-full aspect-video object-cover rounded-2xl my-4 shadow-lg cursor-pointer" />`;
+                    const img = `<img src="${absoluteUrl}" alt="${safeFileName}" class="w-full h-auto max-h-[400px] object-contain rounded-2xl my-4 shadow-lg cursor-pointer bg-slate-50/30" />`;
                     document.execCommand("insertHTML", false, img);
                 } else {
                     const link = `<a href="${absoluteUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 p-4 bg-slate-50 border border-slate-200 rounded-xl text-[#00bcd4] font-bold no-underline my-2 hover:bg-slate-100 transition-colors">

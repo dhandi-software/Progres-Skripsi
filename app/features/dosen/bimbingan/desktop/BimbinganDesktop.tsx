@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense, useMemo } from "react";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { UPLOADS_URL } from "~/api/client";
-import { Users, FileText, Send, Loader2, BookOpen, AlertCircle, FileStack, X, Upload, Download, Eye, Clock, CalendarIcon, Trophy } from "lucide-react";
+import { Users, FileText, Send, Loader2, BookOpen, AlertCircle, FileStack, X, Upload, Download, Eye, Clock, CalendarIcon, Trophy, Search } from "lucide-react";
 import { CustomSelect } from "~/components/ui/custom-select";
 import { Toast } from "~/components/ui/toast";
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
@@ -56,6 +56,9 @@ export function BimbinganDesktop() {
     const [toastProps, setToastProps] = useState<{title: string, variant?: "success" | "destructive" | "default"} | null>(null);
     const navigate = useNavigate();
 
+    const [searchQuery, setSearchQuery] = useState("");
+    const [statusFilter, setStatusFilter] = useState("Semua");
+
     // List Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 5;
@@ -78,20 +81,10 @@ export function BimbinganDesktop() {
         setToastProps({ title, variant });
     };
 
-    const fetchStudents = async () => {
+    const fetchStudents = async (currentSearch = searchQuery, currentStatus = statusFilter) => {
         try {
-            const data = await bimbinganApi.getDosenBimbinganStudents();
-            
-            // Sort students so that SUBMITTED tasks appear at the top
-            const sortedData = (data || []).sort((a: any, b: any) => {
-                const aActive = a.mahasiswa?.bimbingan?.[0];
-                const bActive = b.mahasiswa?.bimbingan?.[0];
-                const aSub = aActive?.status === 'SUBMITTED' ? 1 : 0;
-                const bSub = bActive?.status === 'SUBMITTED' ? 1 : 0;
-                return bSub - aSub;
-            });
-            
-            setStudents(sortedData);
+            const data = await bimbinganApi.getDosenBimbinganStudents(currentSearch, currentStatus);
+            setStudents(data || []);
         } catch (error) {
             console.error("Failed to fetch students:", error);
         } finally {
@@ -99,9 +92,20 @@ export function BimbinganDesktop() {
         }
     };
 
+    // Use debounce for search query
     useEffect(() => {
-        fetchStudents();
-    }, []);
+        const timer = setTimeout(() => {
+            fetchStudents(searchQuery, statusFilter);
+            setCurrentPage(1);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    // Fetch immediately on status change
+    useEffect(() => {
+        fetchStudents(searchQuery, statusFilter);
+        setCurrentPage(1);
+    }, [statusFilter]);
 
     const fetchStudentTasks = async (mahasiswaId: number) => {
         setStudentLoading(true);
@@ -338,7 +342,7 @@ export function BimbinganDesktop() {
             {/* Main Content */}
             {!selectedStudent ? (
                 <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white">
+                    <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white">
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
                                 <Users className="w-5 h-5" />
@@ -347,15 +351,63 @@ export function BimbinganDesktop() {
                                 Daftar Mahasiswa Bimbingan ({students.length})
                             </h2>
                         </div>
+                        <div className="flex items-center gap-3 w-full md:w-auto">
+                            <div className="relative flex-1 md:w-[250px]">
+                                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <input 
+                                    type="text"
+                                    placeholder="Cari nama atau NIM..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#119DA4] focus:ring-1 focus:ring-[#119DA4] transition-all"
+                                />
+                            </div>
+                            <div className="w-full md:w-[200px]">
+                                <CustomSelect
+                                    options={[
+                                        { label: "Semua Status", value: "Semua" },
+                                        { label: "Belum Ditargetkan", value: "Belum Ditargetkan" },
+                                        { label: "Perlu Revisi", value: "Perlu Revisi" },
+                                        { label: "Menunggu Reviu", value: "Menunggu Reviu" },
+                                        { label: "Sedang Dikerjakan", value: "Sedang Dikerjakan" },
+                                    ]}
+                                    value={statusFilter}
+                                    onChange={(val) => setStatusFilter(val || "Semua")}
+                                    placeholder="Pilih Status"
+                                />
+                            </div>
+                        </div>
                     </div>
 
                     {students.length === 0 ? (
-                        <div className="p-12 text-center flex flex-col items-center">
-                            <Users className="w-16 h-16 text-gray-200 mb-4" />
-                            <h3 className="text-lg font-medium text-gray-900 mb-1">Belum ada mahasiswa</h3>
-                            <p className="text-gray-500 text-sm ">
-                                Saat judul pengajuan disetujui, mahasiswa otomatis masuk ke daftar ini.
-                            </p>
+                        <div className="bg-white p-12 rounded-3xl border border-gray-100 shadow-sm text-center flex flex-col items-center justify-center min-h-[300px]">
+                            {searchQuery || statusFilter !== "Semua" ? (
+                                <>
+                                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100">
+                                        <Search className="w-8 h-8 text-gray-300" />
+                                    </div>
+                                    <h3 className="text-base font-bold text-gray-900 mb-1">Data Tidak Ditemukan</h3>
+                                    <p className="text-sm text-gray-500 w-full">
+                                        Tidak ada mahasiswa yang sesuai dengan kata kunci atau filter status yang Anda pilih.
+                                    </p>
+                                    <button 
+                                        onClick={() => { setSearchQuery(""); setStatusFilter("Semua"); }}
+                                        className="mt-6 px-4 py-2 text-sm font-bold text-[#119DA4] bg-[#119DA4]/10 hover:bg-[#119DA4]/20 rounded-xl transition-colors"
+                                    >
+                                        Hapus Filter
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100">
+                                        <Users className="w-8 h-8 text-gray-300" />
+                                    </div>
+                                    <h3 className="text-base font-bold text-gray-900 mb-1">Belum ada mahasiswa</h3>
+                                    <p className="text-sm text-gray-500 w-full">
+                                        Mahasiswa yang pengajuan judulnya telah disetujui akan muncul di sini.
+                                    </p>
+                                </>
+                            )}
                         </div>
                     ) : (
                         <div className="overflow-x-auto">

@@ -26,6 +26,7 @@ export interface AcaraComment {
         username: string;
         role: string;
         id: number;
+        photo?: string | null;
         mahasiswa?: { nama: string };
         dosen?: { nama: string };
     };

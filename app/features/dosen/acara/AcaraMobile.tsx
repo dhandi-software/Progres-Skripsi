@@ -12,6 +12,7 @@ import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { useAuth } from "~/hooks/useAuth";
 import { acaraApi } from "~/api/acaraApi";
+import { profileApi } from "~/api/profileApi";
 import type { Acara, AcaraResponse } from "~/api/acaraApi";
 import { UPLOADS_URL } from "~/api/client";
 import { Toast } from "~/components/ui/toast";
@@ -33,6 +34,10 @@ import { sanitizeHtml } from "~/lib/sanitize";
 
 export function AcaraMobile({ title }: { title: string }) {
     const { user } = useAuth();
+    const currentUserPhoto = typeof window !== "undefined" ? (localStorage.getItem("userPhoto") || user?.photo) : user?.photo;
+    const hasUserPhoto = currentUserPhoto && currentUserPhoto !== "null" && currentUserPhoto !== "undefined" && currentUserPhoto !== "/images/avatar.svg";
+    const myName = user?.name || user?.username || "?";
+    const myInitial = myName.charAt(0).toUpperCase();
     const navigate = useNavigate();
 
     const [acaras, setAcaras] = useState<Acara[]>([]);
@@ -89,7 +94,7 @@ export function AcaraMobile({ title }: { title: string }) {
         const transformed = content
             .replace(/src="\/uploads\//g, `src="${baseUploads}/uploads/`)
             .replace(/href="\/uploads\//g, `href="${baseUploads}/uploads/`)
-            .replace(/<img /g, '<img class="w-full aspect-video object-cover rounded-2xl my-8 shadow-lg border border-slate-100" ');
+            .replace(/<img /g, '<img class="w-full h-auto max-h-[400px] rounded-2xl my-8 shadow-lg border border-slate-100 object-contain bg-slate-50/30" ');
         
         return sanitizeHtml(transformed);
     };
@@ -223,24 +228,37 @@ export function AcaraMobile({ title }: { title: string }) {
                             {selectedAcara.comments.length === 0 ? (
                                 <p className="text-[11px] text-slate-400 italic">Belum ada komentar.</p>
                             ) : (
-                                selectedAcara.comments.map(comment => (
-                                    <div key={comment.id} className="flex gap-3">
-                                        <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 shrink-0 font-black text-xs border border-slate-200">
-                                            {comment.user.username.charAt(0).toUpperCase()}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="text-[11px] font-black text-slate-900 truncate">
-                                                    {comment.user.mahasiswa?.nama || comment.user.dosen?.nama || comment.user.username}
-                                                </span>
-                                                <span className="text-[9px] font-bold text-slate-300">{format(new Date(comment.createdAt), "HH:mm", { locale: id })}</span>
+                                selectedAcara.comments.map(comment => {
+                                    const displayName = comment.user.mahasiswa?.nama || comment.user.dosen?.nama || comment.user.username;
+                                    const initial = displayName.charAt(0).toUpperCase();
+                                    const hasPhoto = comment.user.photo && comment.user.photo !== "null" && comment.user.photo !== "undefined";
+                                    return (
+                                        <div key={comment.id} className="flex gap-3">
+                                            {hasPhoto ? (
+                                                <img 
+                                                    src={profileApi.getProfilePhotoUrl(comment.user.photo!)} 
+                                                    alt={displayName} 
+                                                    className="w-9 h-9 rounded-full object-cover shrink-0 border border-slate-200 shadow-sm"
+                                                />
+                                            ) : (
+                                                <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 shrink-0 font-black text-xs border border-slate-200">
+                                                    {initial}
+                                                </div>
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="text-[11px] font-black text-slate-900 truncate">
+                                                        {displayName}
+                                                    </span>
+                                                    <span className="text-[9px] font-bold text-slate-300">{format(new Date(comment.createdAt), "HH:mm", { locale: id })}</span>
+                                                </div>
+                                                <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                                                    {comment.content}
+                                                </p>
                                             </div>
-                                            <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                                                {comment.content}
-                                            </p>
                                         </div>
-                                    </div>
-                                ))
+                                    );
+                                })
                             )}
                         </div>
                     </div>
@@ -251,9 +269,17 @@ export function AcaraMobile({ title }: { title: string }) {
                         onSubmit={handleAddComment} 
                         className="flex gap-3 items-center bg-white/95 backdrop-blur-md border border-slate-200/50 p-2.5 pl-3 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] ring-1 ring-black/[0.03] max-w-[500px] mx-auto"
                     >
-                        <div className="w-9 h-9 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary shrink-0 font-black text-xs border border-brand-primary/20 shadow-inner">
-                            {user?.username?.charAt(0).toUpperCase()}
-                        </div>
+                        {hasUserPhoto ? (
+                            <img 
+                                src={currentUserPhoto} 
+                                alt={myName} 
+                                className="w-9 h-9 rounded-full object-cover shrink-0 border border-brand-primary/20 shadow-inner" 
+                            />
+                        ) : (
+                            <div className="w-9 h-9 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary shrink-0 font-black text-xs border border-brand-primary/20 shadow-inner">
+                                {myInitial}
+                            </div>
+                        )}
                         <div className="flex-1 relative group">
                             <input 
                                 value={newComment}

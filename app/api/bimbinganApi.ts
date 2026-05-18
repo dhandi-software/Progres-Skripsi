@@ -17,8 +17,15 @@ export const bimbinganApi = {
     },
 
     // New Dosen endpoint for getting students in bimbingan phase
-    getDosenBimbinganStudents: async () => {
-        const response = await client.get("/bimbingan/dosen-students");
+    getDosenBimbinganStudents: async (search?: string, status?: string) => {
+        const params = new URLSearchParams();
+        if (search) params.append('search', search);
+        if (status) params.append('status', status);
+        
+        const queryString = params.toString();
+        const url = `/bimbingan/dosen-students${queryString ? `?${queryString}` : ''}`;
+        
+        const response = await client.get(url);
         return response.data;
     },
 
