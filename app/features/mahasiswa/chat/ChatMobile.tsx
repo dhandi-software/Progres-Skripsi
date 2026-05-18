@@ -5,6 +5,8 @@ import { useChat } from "~/hooks/useChat";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Toast } from "~/components/ui/toast";
+import { useEffect } from "react";
+import { useSearchParams } from "react-router";
 
 export function ChatMobile({ title }: { title: string }) {
     const {
@@ -19,11 +21,30 @@ export function ChatMobile({ title }: { title: string }) {
         resetUnreadCount,
         markAsRead,
         deleteMessage,
+        deleteMessageForMe,
+        editMessage,
+        publicMembers,
+        kickFromPublic,
+        unbanFromPublic,
         toastProps,
-        setToastProps
+        setToastProps,
+        isSending
     } = useChat();
 
     const [view, setView] = useState<"list" | "chat">("list");
+    const [searchParams] = useSearchParams();
+
+    useEffect(() => {
+        const userId = searchParams.get("userId");
+        if (userId && contacts.length > 0 && !activeContact) {
+            const targetId = parseInt(userId);
+            const contact = contacts.find(c => c.id === targetId);
+            if (contact) {
+                setActiveContact(contact);
+                setView("chat");
+            }
+        }
+    }, [searchParams, contacts, activeContact, setActiveContact]);
 
     const handleSelectContact = (contact: any) => {
         setActiveContact(contact);
@@ -52,10 +73,16 @@ export function ChatMobile({ title }: { title: string }) {
                         messages={messages}
                         currentUser={user}
                         onSendMessage={sendMessage}
+                        onEditMessage={editMessage}
                         isLoadingHistory={isLoadingHistory}
                         onBack={handleBack}
                         onMarkAsRead={markAsRead}
                         onDeleteMessage={deleteMessage}
+                        onDeleteMessageForMe={deleteMessageForMe}
+                        publicMembers={publicMembers}
+                        onKickPublic={kickFromPublic}
+                        onUnbanPublic={unbanFromPublic}
+                        isSending={isSending}
                     />
                 </div>
             )}

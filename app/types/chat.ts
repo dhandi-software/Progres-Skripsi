@@ -3,16 +3,20 @@ export interface Message {
   content: string | null;
   attachmentUrl: string | null;
   attachmentType: 'image' | 'document' | 'none' | null;
+  fileName?: string | null;
   senderId: number;
-  receiverId: number;
+  receiverId?: number;
+  roomId?: number;
   createdAt: string;
   sender?: {
     username: string;
     role: string;
+    photo?: string;
   };
   receiver?: {
     username: string;
     role: string;
+    photo?: string;
   };
   isPublic?: boolean;
   isRead: boolean;
@@ -33,9 +37,10 @@ export interface ChatContact {
   username: string;
   role: string;
   email: string;
+  photo?: string;
   lastMessage?: Message; // Optional, for list display if needed
   adminId?: number;
-  members?: { id: number; username: string; role: string }[];
+  members?: { id: number; username: string; role: string; photo?: string }[];
 }
 
 export interface SendMessagePayload {
@@ -45,5 +50,6 @@ export interface SendMessagePayload {
   content?: string;
   attachmentUrl?: string;
   attachmentType?: 'image' | 'document' | 'none';
+  fileName?: string;
   isPublic?: boolean;
 }

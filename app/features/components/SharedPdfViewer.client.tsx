@@ -30,19 +30,19 @@ const TipComponent = ({ content, position, hideTipAndSelection, addHighlight }: 
     if (!isCommenting) {
         return (
             <div 
-                className="bg-white shadow-xl rounded-full p-2 cursor-pointer hover:bg-gray-100 border border-gray-200 flex items-center justify-center w-10 h-10 z-[200] relative group"
+                className="bg-white shadow-xl rounded-full p-2 cursor-pointer hover:bg-gray-100 border border-gray-200 flex items-center justify-center w-12 h-12 z-[200] relative group mt-2"
                 onClick={(e) => {
                     e.stopPropagation();
                     setIsCommenting(true);
                 }}
             >
-                <MessageSquarePlus className="w-5 h-5 text-blue-600 group-hover:scale-110 transition-transform" />
+                <MessageSquarePlus className="w-6 h-6 text-blue-600 group-hover:scale-110 transition-transform" />
             </div>
         );
     }
 
     return (
-        <div className="p-3 bg-white shadow-xl rounded-xl border border-gray-100 w-64 z-[100] relative">
+        <div className="p-3 bg-white shadow-xl rounded-xl border border-gray-100 w-64 z-[100] relative mt-2">
             <textarea
                 className="w-full text-sm p-2 bg-gray-50 rounded-lg border border-gray-200 outline-none focus:border-orange-500 min-h-[80px]"
                 placeholder="Tambahkan komentar..."
@@ -205,11 +205,13 @@ const SharedPdfViewerComponent: React.FC<SharedPdfViewerProps> = ({
                                 <button 
                                     onClick={(e) => { 
                                         e.stopPropagation();
+                                        setHighlights(prev => prev.filter(x => x.id !== h.id));
                                         onDeleteHighlight(h.id); 
                                     }}
-                                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-all cursor-pointer hover:cursor-grab active:cursor-grabbing"
+                                    title="Hapus anotasi"
                                 >
-                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <Trash2 className="w-3.5 h-3.5 pointer-events-none" />
                                 </button>
                             )}
                         </div>

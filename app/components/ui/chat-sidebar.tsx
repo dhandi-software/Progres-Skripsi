@@ -3,6 +3,7 @@ import type { ChatContact } from "~/types/chat";
 import { cn } from "~/lib/utils";
 import { Search, MessageSquarePlus, Users } from "lucide-react";
 import { useState } from "react";
+import { profileApi } from "~/api/profileApi";
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -50,7 +51,7 @@ export function ChatSidebar({ contacts, activeContact, onSelectContact, unreadCo
             initials = "Sf";
             color = "bg-[#caffbf]"; 
         } else {
-            initials = contact.username
+            initials = (contact.username || "U")
                 .split(" ")
                 .map((n) => n[0])
                 .join("")
@@ -58,7 +59,11 @@ export function ChatSidebar({ contacts, activeContact, onSelectContact, unreadCo
                 .slice(0, 2);
         }
 
-        return { initials, color, image };
+        return { 
+            initials, 
+            color, 
+            image: contact.photo ? profileApi.getProfilePhotoUrl(contact.photo) : image 
+        };
     };
 
     const [searchQuery, setSearchQuery] = useState("");
@@ -79,6 +84,15 @@ export function ChatSidebar({ contacts, activeContact, onSelectContact, unreadCo
     };
 
     const sortedFilteredContacts = [...filteredContacts].sort((a, b) => {
+        // 1. Ruang Publik stays firmly at the top
+        if (a.id === 0) return -1;
+        if (b.id === 0) return 1;
+
+        // 2. Groups have secondary priority over personal chats
+        if (a.isGroup && !b.isGroup) return -1;
+        if (!a.isGroup && b.isGroup) return 1;
+
+        // 3. Fallback to newest message time
         const timeA = a.lastMessage ? new Date(a.lastMessage.createdAt).getTime() : 0;
         const timeB = b.lastMessage ? new Date(b.lastMessage.createdAt).getTime() : 0;
         return timeB - timeA;
@@ -88,8 +102,8 @@ export function ChatSidebar({ contacts, activeContact, onSelectContact, unreadCo
         <div className="w-80 border-r border-[#d1d7db] bg-white flex flex-col h-full">
             <div className="px-4 py-3 bg-[#f0f2f5] border-b border-[#d1d7db] flex justify-between items-center h-[59px]">
                  <div className="flex items-center gap-3">
-                     <Avatar className="h-10 w-10" src="">
-                        <AvatarImage src="" />
+                     <Avatar className="h-10 w-10" src={currentUser?.photo ? profileApi.getProfilePhotoUrl(currentUser.photo) : ""}>
+                        <AvatarImage src={currentUser?.photo ? profileApi.getProfilePhotoUrl(currentUser.photo) : ""} />
                         <AvatarFallback className="bg-[#00a884] text-white">
                             {getMyInitials()}
                         </AvatarFallback>
@@ -176,7 +190,12 @@ export function ChatSidebar({ contacts, activeContact, onSelectContact, unreadCo
                                                 "text-sm truncate max-w-[180px]",
                                                 unread > 0 ? "text-[#111b21] font-medium" : "text-[#667781]"
                                             )}>
-                                                {contact.lastMessage?.content || "No messages yet"}
+                                                {contact.lastMessage ? (
+                                                    contact.lastMessage.content || 
+                                                    (contact.lastMessage.attachmentType === 'image' ? '📷 Foto' : 
+                                                     contact.lastMessage.attachmentType === 'document' ? `📎 ${contact.lastMessage.fileName || 'File'}` : 
+                                                     'Pesan baru')
+                                                ) : "No messages yet"}
                                             </p>
                                             
                                             {unread > 0 && (

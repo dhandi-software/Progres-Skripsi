@@ -1,15 +1,16 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense, useMemo } from "react";
 import { bimbinganApi } from "~/api/bimbinganApi";
-import { Users, FileText, Send, Loader2, BookOpen, AlertCircle, FileStack, X, Upload, Download, Eye, Clock, CalendarIcon } from "lucide-react";
+import { UPLOADS_URL } from "~/api/client";
+import { Users, FileText, Send, Loader2, BookOpen, AlertCircle, FileStack, X, Upload, Download, Eye, Clock, CalendarIcon, Trophy, Search } from "lucide-react";
 import { CustomSelect } from "~/components/ui/custom-select";
 import { Toast } from "~/components/ui/toast";
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 import { Calendar, MonthYearFilter } from "~/components/ui/calendar";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext } from "~/components/ui/pagination";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-
-// Use dynamic import for client-side only component
-const SharedPdfViewer = lazy(() => import('../../components/SharedPdfViewer.client').then(m => ({ default: m.SharedPdfViewer })));
+import { ProgressStats } from "../../../mahasiswa/profilemahasiswa/components/progress-stats";
+import { BadgeWall } from "../../../mahasiswa/profilemahasiswa/components/badge-wall";
+import { useNavigate } from "react-router";
 
 const getStatusPengajuan = (status: string) => {
     switch (status) {
@@ -53,6 +54,10 @@ export function BimbinganDesktop() {
     const [selectedTasks, setSelectedTasks] = useState<{[key: number]: string}>({});
     const [selectedSchedules, setSelectedSchedules] = useState<{[key: number]: string}>({});
     const [toastProps, setToastProps] = useState<{title: string, variant?: "success" | "destructive" | "default"} | null>(null);
+    const navigate = useNavigate();
+
+    const [searchQuery, setSearchQuery] = useState("");
+    const [statusFilter, setStatusFilter] = useState("Semua");
 
     // List Pagination
     const [currentPage, setCurrentPage] = useState(1);
@@ -63,30 +68,22 @@ export function BimbinganDesktop() {
 
     // Detail View State
     const [selectedStudent, setSelectedStudent] = useState<any>(null);
-    const [activeTab, setActiveTab] = useState<"aktif" | "riwayat" | "grafik">("aktif");
+    const [activeTab, setActiveTab] = useState<"aktif" | "riwayat" | "grafik" | "portfolio">("aktif");
     const [studentActiveTask, setStudentActiveTask] = useState<any>(null);
     const [completedTasks, setCompletedTasks] = useState<any[]>([]);
     const [studentLoading, setStudentLoading] = useState(false);
     const [isEditingTask, setIsEditingTask] = useState(false);
     const [chartData, setChartData] = useState<any[]>([]);
-
-    // Review Modal State
-    const [reviewingTask, setReviewingTask] = useState<any>(null);
-    const [viewingTaskTopik, setViewingTaskTopik] = useState("");
-    const [reviewFile, setReviewFile] = useState<File | null>(null);
-    const [reviewCatatan, setReviewCatatan] = useState("");
-    const [reviewStatus, setReviewStatus] = useState("REVISION");
-    const [uploadingReview, setUploadingReview] = useState(false);
-    const [annotations, setAnnotations] = useState<any[]>([]);
+    const [allStudentTasks, setAllStudentTasks] = useState<any[]>([]);
     const [history, setHistory] = useState<any[]>([]);
 
     const showToast = (title: string, variant: "success" | "destructive" | "default" = "success") => {
         setToastProps({ title, variant });
     };
 
-    const fetchStudents = async () => {
+    const fetchStudents = async (currentSearch = searchQuery, currentStatus = statusFilter) => {
         try {
-            const data = await bimbinganApi.getDosenBimbinganStudents();
+            const data = await bimbinganApi.getDosenBimbinganStudents(currentSearch, currentStatus);
             setStudents(data || []);
         } catch (error) {
             console.error("Failed to fetch students:", error);
@@ -95,14 +92,26 @@ export function BimbinganDesktop() {
         }
     };
 
+    // Use debounce for search query
     useEffect(() => {
-        fetchStudents();
-    }, []);
+        const timer = setTimeout(() => {
+            fetchStudents(searchQuery, statusFilter);
+            setCurrentPage(1);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    // Fetch immediately on status change
+    useEffect(() => {
+        fetchStudents(searchQuery, statusFilter);
+        setCurrentPage(1);
+    }, [statusFilter]);
 
     const fetchStudentTasks = async (mahasiswaId: number) => {
         setStudentLoading(true);
         try {
             const tasks = await bimbinganApi.getBimbinganByMahasiswa(mahasiswaId);
+            setAllStudentTasks(tasks);
             const grouped = tasks.reduce((acc: any, task: any) => {
                 if (!acc[task.topik] || task.versi > acc[task.topik].versi) {
                     acc[task.topik] = task;
@@ -295,91 +304,8 @@ export function BimbinganDesktop() {
         { label: "Laporan Akhir (Finalisasi)", value: "Laporan Akhir (Finalisasi)" },
     ];
 
-    const handleOpenReview = async (task: any, isReadOnly: boolean = false) => {
-        setReviewingTask(task);
-        if (task.catatan && task.catatan !== "Task Assigned") {
-            setReviewCatatan(task.catatan);
-        } else {
-            setReviewCatatan("");
-        }
-        setViewingTaskTopik(task.topik);
-        setReviewStatus(isReadOnly ? task.status : "REVISION");
-        setReviewFile(null);
-        setAnnotations([]);
-        setHistory([]);
-
-        // Mark as read if it is a new submission
-        if (task.status === 'SUBMITTED' && !task.isReadDosen && !isReadOnly) {
-            try {
-                await bimbinganApi.markAsRead(task.id);
-            } catch (error) {
-                console.error("Failed to mark as read:", error);
-            }
-        }
-        
-        try {
-            const data = await bimbinganApi.getAnnotations(task.id);
-            const formatted = data.map((a: any) => {
-                const pos = typeof a.posisi === 'string' ? JSON.parse(a.posisi) : a.posisi;
-                return {
-                    id: String(a.id),
-                    ...pos
-                };
-            });
-            setAnnotations(formatted);
-
-            // Fetch history for modal sidebar timeline
-            const dataHistory = await bimbinganApi.getBimbinganHistory(task.mahasiswaId, task.topik);
-            // Replace full task history locally so modal shows only for the topic
-            // Note: Since we only review one topic at a time, this aligns perfectly
-            setHistory(dataHistory);
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    const handleAddHighlight = useCallback(async (highlight: any) => {
-        if (!reviewingTask) return;
-        try {
-            const data = await bimbinganApi.createAnnotation({
-                bimbinganId: reviewingTask.id,
-                komentar: highlight.comment.text,
-                warna: "#FFFF00",
-                posisi: highlight
-            });
-            setAnnotations(prev => [{ ...highlight, id: String(data.id) }, ...prev]);
-        } catch (error) {
-            console.error("Gagal menyimpan anotasi:", error);
-            showToast("Gagal menyimpan anotasi", "destructive");
-        }
-    }, [reviewingTask]);
-
-    const handleDeleteHighlight = useCallback(async (id: string) => {
-        try {
-            await bimbinganApi.deleteAnnotation(parseInt(id));
-            setAnnotations(prev => prev.filter(a => a.id !== id));
-        } catch (error) {
-            console.error("Gagal menghapus anotasi:", error);
-        }
-    }, []);
-
-    const handleReviewSubmit = async () => {
-        if (!reviewingTask) return;
-        setUploadingReview(true);
-        try {
-            await bimbinganApi.uploadRevisiDosen(reviewingTask.id, reviewFile, reviewStatus, reviewCatatan);
-            showToast("Hasil reviu berhasil disimpan!", "success");
-            setReviewingTask(null);
-            fetchStudents();
-            if (selectedStudent) {
-                fetchStudentTasks(selectedStudent.mahasiswa.id);
-            }
-        } catch (error) {
-            console.error(error);
-            showToast("Gagal menyimpan reviu", "destructive");
-        } finally {
-            setUploadingReview(false);
-        }
+    const handleOpenReview = (task: any, isReadOnly: boolean = false) => {
+        navigate(`/dosen/bimbingan/${task.mahasiswaId}/review/${task.id}`);
     };
 
     if (loading) {
@@ -416,7 +342,7 @@ export function BimbinganDesktop() {
             {/* Main Content */}
             {!selectedStudent ? (
                 <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white">
+                    <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white">
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
                                 <Users className="w-5 h-5" />
@@ -425,15 +351,63 @@ export function BimbinganDesktop() {
                                 Daftar Mahasiswa Bimbingan ({students.length})
                             </h2>
                         </div>
+                        <div className="flex items-center gap-3 w-full md:w-auto">
+                            <div className="relative flex-1 md:w-[250px]">
+                                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <input 
+                                    type="text"
+                                    placeholder="Cari nama atau NIM..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#119DA4] focus:ring-1 focus:ring-[#119DA4] transition-all"
+                                />
+                            </div>
+                            <div className="w-full md:w-[200px]">
+                                <CustomSelect
+                                    options={[
+                                        { label: "Semua Status", value: "Semua" },
+                                        { label: "Belum Ditargetkan", value: "Belum Ditargetkan" },
+                                        { label: "Perlu Revisi", value: "Perlu Revisi" },
+                                        { label: "Menunggu Reviu", value: "Menunggu Reviu" },
+                                        { label: "Sedang Dikerjakan", value: "Sedang Dikerjakan" },
+                                    ]}
+                                    value={statusFilter}
+                                    onChange={(val) => setStatusFilter(val || "Semua")}
+                                    placeholder="Pilih Status"
+                                />
+                            </div>
+                        </div>
                     </div>
 
                     {students.length === 0 ? (
-                        <div className="p-12 text-center flex flex-col items-center">
-                            <Users className="w-16 h-16 text-gray-200 mb-4" />
-                            <h3 className="text-lg font-medium text-gray-900 mb-1">Belum ada mahasiswa</h3>
-                            <p className="text-gray-500 text-sm ">
-                                Saat judul pengajuan disetujui, mahasiswa otomatis masuk ke daftar ini.
-                            </p>
+                        <div className="bg-white p-12 rounded-3xl border border-gray-100 shadow-sm text-center flex flex-col items-center justify-center min-h-[300px]">
+                            {searchQuery || statusFilter !== "Semua" ? (
+                                <>
+                                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100">
+                                        <Search className="w-8 h-8 text-gray-300" />
+                                    </div>
+                                    <h3 className="text-base font-bold text-gray-900 mb-1">Data Tidak Ditemukan</h3>
+                                    <p className="text-sm text-gray-500 w-full">
+                                        Tidak ada mahasiswa yang sesuai dengan kata kunci atau filter status yang Anda pilih.
+                                    </p>
+                                    <button 
+                                        onClick={() => { setSearchQuery(""); setStatusFilter("Semua"); }}
+                                        className="mt-6 px-4 py-2 text-sm font-bold text-[#119DA4] bg-[#119DA4]/10 hover:bg-[#119DA4]/20 rounded-xl transition-colors"
+                                    >
+                                        Hapus Filter
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100">
+                                        <Users className="w-8 h-8 text-gray-300" />
+                                    </div>
+                                    <h3 className="text-base font-bold text-gray-900 mb-1">Belum ada mahasiswa</h3>
+                                    <p className="text-sm text-gray-500 w-full">
+                                        Mahasiswa yang pengajuan judulnya telah disetujui akan muncul di sini.
+                                    </p>
+                                </>
+                            )}
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
@@ -455,10 +429,10 @@ export function BimbinganDesktop() {
                                         return (
                                             <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
                                                 <td className="p-4 pl-6 align-top">
-                                                    <div className="font-bold text-gray-900 flex items-center gap-2">
-                                                        {mhs.nama}
+                                                    <div className="flex flex-col gap-1 items-start">
+                                                        <span className="font-bold text-gray-900 leading-tight">{mhs.nama}</span>
                                                         {activeTask?.status === 'SUBMITTED' && (
-                                                            <span className="bg-red-100 text-red-700 text-[10px] px-2 py-0.5 rounded border border-red-200 uppercase tracking-wider animate-pulse ml-2">Perlu Reviu</span>
+                                                            <span className="bg-red-100 text-red-700 text-[9px] px-1.5 py-0.5 rounded border border-red-200 font-bold uppercase tracking-widest whitespace-nowrap inline-flex">BARU</span>
                                                         )}
                                                     </div>
                                                     <div className="text-xs text-gray-500 font-mono mt-0.5">{mhs.nim}</div>
@@ -564,6 +538,12 @@ export function BimbinganDesktop() {
                             className={`py-4 text-sm whitespace-nowrap font-bold border-b-2 transition-colors ${activeTab === 'grafik' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                         >
                             Grafik Kedisiplinan
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("portfolio")}
+                            className={`py-4 text-sm whitespace-nowrap font-bold border-b-2 transition-colors ${activeTab === 'portfolio' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Portfolio & Capaian
                         </button>
                         <button
                             onClick={() => setActiveTab("riwayat")}
@@ -707,7 +687,7 @@ export function BimbinganDesktop() {
                                                                      item.status === 'APPROVED' ? <span className="text-green-600 font-medium">Reviu disetujui ACC</span> : ""}
                                                                 </p>
                                                                 {item.fileMahasiswa && item.status !== 'ASSIGNED' && (
-                                                                    <a href={`http://localhost:5002${item.fileMahasiswa}`} target="_blank" rel="noreferrer" className="mt-2 text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 w-max bg-blue-50 px-2 py-1 rounded">
+                                                                    <a href={`${UPLOADS_URL}${item.fileMahasiswa}`} target="_blank" rel="noreferrer" className="mt-2 text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 w-max bg-blue-50 px-2 py-1 rounded">
                                                                         <Download className="w-3 h-3" /> Unduh PDF
                                                                     </a>
                                                                 )}
@@ -883,6 +863,24 @@ export function BimbinganDesktop() {
                                     </div>
                                 )}
                             </div>
+                        ) : activeTab === 'portfolio' ? (
+                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <div className="bg-white rounded-3xl overflow-hidden">
+                                     <ProgressStats bimbinganTasks={allStudentTasks} />
+                                </div>
+                                <div className="bg-white rounded-3xl overflow-hidden">
+                                     <BadgeWall bimbinganTasks={allStudentTasks} />
+                                </div>
+                                <div className="p-6 bg-blue-50 border border-blue-100 rounded-2xl">
+                                    <h4 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
+                                        <Trophy className="w-4 h-4" /> Catatan Untuk Dosen
+                                    </h4>
+                                    <p className="text-sm text-blue-700 leading-relaxed">
+                                        Sistem Badge dan Progress di atas didasarkan pada draf bimbingan yang telah dikumpulkan dan disetujui (ACC) dalam sistem. 
+                                        Badge <span className="font-bold">"Tepat Waktu"</span> akan hilang secara otomatis jika mahasiswa memiliki riwayat pengumpulan yang melewati tenggat waktu yang Anda berikan.
+                                    </p>
+                                </div>
+                            </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {completedTasks.length === 0 ? (
@@ -909,7 +907,7 @@ export function BimbinganDesktop() {
                                                 </div>
                                                 <div className="flex gap-2">
                                                     {task.fileDosen && (
-                                                        <a href={`http://localhost:5002${task.fileDosen}`} target="_blank" rel="noreferrer" className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 rounded-lg text-xs font-bold transition-colors">
+                                                        <a href={`${UPLOADS_URL}${task.fileDosen}`} target="_blank" rel="noreferrer" className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 rounded-lg text-xs font-bold transition-colors">
                                                             <Download className="w-3.5 h-3.5" /> Draf Target (ACC)
                                                         </a>
                                                     )}
@@ -930,161 +928,7 @@ export function BimbinganDesktop() {
             )}
 
 
-            {/* Review Modal */}
-            {reviewingTask && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl shadow-xl w-full overflow-hidden flex flex-col max-h-[96vh]">
-                        <div className="p-4 border-b border-gray-100 flex items-center justify-between shrink-0">
-                            <div>
-                                <h3 className="text-lg font-bold text-gray-900">{reviewStatus === 'APPROVED' && reviewingTask.status === 'APPROVED' ? "Melihat Dokumen Reviu (ReadOnly)" : "Pemeriksaan Bimbingan"}</h3>
-                                <p className="text-xs text-gray-500 mt-0.5">Topik: {viewingTaskTopik} {reviewingTask.keteranganProgres ? `• Progres: ${reviewingTask.keteranganProgres}` : ''}</p>
-                            </div>
-                            <button onClick={() => setReviewingTask(null)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-                        
-                        <div className="flex-1 overflow-y-auto min-h-0 flex flex-col xl:flex-row">
-                            {/* Document Viewer Area (Only if PDF) */}
-                            {reviewingTask.fileMahasiswa?.toLowerCase().endsWith('.pdf') ? (
-                                <div className="flex-1 border-r border-gray-100 bg-gray-50 p-4 min-h-[500px]">
-                                    <div className="mb-3 flex items-center justify-between">
-                                        <h4 className="font-bold text-sm text-gray-700 flex items-center gap-2">
-                                            <Eye className="w-4 h-4 text-[#119DA4]" />
-                                            Live Document Viewer & Annotation
-                                        </h4>
-                                        <a href={`http://localhost:5002${reviewingTask.fileMahasiswa}`} target="_blank" rel="noreferrer" className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
-                                            <Download className="w-3 h-3" /> Buka Eksternal
-                                        </a>
-                                    </div>
-                                    <Suspense fallback={<div className="flex h-full items-center justify-center bg-gray-50"><Loader2 className="w-8 h-8 animate-spin text-orange-500" /></div>}>
-                                        <SharedPdfViewer 
-                                            url={`http://localhost:5002${reviewingTask.fileMahasiswa}`}
-                                            initialHighlights={annotations}
-                                            onAddHighlight={handleAddHighlight}
-                                            onDeleteHighlight={handleDeleteHighlight}
-                                            readOnly={false}
-                                        />
-                                    </Suspense>
-                                </div>
-                            ) : (
-                                <div className="flex-1 p-8 flex flex-col items-center justify-center bg-gray-50/50">
-                                    <FileText className="w-16 h-16 text-gray-300 mb-4" />
-                                    <h4 className="text-lg font-bold text-gray-800 mb-2">Pratinjau Tidak Tersedia</h4>
-                                    <p className="text-sm text-gray-500 text-center mb-6">
-                                        Dokumen ini ({reviewingTask.fileMahasiswa?.split('.').pop()}) tidak dapat di-preview dan dianotasi langsung di browser. Fitur anotasi Live Google Docs hanya mendukung file <strong className="text-gray-700">.pdf</strong>.
-                                    </p>
-                                    <a 
-                                        href={`http://localhost:5002${reviewingTask.fileMahasiswa}`} 
-                                        target="_blank" rel="noreferrer" 
-                                        className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-blue-600 text-blue-700 font-bold rounded-xl text-sm shadow-sm transition-all hover:bg-blue-50"
-                                    >
-                                        <Download className="w-4 h-4" /> Unduh Draf untuk Diperiksa
-                                    </a>
-                                </div>
-                            )}
 
-                            {/* Sidebar Actions */}
-                            {!(reviewStatus === 'APPROVED' && reviewingTask.status === 'APPROVED') && (
-                                <div className="w-full xl:w-80 p-6 flex flex-col gap-6 shrink-0 bg-white border-l border-gray-100">
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-1">Keputusan Reviu</label>
-                                        <div className="flex flex-col gap-3 mt-3">
-                                            <label className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${reviewStatus === 'REVISION' ? 'border-orange-500 bg-orange-50/30' : 'border-gray-100 hover:border-gray-200'}`}>
-                                                <input 
-                                                    type="radio" name="status" value="REVISION" 
-                                                    checked={reviewStatus === "REVISION"}
-                                                    onChange={() => setReviewStatus("REVISION")}
-                                                    className="mt-0.5 w-4 h-4 text-orange-500 focus:ring-orange-500"
-                                                />
-                                                <div>
-                                                    <span className="text-sm font-bold text-gray-900 block">Perlu Revisi</span>
-                                                    <span className="text-xs text-gray-500">Mahasiswa harus memperbaiki dokumen</span>
-                                                </div>
-                                            </label>
-                                            <label className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${reviewStatus === 'APPROVED' ? 'border-green-600 bg-green-50/30' : 'border-gray-100 hover:border-gray-200'}`}>
-                                                <input 
-                                                    type="radio" name="status" value="APPROVED" 
-                                                    checked={reviewStatus === "APPROVED"}
-                                                    onChange={() => setReviewStatus("APPROVED")}
-                                                    className="mt-0.5 w-4 h-4 text-green-600 focus:ring-green-600"
-                                                />
-                                                <div>
-                                                    <span className="text-sm font-bold text-gray-900 block">Disetujui (ACC Target)</span>
-                                                    <span className="text-xs text-gray-500">Target bab ini selesai</span>
-                                                </div>
-                                            </label>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="space-y-4 flex-1 overflow-y-auto pr-1 pb-4">
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2">Catatan Keseluruhan (Opsional)</label>
-                                            <textarea 
-                                                className="w-full rounded-xl border-gray-200 border p-3 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all placeholder:text-gray-400 min-h-[100px]"
-                                                placeholder="Berikan masukan menyeluruh di luar anotasi PDF..."
-                                                value={reviewCatatan}
-                                                onChange={(e) => setReviewCatatan(e.target.value)}
-                                            ></textarea>
-                                        </div>
-
-                                        {!reviewingTask.fileMahasiswa?.toLowerCase().endsWith('.pdf') && (
-                                            <div>
-                                                <label className="block text-sm font-bold text-gray-700 mb-1">Upload File Hasil Reviu</label>
-                                                <p className="text-xs text-gray-500 mb-2">Karena ini bukan PDF, unggah dokumen `.docx` yang sudah Anda beri komentar/coretan secara offline.</p>
-                                                <input 
-                                                    type="file" 
-                                                    accept=".doc,.docx,.pdf" 
-                                                    onChange={(e) => {
-                                                        if (e.target.files && e.target.files[0]) {
-                                                            setReviewFile(e.target.files[0]);
-                                                        }
-                                                    }}
-                                                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 cursor-pointer border border-gray-200 rounded-xl p-1"
-                                                />
-                                            </div>
-                                        )}
-                                        
-                                        <div className="mt-4 border-t border-gray-100 pt-4">
-                                            <h4 className="block text-sm font-bold text-gray-700 mb-3">Versi Draf Anda Reviu</h4>
-                                            <div className="p-3 border border-gray-100 rounded-xl text-xs flex justify-between items-center bg-gray-50/50">
-                                                <div>
-                                                    <span className="font-bold text-gray-700 block text-sm">Versi {reviewingTask.versi}</span>
-                                                    <span className="text-gray-500 block mt-1">{new Date(reviewingTask.tanggal).toLocaleDateString('id-ID')}</span>
-                                                </div>
-                                                {reviewingTask.fileMahasiswa && (
-                                                    <a href={`http://localhost:5002${reviewingTask.fileMahasiswa}`} target="_blank" rel="noreferrer" className="px-3 py-2 text-blue-600 bg-blue-50 font-bold hover:bg-blue-100 rounded-lg transition-colors flex items-center gap-2" title="Unduh Draf">
-                                                        <Download className="w-3.5 h-3.5" /> Unduh
-                                                    </a>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {!(reviewStatus === 'APPROVED' && reviewingTask.status === 'APPROVED') && (
-                            <div className="p-4 border-t border-gray-100 bg-white flex justify-end gap-3 shrink-0">
-                                <button 
-                                    onClick={() => setReviewingTask(null)}
-                                    className="px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 border border-gray-200 rounded-xl"
-                                >
-                                    Batal
-                                </button>
-                                <button 
-                                    onClick={handleReviewSubmit}
-                                    disabled={uploadingReview}
-                                    className="px-6 py-2.5 text-sm font-bold text-white bg-[#D25026] hover:bg-[#B9441F] active:scale-95 transition-all rounded-xl shadow-lg shadow-orange-500/20 flex items-center gap-2"
-                                >
-                                    {uploadingReview ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                                    Kirim Hasil Reviu
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

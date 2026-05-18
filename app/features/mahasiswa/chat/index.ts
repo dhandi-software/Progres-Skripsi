@@ -1,2 +1,2 @@
-export * from "./ChatDesktop";
-export * from "./ChatMobile";
+export * from "~/features/mahasiswa/chat/ChatDesktop";
+export * from "~/features/mahasiswa/chat/ChatMobile";

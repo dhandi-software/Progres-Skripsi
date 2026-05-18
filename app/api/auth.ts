@@ -3,12 +3,12 @@ import type { LoginRequest, LoginResponse, User } from "./types";
 
 export const authApi = {
     login: async (data: LoginRequest): Promise<LoginResponse> => {
-        const response = await client.post<LoginResponse>("/login", data);
+        const response = await client.post<LoginResponse>("/auth/login", data);
         return response.data;
     },
 
     logout: async (): Promise<void> => {
-        await client.post("/logout/");
+        await client.post("/auth/logout");
     },
 
     me: async (): Promise<User> => {
@@ -56,4 +56,9 @@ export const authApi = {
         const response = await client.post("/refresh-token", { token });
         return response.data;
     },
+
+    changePassword: async (data: { oldPassword: string, newPassword: string }) => {
+        const response = await client.put("/auth/change-password", data);
+        return response.data;
+    }
 };

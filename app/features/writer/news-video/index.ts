@@ -1,3 +1,2 @@
-export { default as NewsVideoDesktop } from "./NewsVideoDesktop";
-export { default as NewsVideoMobile } from "./NewsVideoMobile";
-export * from "./UseNewsVideo";
+export * from "~/features/writer/news-video/NewsVideoDesktop";
+export * from "~/features/writer/news-video/NewsVideoMobile";

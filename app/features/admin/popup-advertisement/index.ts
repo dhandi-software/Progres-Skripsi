@@ -1,2 +1,2 @@
-export * from "~/features/admin/popup-advertisement/PopupAdvertisementDesktop";
-export * from "~/features/admin/popup-advertisement/PopupAdvertisementMobile";
+export * from "~/features/admin/popup-advertisement/AdvertisementDesktop";
+export * from "~/features/admin/popup-advertisement/AdvertisementMobile";

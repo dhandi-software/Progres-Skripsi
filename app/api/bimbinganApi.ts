@@ -17,8 +17,21 @@ export const bimbinganApi = {
     },
 
     // New Dosen endpoint for getting students in bimbingan phase
-    getDosenBimbinganStudents: async () => {
-        const response = await client.get("/bimbingan/dosen-students");
+    getDosenBimbinganStudents: async (search?: string, status?: string) => {
+        const params = new URLSearchParams();
+        if (search) params.append('search', search);
+        if (status) params.append('status', status);
+        
+        const queryString = params.toString();
+        const url = `/bimbingan/dosen-students${queryString ? `?${queryString}` : ''}`;
+        
+        const response = await client.get(url);
+        return response.data;
+    },
+
+    // New Dosen endpoint for final bimbingan report
+    getLaporanAkhir: async () => {
+        const response = await client.get("/bimbingan/dosen-laporan-akhir");
         return response.data;
     },
 
@@ -100,6 +113,14 @@ export const bimbinganApi = {
     },
     deleteAnnotation: async (id: number) => {
         const response = await client.delete(`/bimbingan/annotations/${id}`);
+        return response.data;
+    },
+    getAllProdiBimbingan: async () => {
+        const response = await client.get("/bimbingan/all-prodi");
+        return response.data;
+    },
+    checkAllTasksCompleted: async (mahasiswaId: number) => {
+        const response = await client.get(`/bimbingan/check-all-completed/${mahasiswaId}`);
         return response.data;
     }
 };

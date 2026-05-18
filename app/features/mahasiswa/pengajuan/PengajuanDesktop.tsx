@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { pengajuanApi } from "~/api/pengajuan";
 import { CustomSelect } from "~/components/ui/custom-select";
 import { useNavigate } from "react-router";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, MessageSquare, RotateCcw, AlertTriangle } from "lucide-react";
 import { Toast } from "~/components/ui/toast";
+import { DeleteConfirmationModal } from "~/components/ui/delete-confirmation-modal";
 
 export function PengajuanDesktop() {
     const navigate = useNavigate();
@@ -22,6 +23,8 @@ export function PengajuanDesktop() {
     });
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const [cancelling, setCancelling] = useState(false);
+    const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
     const [isReadOnly, setIsReadOnly] = useState(false);
     const [toastProps, setToastProps] = useState<{title: string, variant?: "success" | "destructive" | "default"} | null>(null);
 
@@ -37,11 +40,24 @@ export function PengajuanDesktop() {
                     pengajuanApi.getDosenList()
                 ]);
                 
-                // Block duplicate active applications
+                // Block duplicate active applications, but allow resubmission for REJECTED and REVISION
                 if (profileRes.pengajuanJudul && profileRes.pengajuanJudul.length > 0) {
                     const latestPengajuan = profileRes.pengajuanJudul[0];
-                    if (latestPengajuan.status !== 'REJECTED') {
+                    if (latestPengajuan.status === 'PENDING' || latestPengajuan.status === 'APPROVED') {
                         setIsReadOnly(true);
+                        setFormData({
+                            peminatan: (latestPengajuan.peminatan || "").trim(),
+                            semester: latestPengajuan.semester || "",
+                            tahunAkademik: latestPengajuan.tahunAkademik || "",
+                            judul: latestPengajuan.judul || "",
+                            dosenId: latestPengajuan.dosenId?.toString() || "",
+                            sksDicapai: latestPengajuan.sksDicapai?.toString() || "",
+                            sksNilaiD: latestPengajuan.sksNilaiD?.toString() || "",
+                            ipk: latestPengajuan.ipk?.toString() || "",
+                            batasStudi: latestPengajuan.batasStudi || ""
+                        });
+                    } else {
+                        // REJECTED or REVISION: Pre-fill with previous data so they can easily edit and resubmit
                         setFormData({
                             peminatan: latestPengajuan.peminatan || "",
                             semester: latestPengajuan.semester || "",
@@ -53,20 +69,6 @@ export function PengajuanDesktop() {
                             ipk: latestPengajuan.ipk?.toString() || "",
                             batasStudi: latestPengajuan.batasStudi || ""
                         });
-                    } else if (profileRes.tahunMasuk) {
-                        // Apply Smart Defaults for resubmission
-                        const currentYear = new Date().getFullYear();
-                        const currentMonth = new Date().getMonth(); // 0-based
-                        const startYear = parseInt(profileRes.tahunMasuk);
-                        const diffYears = currentYear - startYear;
-                        const calculatedSemester = (diffYears * 2) + (currentMonth > 6 ? 1 : 0);
-                        const calculatedTahunAkademik = currentMonth > 6 ? `${currentYear}/${currentYear + 1}` : `${currentYear - 1}/${currentYear}`;
-                        
-                        setFormData(prev => ({
-                            ...prev,
-                            semester: calculatedSemester > 0 ? calculatedSemester.toString() : "1",
-                            tahunAkademik: calculatedTahunAkademik
-                        }));
                     }
                 } else if (profileRes.tahunMasuk) {
                     // Smart Defaults for new applications
@@ -98,6 +100,11 @@ export function PengajuanDesktop() {
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+
+        // Toast alert for SKS Grade D
+        if (name === 'sksNilaiD' && Number(value) > 0) {
+            showToast("kamu harus memperbaiki nilai D tersebut", "default");
+        }
     };
 
     const handleSelectChange = (name: string, value: string) => {
@@ -106,17 +113,67 @@ export function PengajuanDesktop() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validasi minimal 100 SKS
+        if (Number(formData.sksDicapai) < 100) {
+            showToast("Jumlah SKS yang dicapai minimal 100 SKS untuk mengajukan KP.", "destructive");
+            return;
+        }
+
+        // BLOCK submission if SKS Grade D > 0
+        if (Number(formData.sksNilaiD) > 0) {
+            showToast("kamu harus memperbaiki nilai D tersebut", "destructive");
+            return;
+        }
+
+        // Validation for CustomSelect fields (since they don't have 'required' attribute)
+        if (!formData.peminatan) {
+            showToast("Silakan pilih bidang peminatan terlebih dahulu.", "destructive");
+            return;
+        }
+
+        if (!formData.dosenId) {
+            showToast("Silakan pilih dosen pembimbing yang diusulkan.", "destructive");
+            return;
+        }
+
         setSubmitting(true);
         try {
             await pengajuanApi.createPengajuan(formData);
             showToast("Pengajuan judul berhasil dikirim!", "success");
             setTimeout(() => {
                 navigate("/mahasiswa"); 
-            }, 1500);
+            }, 3000);
         } catch (error) {
             console.error("Submission error", error);
             showToast("Gagal mengirim pengajuan. Silakan coba lagi.", "destructive");
             setSubmitting(false);
+        }
+    };
+
+    const handleCancel = () => {
+        if (!profile?.pengajuanJudul?.[0]?.id) return;
+        setIsCancelDialogOpen(true);
+    };
+
+    const confirmCancel = async () => {
+        setIsCancelDialogOpen(false);
+        setCancelling(true);
+        try {
+            await pengajuanApi.cancelPengajuan(profile!.pengajuanJudul[0].id);
+            showToast("Pengajuan berhasil dibatalkan. Silakan edit dan kirim ulang jika perlu.", "success");
+            
+            // Allow editing with current data instead of reloading
+            setIsReadOnly(false);
+            setProfile((prev: any) => ({
+                ...prev,
+                pengajuanJudul: []
+            }));
+            setCancelling(false);
+        } catch (error) {
+            console.error("Cancel error", error);
+            showToast("Gagal membatalkan pengajuan", "destructive");
+            setCancelling(false);
         }
     };
 
@@ -130,8 +187,17 @@ export function PengajuanDesktop() {
 
     return (
         <div className="min-h-screen bg-gray-50/50 p-8 font-geist relative">
+            {/* Modals */}
+            <DeleteConfirmationModal
+                isOpen={isCancelDialogOpen}
+                onClose={() => setIsCancelDialogOpen(false)}
+                onConfirm={confirmCancel}
+                title="Batalkan Pengajuan"
+                description="Apakah Anda yakin ingin membatalkan pengajuan ini? Data akan dihapus dan Anda harus mengisi ulang formulir jika ingin mengajukan kembali."
+            />
+
             {toastProps && (
-                <div className="fixed top-4 right-4 z-50">
+                <div className="fixed top-6 right-6 z-[100] animate-in slide-in-from-right-full">
                     <Toast
                         title={toastProps.title}
                         variant={toastProps.variant}
@@ -140,6 +206,26 @@ export function PengajuanDesktop() {
                 </div>
             )}
             <div className="w-full mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                {/* Revision Feedback Banner */}
+                {profile?.pengajuanJudul?.[0]?.status === 'REVISION' && (
+                    <div className="mx-8 mt-8 p-4 bg-yellow-50 border border-yellow-300 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-4 duration-500">
+                        <div className="p-2 bg-yellow-100 rounded-full text-yellow-700 shrink-0">
+                            <RotateCcw className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-yellow-800 font-bold text-sm">Pengajuan Perlu Diperbaiki</h3>
+                            <p className="text-yellow-700 text-xs mt-1">Dosen meminta Anda merevisi usulan judul. Silakan perbaiki dan kirim ulang.</p>
+                            {profile.pengajuanJudul[0].remarks && (
+                                <div className="mt-2 p-3 bg-white border border-yellow-200 rounded-lg">
+                                    <p className="text-xs font-bold text-yellow-700 mb-1 flex items-center gap-1">
+                                        <MessageSquare className="w-3.5 h-3.5" /> Komentar Dosen:
+                                    </p>
+                                    <p className="text-sm text-yellow-900 italic">"{profile.pengajuanJudul[0].remarks}"</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
                 {/* Header Section matching the document */}
                 <div className="border-b-2 border-gray-800 p-6 flex items-center justify-between bg-white relative">
                     {/* Logo */}
@@ -362,8 +448,21 @@ export function PengajuanDesktop() {
 
                     <div className="pt-8 flex justify-end">
                         {isReadOnly ? (
-                            <div className="px-8 py-3 bg-gray-100 text-gray-500 font-bold rounded-xl border border-gray-200">
-                                Pengajuan Anda sedang dalam proses
+                            <div className="flex flex-col items-end gap-3">
+                                <div className={`px-8 py-3 font-bold rounded-xl border ${profile?.pengajuanJudul?.[0]?.status === 'APPROVED' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+                                    {profile?.pengajuanJudul?.[0]?.status === 'APPROVED' ? 'Pengajuan Sudah di ACC' : 'Pengajuan Anda sedang dalam proses'}
+                                </div>
+                                {profile?.pengajuanJudul?.[0]?.status === 'PENDING' && (
+                                    <button
+                                        type="button"
+                                        onClick={handleCancel}
+                                        disabled={cancelling}
+                                        className="text-sm font-bold text-red-600 hover:text-red-700 underline flex items-center gap-1 transition-all disabled:opacity-50"
+                                    >
+                                        {cancelling ? <Loader2 className="animate-spin" size={14} /> : null}
+                                        Batalkan Pengajuan
+                                    </button>
+                                )}
                             </div>
                         ) : (
                             <button 
@@ -375,6 +474,11 @@ export function PengajuanDesktop() {
                                     <>
                                         <Loader2 className="animate-spin" size={20} />
                                         Mengirim...
+                                    </>
+                                ) : profile?.pengajuanJudul?.[0]?.status === 'REVISION' ? (
+                                    <>
+                                        <RotateCcw size={20} />
+                                        Kirim Ulang Permohonan
                                     </>
                                 ) : (
                                     <>

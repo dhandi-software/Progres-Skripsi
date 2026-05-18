@@ -8,7 +8,9 @@ import {
   Users,
   MessageCircle,
   Calendar,
-  Award
+  Award,
+  Trophy,
+  BookOpen
 } from "lucide-react";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
 import { RoleGuard } from "~/routes/RoleGuard";
@@ -16,7 +18,11 @@ import { useAuth } from "~/hooks/useAuth";
 import type { ContextType } from "~/root";
 import { chatService } from "~/services/chatService";
 import { bimbinganApi } from "~/api/bimbinganApi";
+import { acaraApi } from "~/api/acaraApi";
+import { sidangApi } from "~/api/sidangApi";
 import React from "react";
+import { io } from "socket.io-client";
+import { UPLOADS_URL } from "~/api/client";
 
 import { SidebarProvider, Sidebar, SidebarContent, useSidebar, SidebarTrigger } from "~/components/ui/sidebar";
 import { cn } from "~/lib/utils";
@@ -28,7 +34,11 @@ type MenuKey =
   | "bimbingan"
   | "chat"
   | "acara"
+  | "sidang"
   | "penilaian"
+  | "profilemahasiswa"
+  | "portfolio"
+  | "logbook"
   | "logout";
 
 const pathToKey = (pathname: string): MenuKey | undefined => {
@@ -37,7 +47,10 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/mahasiswa/bimbingan")) return "bimbingan";
   if (pathname.startsWith("/mahasiswa/chat")) return "chat";
   if (pathname.startsWith("/mahasiswa/acara")) return "acara";
+  if (pathname.startsWith("/mahasiswa/sidang")) return "sidang";
   if (pathname.startsWith("/mahasiswa/penilaian")) return "penilaian";
+  if (pathname.startsWith("/mahasiswa/profilemahasiswa")) return "profilemahasiswa";
+  if (pathname.startsWith("/mahasiswa/logbook")) return "logbook";
   if (pathname === "/mahasiswa" || pathname.startsWith("/mahasiswa/"))
     return "dashboard";
   return undefined;
@@ -76,15 +89,33 @@ const menuItems = [
   },
   {
     key: "acara" as MenuKey,
-    title: "Acara",
+    title: "Pengumuman",
     icon: Calendar,
     url: "/mahasiswa/acara",
+  },
+  {
+    key: "sidang" as MenuKey,
+    title: "Jadwal Sidang",
+    icon: Calendar,
+    url: "/mahasiswa/sidang",
   },
   {
     key: "penilaian" as MenuKey,
     title: "Penilaian",
     icon: Award,
     url: "/mahasiswa/penilaian",
+  },
+  {
+    key: "profilemahasiswa" as MenuKey,
+    title: "Profil Mahasiswa",
+    icon: Trophy,
+    url: "/mahasiswa/profilemahasiswa",
+  },
+  {
+    key: "logbook" as MenuKey,
+    title: "Logbook KP",
+    icon: BookOpen,
+    url: "/mahasiswa/logbook",
   },
 ];
 
@@ -99,35 +130,112 @@ export function AppSidebar() {
   const { user } = useAuth(); // Needed for ID
   const [unreadCount, setUnreadCount] = React.useState(0);
   const [bimbinganBadgeCount, setBimbinganBadgeCount] = React.useState(0);
+  const [acaraBadgeCount, setAcaraBadgeCount] = React.useState(0);
+  const [sidangBadgeCount, setSidangBadgeCount] = React.useState(0);
 
   React.useEffect(() => {
     if (!user) return;
     const fetchData = async () => {
-      try {
-        const data = await chatService.getUnreadCount(user.id);
-        setUnreadCount(data.count || 0);
+      // Fetch Chat Unread Count
+      chatService.getUnreadCount(user.id)
+        .then(data => setUnreadCount(data.count || 0))
+        .catch(err => console.error("Sidebar Chat Error:", err));
 
-        const tasks = await bimbinganApi.getMahasiswaAllTasks();
-        if (tasks && Array.isArray(tasks)) {
-            const grouped = tasks.reduce((acc: any, task: any) => {
-                if (!acc[task.topik] || task.versi > acc[task.topik].versi) acc[task.topik] = task;
-                return acc;
-            }, {});
-            const uniqueTasks: any[] = Object.values(grouped);
-            const active = uniqueTasks.find((t: any) => t.status !== 'APPROVED');
-            if (active && (active.status === 'ASSIGNED' || active.status === 'REVISION')) {
-                setBimbinganBadgeCount(1);
-            } else {
-                setBimbinganBadgeCount(0);
+      // Fetch Bimbingan Tasks
+      bimbinganApi.getMahasiswaAllTasks()
+        .then(tasks => {
+            if (tasks && Array.isArray(tasks)) {
+                const grouped = tasks.reduce((acc: any, task: any) => {
+                    if (!acc[task.topik] || task.versi > acc[task.topik].versi) acc[task.topik] = task;
+                    return acc;
+                }, {});
+                const uniqueTasks: any[] = Object.values(grouped);
+                const active = uniqueTasks.find((t: any) => t.status !== 'APPROVED');
+                setBimbinganBadgeCount(active && (active.status === 'ASSIGNED' || active.status === 'REVISION') ? 1 : 0);
             }
-        }
-      } catch (error) {
-        console.error("Failed to fetch sidebar counts:", error);
-      }
+        })
+        .catch(err => console.error("Sidebar Bimbingan Error:", err));
+
+      // Fetch Acara Unread Count
+      acaraApi.getUnreadCount()
+        .then(data => {
+            setAcaraBadgeCount(data.count || 0);
+        })
+        .catch(err => console.error("Sidebar Acara Error:", err));
+
+      // Fetch Sidang Notification
+      sidangApi.getSidangMahasiswa()
+        .then(data => {
+            if (data && Array.isArray(data) && data.length > 0) {
+                const latest = data[0];
+                // Show badge if not seen by student
+                if (!latest.mahasiswaSeen) {
+                    setSidangBadgeCount(1);
+                } else {
+                    setSidangBadgeCount(0);
+                }
+            }
+        })
+        .catch(err => console.error("Sidebar Sidang Error:", err));
     };
     fetchData();
     const intervalId = setInterval(fetchData, 30000);
     return () => clearInterval(intervalId);
+  }, [user]);
+
+  // Real-time socket notifications
+  React.useEffect(() => {
+    if (!user) return;
+    
+    // Connect to the socket server
+    const socket = io(UPLOADS_URL);
+    
+    // Join user-specific room for private notifications
+    socket.emit('join', user.id);
+
+    const refetchCount = () => {
+        acaraApi.getUnreadCount().then(data => {
+            setAcaraBadgeCount(data.count || 0);
+        });
+    };
+    
+    // Handle local sync from the timeline component
+    const handleLocalRead = () => {
+        // Optimistically decrement for immediate feedback
+        setAcaraBadgeCount(prev => Math.max(0, prev - 1));
+        // Verify with server after a small delay
+        setTimeout(refetchCount, 1000);
+    };
+
+    socket.on('new_acara', () => {
+        refetchCount();
+        
+        // Native browser notification
+        if ("Notification" in window && Notification.permission === "granted") {
+            new Notification("Pengumuman Baru", {
+                body: "Ada instruksi atau pengumuman baru dari dosen di timeline.",
+                icon: "/favicon.ico"
+            });
+        }
+    });
+
+    // Handle sync when an item is read (from other devices)
+    socket.on('acara_read', () => {
+        refetchCount();
+    });
+
+    // Handle local sync from the timeline component
+    window.addEventListener('update-unread-count', handleLocalRead);
+
+    // Request permission on mount
+    if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission();
+    }
+
+    return () => {
+        socket.disconnect();
+        window.removeEventListener('update-unread-count', handleLocalRead);
+    };
   }, [user]);
 
   const handleNavigate = (key: MenuKey) => {
@@ -201,6 +309,16 @@ export function AppSidebar() {
                           {unreadCount}
                         </div>
                       )}
+                      {item.key === "acara" && acaraBadgeCount > 0 && (
+                        <div className="bg-[#D25026] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
+                          {acaraBadgeCount}
+                        </div>
+                      )}
+                      {item.key === "sidang" && sidangBadgeCount > 0 && (
+                        <div className="bg-[#FF7A00] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
+                          {sidangBadgeCount}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -241,7 +359,7 @@ export default function MahasiswaLayout() {
               {isMobile && !location.pathname.includes("/chat") && (
                 <div className="md:hidden flex items-center p-4 bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
                   <SidebarTrigger className="p-2 -ml-2 text-gray-700" />
-                  <span className="ml-2 font-bold text-[#119DA4] text-lg tracking-tight">UP Akademik</span>
+                  <span className="ml-2 font-bold text-[#119DA4] text-lg tracking-tight">Kerja Praktik</span>
                 </div>
               )}
               {isMobile && location.pathname.includes("/chat") && (

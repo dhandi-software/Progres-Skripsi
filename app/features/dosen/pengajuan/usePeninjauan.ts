@@ -22,11 +22,22 @@ export function usePeninjauan(user: User | null) {
             try {
                 const data = await pengajuanApi.getPengajuanByDosen();
                 
-                // Urutkan berdasarkan id menurun (TERBARU) dulu
-                const sortedData = data.sort((a: any, b: any) => b.id - a.id);
+                // Urutkan berdasarkan id menurun (terbaru dulu)
+                const sortedData = [...data].sort((a: Pengajuan, b: Pengajuan) => b.id - a.id);
                 
-                setOriginalList(sortedData);
-                setFilteredList(sortedData);
+                // Ambil hanya pengajuan terbaru untuk setiap mahasiswa (hapus duplikasi)
+                const uniqueStudents = new Set<string | number>();
+                const deduplicatedData = sortedData.filter((item: Pengajuan) => {
+                    const studentUniqueId = item.mahasiswa.nim;
+                    if (uniqueStudents.has(studentUniqueId)) {
+                        return false;
+                    }
+                    uniqueStudents.add(studentUniqueId);
+                    return true;
+                });
+                
+                setOriginalList(deduplicatedData);
+                setFilteredList(deduplicatedData);
             } catch (error) {
                 console.error("Failed to fetch pengajuan:", error);
             } finally {
@@ -123,7 +134,7 @@ export function usePeninjauan(user: User | null) {
               ? `Semua Status`
               : filterStatus;
               
-          doc.text(`Dosen Peninjau : ${(user as any)?.name || (user as any)?.nama || '-'}`, 14, 65);
+          doc.text(`Dosen Peninjau : ${user?.name || user?.nama || '-'}`, 14, 65);
           
           if (isAllStatus) {
               const approvedCount = filteredList.filter(u => u.status === 'APPROVED').length;
@@ -158,7 +169,11 @@ export function usePeninjauan(user: User | null) {
              ];
           });
           
-          const colStyles: any = {
+          interface TableColumnStyles {
+              [key: string]: { cellWidth: number };
+          }
+
+          const colStyles: TableColumnStyles = {
               0: { cellWidth: 8 }, 
               1: { cellWidth: 35 }, 
               2: { cellWidth: 20 }, 

@@ -2,7 +2,12 @@ import { useOutletContext, useParams } from "react-router";
 import type { ContextType } from "~/root";
 import { PeninjauanDetailDesktop, PeninjauanDetailMobile } from "~/features/dosen/pengajuan";
 
-export default function PengajuanDetailRoute() {
+// Minimal loader for React Router 7 Single Fetch to avoid turbo-stream decoding errors
+export const loader = async () => {
+    return { ok: true };
+};
+
+export default function PeninjauanDetailRoute() {
   const { isMobile } = useOutletContext<ContextType>();
   const { id } = useParams<{ id: string }>();
   

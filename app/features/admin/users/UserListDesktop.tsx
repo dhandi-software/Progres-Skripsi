@@ -1,50 +1,61 @@
 import { useState, useEffect, useMemo } from "react";
-import { Plus, Pencil, Trash2, Filter, ChevronDown, Check, Download, FileText, Table } from "lucide-react";
+import { Plus, Pencil, Trash2, Filter, ChevronDown, Check, Download, FileText, Table, AlertTriangle } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { adminApi } from "~/api/admin";
 import { cn } from "~/lib/utils";
 import { Link, useSearchParams, useNavigate } from "react-router";
 import { DataTable, type Column } from "~/components/ui/table-user-dosen";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "~/components/ui/pagination";
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "~/components/ui/pagination";
 import { DeleteConfirmationModal } from "~/components/ui/delete-confirmation-modal";
+import { ForceDeleteModal } from "~/components/ui/force-delete-modal";
 import { CustomSelect } from "~/components/ui/custom-select";
+import { Checkbox } from "~/components/ui/checkbox";
+import { Toast, type ToastProps } from "~/components/ui/toast";
 
-export default function UserListDesktop() {
+export function UserListDesktop() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = (searchParams.get("tab") as "mahasiswa" | "dosen") || "mahasiswa";
+  const activeTab = (searchParams.get("tab") as "mahasiswa" | "dosen" | "staf") || "mahasiswa";
 
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [filterYear, setFilterYear] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
 
   // Modal State
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [forceDeleteModalOpen, setForceDeleteModalOpen] = useState(false);
+  const [blockingMessage, setBlockingMessage] = useState("");
 
+  // Selection State
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  
   // Filter Dropdown State
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
 
+  // Toast State
+  const [toastProps, setToastProps] = useState<ToastProps | null>(null);
+  const showToast = (title: string, variant: "success" | "destructive" = "success") => {
+    setToastProps({ title, variant });
+    setTimeout(() => setToastProps(null), 5000);
+  };
+
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await adminApi.getUsersByRole(activeTab);
-      // Ensure data is array
+      const res = await adminApi.getUsersByRole(activeTab, currentPage, itemsPerPage, debouncedSearch);
       setUsers(Array.isArray(res.data) ? res.data : []);
+      if (res.pagination) {
+        setTotalPages(res.pagination.totalPages);
+      }
     } catch (error) {
       console.error("Failed to fetch users", error);
       setUsers([]);
@@ -53,15 +64,28 @@ export default function UserListDesktop() {
     }
   };
 
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setCurrentPage(1); // Reset to first page on search
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   useEffect(() => {
     fetchUsers();
+  }, [activeTab, currentPage, debouncedSearch]);
+
+  useEffect(() => {
     setCurrentPage(1); // Reset page on tab change
     setSearch(""); // Reset search on tab change
     setFilterYear("");
     setIsFilterOpen(false);
+    setSelectedIds([]); // Clear selection on tab change
   }, [activeTab]);
 
-  const handleTabChange = (tab: "mahasiswa" | "dosen") => {
+  const handleTabChange = (tab: "mahasiswa" | "dosen" | "staf") => {
     setSearchParams((prev) => {
       const newParams = new URLSearchParams(prev);
       newParams.set("tab", tab);
@@ -77,18 +101,126 @@ export default function UserListDesktop() {
   };
 
   const handleDelete = async () => {
+      // If we are deleting a batch
+      if (selectedIds.length > 0 && !userToDelete) {
+          try {
+              const res = await adminApi.deleteUsersBatch(selectedIds);
+              fetchUsers();
+              setDeleteModalOpen(false);
+              setSelectedIds([]);
+              showToast(res.message);
+          } catch (error: any) {
+              const msg = error.response?.data?.message || "Failed to delete selected users";
+              showToast(msg, "destructive");
+              setDeleteModalOpen(false);
+          }
+          return;
+      }
+
       if (!userToDelete) return;
       
       try {
-          await adminApi.deleteUser(userToDelete.id);
+          const res = await adminApi.deleteUser(userToDelete.id);
           fetchUsers(); // Refresh list
           setDeleteModalOpen(false);
           setUserToDelete(null);
-      } catch (error) {
-          console.error("Failed to delete user", error);
-          alert("Failed to delete user");
+          setSelectedIds(prev => prev.filter(id => id !== userToDelete.id)); // Remove from selection if it was there
+          showToast(res.message || "User deleted successfully");
+      } catch (error: any) {
+          const message = error.response?.data?.message || "";
+          // If the failure is due to active data, offer force delete via modal
+          if (error.response?.status === 400 && (message.includes("data aktif") || message.includes("bimbingan"))) {
+              setBlockingMessage(message);
+              setDeleteModalOpen(false); // Close first modal
+              setTimeout(() => setForceDeleteModalOpen(true), 300); // Small delay for smooth transition
+              return;
+          } else {
+              const msg = error.response?.data?.message || "Failed to delete user";
+              showToast(msg, "destructive");
+              setDeleteModalOpen(false);
+          }
       }
   };
+
+  const handleForceDelete = async () => {
+      if (!userToDelete) return;
+      
+      try {
+          const res = await adminApi.deleteUser(userToDelete.id, true);
+          fetchUsers();
+          setForceDeleteModalOpen(false);
+          setUserToDelete(null);
+          setSelectedIds(prev => prev.filter(id => id !== userToDelete.id));
+          showToast(res.message || "User deleted successfully");
+      } catch (error: any) {
+          const msg = error.response?.data?.message || "Failed to force delete user";
+          showToast(msg, "destructive");
+          setForceDeleteModalOpen(false);
+      }
+  };
+
+  // --- Clear All Flow ---
+  const [clearAllConfirmOpen, setClearAllConfirmOpen] = useState(false);
+  const [forceClearAllModal1Open, setForceClearAllModal1Open] = useState(false);
+  const [forceClearAllModal2Open, setForceClearAllModal2Open] = useState(false);
+  const [clearAllInput, setClearAllInput] = useState("");
+  const [clearAllBlockingMessage, setClearAllBlockingMessage] = useState("");
+
+  const handleClearAllAccounts = async () => {
+      try {
+          const res = activeTab === "mahasiswa" 
+              ? await adminApi.clearAllMahasiswa(false)
+              : activeTab === "dosen"
+                  ? await adminApi.clearAllDosen(false)
+                  : { message: "Clear all staf not implemented" }; // Placeholder if needed
+              
+          fetchUsers();
+          setClearAllConfirmOpen(false);
+          setSelectedIds([]);
+          showToast(res.message);
+      } catch (error: any) {
+          const resData = error.response?.data;
+          if (resData?.requireForceAll) {
+              setClearAllBlockingMessage(resData.message);
+              setClearAllConfirmOpen(false);
+              setTimeout(() => setForceClearAllModal1Open(true), 300);
+          } else {
+              showToast(resData?.message || `Gagal menghapus semua ${activeTab}`, "destructive");
+              setClearAllConfirmOpen(false);
+          }
+      }
+  };
+
+  const handleForceClearAllAccounts = async () => {
+      if (clearAllInput !== "HAPUS SEMUA") {
+          showToast("Teks konfirmasi tidak sesuai", "destructive");
+          return;
+      }
+      try {
+          const res = activeTab === "mahasiswa"
+              ? await adminApi.clearAllMahasiswa(true)
+              : activeTab === "dosen"
+                  ? await adminApi.clearAllDosen(true)
+                  : { message: "Clear all staf not implemented" };
+              
+          fetchUsers();
+          setForceClearAllModal2Open(false);
+          setClearAllInput("");
+          setSelectedIds([]);
+          showToast(res.message);
+      } catch (error: any) {
+          showToast(error.response?.data?.message || `Gagal menghapus paksa semua ${activeTab}`, "destructive");
+          setForceClearAllModal2Open(false);
+      }
+  };
+
+  const handleToggleSelect = (id: number) => {
+      setSelectedIds(prev => 
+          prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+      );
+  };
+
+
 
   // Filter & Pagination Logic
   const uniqueYears = useMemo(() => {
@@ -100,20 +232,11 @@ export default function UserListDesktop() {
   const filteredUsers = useMemo(() => {
     return users
       .filter((user) => {
-        const searchLower = search.toLowerCase();
-        const matchesSearch =
-          user.nama?.toLowerCase().includes(searchLower) ||
-          user.email?.toLowerCase().includes(searchLower) ||
-          (user.nim && user.nim.toLowerCase().includes(searchLower)) ||
-          (user.nidn && user.nidn.toLowerCase().includes(searchLower)) ||
-          (user.jurusan && user.jurusan.toLowerCase().includes(searchLower)) ||
-          (user.jabatan && user.jabatan.toLowerCase().includes(searchLower));
-
         const matchesYear = filterYear
           ? user.tahunMasuk?.toString() === filterYear
           : true;
 
-        return matchesSearch && matchesYear;
+        return matchesYear;
       })
       .sort((a, b) => {
         const nameA = a.nama?.toLowerCase() || "";
@@ -121,13 +244,28 @@ export default function UserListDesktop() {
         if (sortOrder === "asc") return nameA.localeCompare(nameB);
         return nameB.localeCompare(nameA);
       });
-  }, [users, search, sortOrder, filterYear]);
+  }, [users, sortOrder, filterYear]);
 
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
-  const paginatedUsers = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredUsers.slice(start, start + itemsPerPage);
-  }, [filteredUsers, currentPage]);
+  // Use filtered results directly as they are already paginated from server (mostly)
+  // but we still apply client-side sorting/year filter on the current page slice
+  const paginatedUsers = filteredUsers;
+
+  const handleSelectAll = (checked: boolean) => {
+      if (checked) {
+          const allIds = paginatedUsers.map(u => u.user?.id || u.userId || u.id);
+          setSelectedIds(prev => {
+              const newSet = new Set([...prev, ...allIds]);
+              return Array.from(newSet);
+          });
+      } else {
+          const pageIds = paginatedUsers.map(u => u.user?.id || u.userId || u.id);
+          setSelectedIds(prev => prev.filter(id => !pageIds.includes(id)));
+      }
+  };
+
+  const isAllPageSelected = paginatedUsers.length > 0 && paginatedUsers.every(u => 
+      selectedIds.includes(u.user?.id || u.userId || u.id)
+  );
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
@@ -137,6 +275,29 @@ export default function UserListDesktop() {
 
   // Columns definition
   const columns: Column<any>[] = [
+    {
+      header: (
+        <Checkbox 
+          checked={isAllPageSelected}
+          onCheckedChange={(checked) => handleSelectAll(!!checked)}
+          aria-label="Select all"
+          className="translate-y-[2px]"
+        />
+      ),
+      cell: (user) => {
+        const id = user.user?.id || user.userId || user.id;
+        return (
+          <Checkbox 
+            checked={selectedIds.includes(id)}
+            onCheckedChange={() => handleToggleSelect(id)}
+            aria-label="Select row"
+            className="translate-y-[2px]"
+          />
+        )
+      },
+      width: "40px",
+      stopRowClick: true,
+    },
     {
       header: "No",
       cell: (_, index) => (currentPage - 1) * itemsPerPage + index + 1,
@@ -157,11 +318,11 @@ export default function UserListDesktop() {
       )
     },
     {
-      header: activeTab === "mahasiswa" ? "NIM" : "NIDN",
-      accessorKey: activeTab === "mahasiswa" ? "nim" : "nidn",
+      header: activeTab === "mahasiswa" ? "NIM" : activeTab === "dosen" ? "NIDN" : "Username",
+      accessorKey: activeTab === "mahasiswa" ? "nim" : activeTab === "dosen" ? "nidn" : "username",
       cell: (user) => (
         <span className="font-mono text-gray-600">
-          {activeTab === "mahasiswa" ? user.nim : user.nidn}
+          {activeTab === "mahasiswa" ? user.nim : activeTab === "dosen" ? user.nidn : user.user?.username}
         </span>
       ),
     },
@@ -170,15 +331,15 @@ export default function UserListDesktop() {
       accessorKey: "email", 
       cell: (user) => <span className="text-gray-600">{user.email || user.user?.email || "-"}</span>,
     },
-    {
+    ...(activeTab !== "staf" ? [{
       header: activeTab === "mahasiswa" ? "Jurusan" : "Jabatan",
       accessorKey: activeTab === "mahasiswa" ? "jurusan" : "jabatan",
-      cell: (user) => (
+      cell: (user: any) => (
         <span className="inline-flex px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">
           {activeTab === "mahasiswa" ? user.jurusan : user.jabatan}
         </span>
       ),
-    },
+    }] : []),
     ...(activeTab === "mahasiswa"
       ? [
           {
@@ -195,14 +356,20 @@ export default function UserListDesktop() {
       cell: (user) => (
         <div className="flex justify-end gap-2">
            <button 
-                onClick={() => navigate(`/admin/edit-account/${user.user?.id || user.userId}`)} 
+                onClick={(e) => {
+                     e.stopPropagation();
+                     navigate(`/admin/edit-account/${user.user?.id || user.userId || user.id}`)
+                }} 
                 className="p-2 text-gray-400 hover:text-blue-600 transition-colors" 
                 title="Edit"
            >
                 <Pencil size={18} />
            </button>
            <button 
-                onClick={() => confirmDelete(user)}
+                onClick={(e) => {
+                     e.stopPropagation();
+                     confirmDelete(user);
+                }}
                 className="p-2 text-gray-400 hover:text-red-600 transition-colors" 
                 title="Delete"
            >
@@ -252,7 +419,7 @@ export default function UserListDesktop() {
 
       // Document Title
       doc.setFontSize(12);
-      doc.text(`DATA ${activeTab === "mahasiswa" ? "MAHASISWA" : "DOSEN"}`, centerX, 55, { align: "center" });
+      doc.text(`DATA ${activeTab.toUpperCase()}`, centerX, 55, { align: "center" });
 
       // Info Section (Tahun Akademik & Tanggal Cetak)
       doc.setFontSize(10);
@@ -282,14 +449,18 @@ export default function UserListDesktop() {
       // Define columns and rows
       const tableColumn = activeTab === "mahasiswa"
         ? ["No", "Name", "NIM", "Email", "Jurusan", "Tahun Masuk"]
-        : ["No", "Name", "NIDN", "Email", "Jabatan"];
+        : activeTab === "dosen"
+            ? ["No", "Name", "NIDN", "Email", "Jabatan"]
+            : ["No", "Name", "Username", "Email"];
 
       const tableRows = users.map((u, index) => {
         const email = u.email || u.user?.email || "-";
         if (activeTab === "mahasiswa") {
           return [index + 1, u.nama, u.nim, email, u.jurusan, u.tahunMasuk];
-        } else {
+        } else if (activeTab === "dosen") {
           return [index + 1, u.nama, u.nidn, email, u.jabatan];
+        } else {
+          return [index + 1, u.nama, u.user?.username, email];
         }
       });
 
@@ -332,17 +503,97 @@ export default function UserListDesktop() {
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={handleDelete}
-        title="Delete User"
-        itemName={userToDelete?.name}
-        description="Are you sure you want to delete this user? This action cannot be undone."
+        title={selectedIds.length > 0 && !userToDelete ? "Delete Multiple Users" : "Delete User"}
+        itemName={userToDelete ? userToDelete.name : (selectedIds.length > 0 ? `${selectedIds.length} users` : "")}
+        description={`Are you sure you want to delete ${userToDelete ? "this user" : "the selected users"}? This action cannot be undone.`}
       />
+
+      <ForceDeleteModal
+        isOpen={forceDeleteModalOpen}
+        onClose={() => { setForceDeleteModalOpen(false); setUserToDelete(null); }}
+        onConfirm={handleForceDelete}
+        title="Hapus Paksa Akun"
+        itemName={userToDelete?.name || ""}
+        description={blockingMessage}
+      />
+
+      {/* Clear All Flow Modals */}
+      <DeleteConfirmationModal 
+        isOpen={clearAllConfirmOpen}
+        onClose={() => setClearAllConfirmOpen(false)}
+        onConfirm={handleClearAllAccounts}
+        title={`Hapus Seluruh ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`}
+        itemName=""
+        description={`Apakah Anda yakin ingin menghapus seluruh akun ${activeTab}? Akun tanpa data terikat akan dihapus seketika.`}
+      />
+
+      <ForceDeleteModal
+        isOpen={forceClearAllModal1Open}
+        onClose={() => setForceClearAllModal1Open(false)}
+        onConfirm={() => {
+            setForceClearAllModal1Open(false);
+            setTimeout(() => setForceClearAllModal2Open(true), 300);
+        }}
+        title="Peringatan Data Aktif"
+        itemName={`SEMUA ${activeTab.toUpperCase()} TERSISA`}
+        description={clearAllBlockingMessage}
+      />
+
+      {/* Validation 2 Modal: Require Input */}
+      {forceClearAllModal2Open && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm transition-all animate-in fade-in-0">
+             <div className="w-[90%] max-w-[450px] bg-white rounded-2xl shadow-2xl border border-red-100 overflow-hidden animate-in zoom-in-95 duration-200">
+               <div className="bg-red-50 p-6 flex flex-col items-center text-center space-y-3">
+                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center text-red-600">
+                     <AlertTriangle size={32} strokeWidth={2.5} />
+                  </div>
+                  <h3 className="text-xl font-bold text-red-900">Validasi Tahap Akhir!</h3>
+               </div>
+               <div className="p-6 text-center space-y-4">
+                  <p className="text-sm text-gray-700">
+                      Anda akan menghapus <span className="font-bold">SELURUH</span> {activeTab} beserta <span className="font-bold underline text-red-600">SELURUH RIWAYAT DATA</span> mereka.
+                  </p>
+                  <div className="space-y-2 mt-4 text-left">
+                     <label className="text-xs font-semibold text-gray-500">Ketik <span className="text-red-600">HAPUS SEMUA</span> untuk mengkonfirmasi:</label>
+                     <input 
+                         type="text" 
+                         value={clearAllInput}
+                         onChange={(e) => setClearAllInput(e.target.value)}
+                         className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm text-center font-bold tracking-widest focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none uppercase"
+                         placeholder="HAPUS SEMUA"
+                     />
+                  </div>
+               </div>
+               <div className="p-6 pt-0 flex gap-3">
+                  <button onClick={() => setForceClearAllModal2Open(false)} className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">Batal</button>
+                  <button 
+                      onClick={handleForceClearAllAccounts} 
+                      disabled={clearAllInput !== "HAPUS SEMUA"}
+                      className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                      Hapus Permanen
+                  </button>
+               </div>
+             </div>
+          </div>
+      )}
+
+      {/* Toast Notification */}
+      {toastProps && (
+        <div className="fixed top-6 right-6 z-[100] animate-in slide-in-from-right-full">
+            <Toast 
+                {...toastProps} 
+                onClose={() => setToastProps(null)} 
+            />
+        </div>
+      )}
 
       {/* Search and Filters Header */}
       <div className="flex flex-col gap-6 mb-8">
         <div className="flex justify-between items-center">
             <div>
                  <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-                 <p className="text-gray-500 text-sm mt-1">Manage {activeTab === "mahasiswa" ? "Mahasiswa" : "Dosen"} accounts.</p>
+                 <p className="text-gray-500 text-sm mt-1">Manage {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} accounts.</p>
             </div>
              <div className="flex gap-3">
                  <button
@@ -353,6 +604,14 @@ export default function UserListDesktop() {
                     Download PDF
                  </button>
 
+                 <button
+                      onClick={() => setClearAllConfirmOpen(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors shadow-sm"
+                 >
+                      <Trash2 size={16} />
+                      Hapus Semua
+                 </button>
+
                  <Link
                     to={`/admin/create-account?role=${activeTab}`}
                     className="flex items-center gap-2 px-4 py-2 bg-pink-700 text-white rounded-lg text-sm font-medium hover:bg-pink-800 transition-colors shadow-sm"
@@ -360,8 +619,21 @@ export default function UserListDesktop() {
                     <div className="bg-white/20 p-0.5 rounded">
                        <Plus size={16} className="text-white" />
                     </div>
-                    Create New {activeTab === "mahasiswa" ? "Mahasiswa" : "Dosen"}
+                    Create New {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
                   </Link>
+
+                  {selectedIds.length > 0 && (
+                      <button
+                        onClick={() => {
+                            setUserToDelete(null); // Ensure single user is null for batch mode
+                            setDeleteModalOpen(true);
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors shadow-sm animate-in fade-in slide-in-from-right-2"
+                      >
+                        <Trash2 size={16} />
+                        Delete {selectedIds.length} Selected
+                      </button>
+                  )}
              </div>
         </div>
 
@@ -471,7 +743,7 @@ export default function UserListDesktop() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit mb-6">
-        {(["mahasiswa", "dosen"] as const).map((tab) => (
+        {(["mahasiswa", "dosen", "staf"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => handleTabChange(tab)}

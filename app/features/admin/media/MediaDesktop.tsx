@@ -30,7 +30,7 @@ interface MediaDesktopProps {
     onImageSelect?: (image: MediaItem) => void;
 }
 
-export default function MediaDesktop({
+export function MediaDesktop({
     standalone = true,
     onClose,
     onImageSelect,

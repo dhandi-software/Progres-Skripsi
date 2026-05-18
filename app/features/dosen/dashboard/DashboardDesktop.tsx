@@ -11,7 +11,9 @@ import {
     Users as UsersIcon, 
     BookOpen, 
     Calendar,
-    MessageSquare
+    MessageSquare,
+    BarChart3,
+    ArrowRight
 } from "lucide-react";
 
 export function DashboardDesktop({ title }: { title: string }) {
@@ -19,14 +21,27 @@ export function DashboardDesktop({ title }: { title: string }) {
     const navigate = useNavigate();
     const [activities, setActivities] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showAllActivities, setShowAllActivities] = useState(false);
 
     const [activeBimbinganCount, setActiveBimbinganCount] = useState(0);
     const [thisWeekScheduleCount, setThisWeekScheduleCount] = useState(0);
     const [unreadMessages, setUnreadMessages] = useState(0);
+    
+    const isDosenReguler = user?.jabatan?.toLowerCase().includes("reguler");
+    const [prodiStats, setProdiStats] = useState({ totalStudents: 0, avgProgress: 0, totalDosen: 0 });
 
     useEffect(() => {
         const fetchAll = async () => {
             try {
+                if (isDosenReguler) {
+                    const monitoringData = await bimbinganApi.getAllProdiBimbingan();
+                    if (monitoringData && Array.isArray(monitoringData)) {
+                        const totalStudents = monitoringData.reduce((acc, d) => acc + (d.totalStudents || 0), 0);
+                        const avgProgress = Math.round(monitoringData.reduce((acc, d) => acc + (d.activeProgress || 0), 0) / (monitoringData.length || 1));
+                        setProdiStats({ totalStudents, avgProgress, totalDosen: monitoringData.length });
+                    }
+                }
+
                 let allActs: any[] = [];
                 // Pengajuan
                 const pengajuanData = await pengajuanApi.getPengajuanByDosen();
@@ -91,7 +106,7 @@ export function DashboardDesktop({ title }: { title: string }) {
             }
         };
         fetchAll();
-    }, [user?.id]);
+    }, [user?.id, isDosenReguler]);
 
     const getIcon = (status: string) => {
         switch (status) {
@@ -119,7 +134,37 @@ export function DashboardDesktop({ title }: { title: string }) {
     };
 
     const pendingCount = activities.filter(a => a.type === 'pengajuan' && a.status === 'PENDING').length;
-    const statsConfig = [
+    
+    const statsConfig = isDosenReguler ? [
+        {
+            title: "Total Mahasiswa Prodi",
+            value: `${prodiStats.totalStudents} Mhs`,
+            icon: UsersIcon,
+            color: "text-blue-600",
+            bg: "bg-blue-50",
+        },
+        {
+            title: "Rata-rata Progres",
+            value: `${prodiStats.avgProgress}%`,
+            icon: BarChart3,
+            color: "text-green-600",
+            bg: "bg-green-50",
+        },
+        {
+            title: "Total Dosen Pembimbing",
+            value: `${prodiStats.totalDosen} Dosen`,
+            icon: BookOpen,
+            color: "text-orange-600",
+            bg: "bg-orange-50",
+        },
+        {
+            title: "Pesan Masuk",
+            value: `${unreadMessages} Baru`,
+            icon: MessageSquare,
+            color: "text-purple-600",
+            bg: "bg-purple-50",
+        },
+    ] : [
         {
             title: "Menunggu Peninjauan",
             value: `${pendingCount} Usulan`,
@@ -159,7 +204,9 @@ export function DashboardDesktop({ title }: { title: string }) {
                         Selamat Datang, {user?.name?.split(' ')[0] || "Dosen"}!
                     </h1>
                     <p className="text-white/80 text-lg w-full ">
-                        Kelola peninjauan judul Kerja Praktik, jadwal bimbingan mahasiswa, dan pantau progres akademik secara efisien.
+                        {isDosenReguler 
+                            ? "Pantau perkembangan akademik mahasiswa dan progres bimbingan di seluruh program studi secara real-time."
+                            : "Kelola peninjauan judul Kerja Praktik, jadwal bimbingan mahasiswa, dan pantau progres akademik secara efisien."}
                     </p>
                 </div>
                 {/* Decorative overlay */}
@@ -201,13 +248,21 @@ export function DashboardDesktop({ title }: { title: string }) {
                         <h2 className="text-xl font-bold text-gray-800">
                             Aktivitas Terkini
                         </h2>
+                        {activities.length > 5 && (
+                            <button 
+                                onClick={() => setShowAllActivities(true)}
+                                className="text-sm text-[#119DA4] font-medium hover:underline"
+                            >
+                                Lihat Semua
+                            </button>
+                        )}
                     </div>
                     
                     <div className="divide-y divide-gray-50">
                         {loading ? (
                             <div className="p-6 text-center text-gray-400 text-sm">Memuat aktivitas...</div>
                         ) : activities.length === 0 ? (
-                            <div className="p-6 text-center text-gray-400 text-sm">Belum ada aktivitas pengajuan.</div>
+                            <div className="p-6 text-center text-gray-400 text-sm">Belum ada aktivitas baru.</div>
                         ) : (
                             activities.slice(0, 5).map((item, i) => {
                                 const Icon = getIcon(item.status);
@@ -243,20 +298,33 @@ export function DashboardDesktop({ title }: { title: string }) {
                             Aksi Cepat
                         </h2>
                         <div className="grid grid-cols-1 gap-4">
-                            <button
-                                onClick={() => navigate("/dosen/peninjauan")}
-                                className="w-full py-3 px-4 bg-[#119DA4] hover:bg-[#0e868c] text-white rounded-xl font-medium transition-all shadow-lg shadow-[#119DA4]/20 flex items-center justify-center gap-2"
-                            >
-                                <FileText className="w-5 h-5" />
-                                Tinjau Pengajuan
-                            </button>
-                            <button
-                                onClick={() => navigate("/dosen/bimbingan")}
-                                className="w-full py-3 px-4 bg-white border-2 border-[#119DA4] text-[#119DA4] hover:bg-[#119DA4]/5 rounded-xl font-medium transition-all flex items-center justify-center gap-2"
-                            >
-                                <UsersIcon className="w-5 h-5" />
-                                Daftar Bimbingan
-                            </button>
+                            {isDosenReguler ? (
+                                <button
+                                    onClick={() => navigate("/dosen/prodi/bimbingan")}
+                                    className="w-full py-4 px-4 bg-[#119DA4] hover:bg-[#0e868c] text-white rounded-xl font-bold transition-all shadow-lg shadow-[#119DA4]/20 flex items-center justify-center gap-3 group"
+                                >
+                                    <BarChart3 className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                                    Monitoring Bimbingan
+                                    <ArrowRight className="w-5 h-5 ml-auto opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                                </button>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={() => navigate("/dosen/peninjauan")}
+                                        className="w-full py-3 px-4 bg-[#119DA4] hover:bg-[#0e868c] text-white rounded-xl font-medium transition-all shadow-lg shadow-[#119DA4]/20 flex items-center justify-center gap-2"
+                                    >
+                                        <FileText className="w-5 h-5" />
+                                        Tinjau Pengajuan
+                                    </button>
+                                    <button
+                                        onClick={() => navigate("/dosen/bimbingan")}
+                                        className="w-full py-3 px-4 bg-white border-2 border-[#119DA4] text-[#119DA4] hover:bg-[#119DA4]/5 rounded-xl font-medium transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <UsersIcon className="w-5 h-5" />
+                                        Daftar Bimbingan
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </div>
 
@@ -265,7 +333,9 @@ export function DashboardDesktop({ title }: { title: string }) {
                             Pusat Pesan
                         </h3>
                         <p className="text-sm text-[#D25026]/80 mb-4">
-                            Kelola komunikasi dengan mahasiswa bimbingan secara real-time.
+                            {isDosenReguler 
+                                ? "Pantau komunikasi antar mahasiswa dan dosen pembimbing."
+                                : "Kelola komunikasi dengan mahasiswa bimbingan secara real-time."}
                         </p>
                         <button
                             onClick={() => navigate("/dosen/chat")}
@@ -276,6 +346,45 @@ export function DashboardDesktop({ title }: { title: string }) {
                     </div>
                 </div>
             </div>
+
+            {/* Modal "Lihat Semua" Aktivitas */}
+            {showAllActivities && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh]">
+                        <div className="p-6 border-b border-gray-100 flex items-center justify-between shrink-0">
+                            <h3 className="text-xl font-bold text-gray-900">Semua Aktivitas</h3>
+                            <button onClick={() => setShowAllActivities(false)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                            </button>
+                        </div>
+                        <div className="overflow-y-auto divide-y divide-gray-50 flex-1 p-2">
+                            {activities.map((item, i) => {
+                                const Icon = getIcon(item.status);
+                                return (
+                                <div key={i} className="p-4 flex items-start gap-4 hover:bg-gray-50 transition-colors rounded-xl mx-2">
+                                    <div className="mt-1">
+                                        <Icon className={`w-5 h-5 ${getIconColor(item.status)}`} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="font-semibold text-gray-900">
+                                            {item.type === 'bimbingan' ? `Bimbingan Draf - ${item.nama}` : `Pengajuan Judul - ${item.nama}`}
+                                        </h4>
+                                        <p className="text-sm text-gray-500 mt-1">
+                                            {item.judul}
+                                        </p>
+                                        <span className="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                                            <Clock className="w-3.5 h-3.5" />{" "}
+                                            {new Date(item.tanggal).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })} 
+                                            <span className="mx-1">•</span>
+                                            {getStatusText(item.status, item.type)}
+                                        </span>
+                                    </div>
+                                </div>
+                            )})}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

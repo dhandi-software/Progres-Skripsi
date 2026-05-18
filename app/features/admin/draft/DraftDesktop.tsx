@@ -5,7 +5,7 @@ import { Toast } from "~/components/ui/toast";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { mediaApi } from "~/api/mediaApi";
 
-export default function DraftDesktop() {
+export function DraftDesktop() {
     const navigate = useNavigate();
     const {
         drafts,

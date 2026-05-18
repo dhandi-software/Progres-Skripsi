@@ -43,7 +43,7 @@ interface CreateArticleDesktopProps {
   articleId?: string;
 }
 
-export default function CreateArticleDesktop({ articleId }: CreateArticleDesktopProps) {
+export function CreateArticleDesktop({ articleId }: CreateArticleDesktopProps) {
   const { states, setters, handlers, refs } = useCreateArticle({ articleId });
 
   const formatText = (command: string) => {

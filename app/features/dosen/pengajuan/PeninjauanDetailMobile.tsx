@@ -2,8 +2,10 @@ import * as React from "react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { pengajuanApi } from "~/api/pengajuan";
-import { ChevronLeft, Check, X, Loader2 } from "lucide-react";
+import { ChevronLeft, Check, X, Loader2, RotateCcw } from "lucide-react";
 import { Link } from "react-router";
+import { Toast } from "~/components/ui/toast";
+import { Button } from "~/components/ui/button";
 
 interface PengajuanDetail {
     id: number;
@@ -29,6 +31,11 @@ export function PeninjauanDetailMobile({ id }: { id: string }) {
     const [loading, setLoading] = useState(true);
     const [remarks, setRemarks] = useState("");
     const [submitting, setSubmitting] = useState(false);
+    const [toast, setToast] = useState<{ title: string; variant: "success" | "destructive" | "default" } | null>(null);
+
+    const showToast = (title: string, variant: "success" | "destructive" | "default" = "success") => {
+        setToast({ title, variant });
+    };
 
     useEffect(() => {
         const fetchDetail = async () => {
@@ -46,14 +53,15 @@ export function PeninjauanDetailMobile({ id }: { id: string }) {
         fetchDetail();
     }, [id, navigate]);
 
-    const handleAction = async (status: 'APPROVED' | 'REJECTED') => {
+    const handleAction = async (status: 'APPROVED' | 'REJECTED' | 'REVISION') => {
         setSubmitting(true);
         try {
             await pengajuanApi.updateStatus(parseInt(id), status, remarks);
-            alert(`Pengajuan berhasil di-${status.toLowerCase()}`);
-            navigate("/dosen/peninjauan");
+            const label = status === 'APPROVED' ? 'disetujui' : status === 'REJECTED' ? 'ditolak' : 'diminta revisi';
+            showToast(`Pengajuan berhasil ${label}.`, "success");
+            setTimeout(() => navigate("/dosen/peninjauan"), 1800);
         } catch (error: any) {
-            alert("Gagal memproses aksi: " + (error.response?.data?.message || error.message));
+            showToast("Gagal memproses aksi: " + (error.response?.data?.message || error.message), "destructive");
         } finally {
             setSubmitting(false);
         }
@@ -71,6 +79,17 @@ export function PeninjauanDetailMobile({ id }: { id: string }) {
 
     return (
         <div className="min-h-screen bg-gray-50 pb-20 font-geist">
+            {/* Toast Notification */}
+            {toast && (
+                <div className="fixed top-4 right-4 z-[9999]">
+                    <Toast
+                        title={toast.title}
+                        variant={toast.variant}
+                        duration={toast.variant === 'success' ? 2500 : 5000}
+                        onClose={() => setToast(null)}
+                    />
+                </div>
+            )}
             {/* Mobile Header */}
             <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 flex items-center gap-3">
                  <Link to="/dosen/peninjauan" className="p-2 -ml-2 text-gray-600">
@@ -230,22 +249,37 @@ export function PeninjauanDetailMobile({ id }: { id: string }) {
                             </div>
 
                             <div className="flex flex-col gap-3 pt-2">
-                                <button
+                                <Button
+                                    variant="default"
+                                    size="lg"
                                     onClick={() => handleAction('APPROVED')}
                                     disabled={submitting}
-                                    className="w-full py-3.5 bg-[#D25026] text-white font-bold rounded-xl shadow-lg shadow-[#D25026]/20 active:scale-95 transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-70"
+                                    className="w-full font-bold"
                                 >
                                     <Check size={18} strokeWidth={3} />
                                     Setujui Pengajuan
-                                </button>
-                                <button
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="lg"
+                                    onClick={() => handleAction('REVISION')}
+                                    disabled={submitting || !remarks.trim()}
+                                    className="w-full border-yellow-500 text-yellow-700 hover:bg-yellow-50 font-bold"
+                                    title={!remarks.trim() ? 'Isi catatan terlebih dahulu untuk mengirim revisi' : ''}
+                                >
+                                    <RotateCcw size={18} />
+                                    Revisi
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="lg"
                                     onClick={() => handleAction('REJECTED')}
                                     disabled={submitting}
-                                    className="w-full py-3.5 bg-white border-2 border-red-500 text-red-600 font-bold rounded-xl hover:bg-red-50 active:scale-95 transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-70"
+                                    className="w-full border-red-500 text-red-600 hover:bg-red-50 font-bold"
                                 >
                                     <X size={18} strokeWidth={3} />
                                     Tolak Pengajuan
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     )}

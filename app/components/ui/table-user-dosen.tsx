@@ -16,6 +16,7 @@ export interface Column<T> {
   headerClassName?: string;
   cellClassName?: string;
   width?: string;
+  stopRowClick?: boolean;
 }
 
 interface DataTableProps<T> {
@@ -52,11 +53,14 @@ const TableRow = memo(
           <td
             key={colIndex}
             className={cn(
-              "px-6 py-4 text-sm text-gray-700 align-middle",
+              "px-6 py-4 text-sm text-gray-700 align-middle relative",
               col.className,
               col.cellClassName
             )}
             style={{ width: col.width }}
+            onClick={(e) => {
+              if (col.stopRowClick || col.header === "Actions") e.stopPropagation();
+            }}
           >
             {col.cell
               ? col.cell(item, index)

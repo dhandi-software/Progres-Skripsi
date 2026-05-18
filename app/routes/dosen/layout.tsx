@@ -11,6 +11,9 @@ import {
   MessageCircle,
   Calendar,
   Award,
+  ClipboardList,
+  User,
+  BookOpen,
 } from "lucide-react";
 import { Outlet, useRouteLoaderData } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
@@ -18,6 +21,7 @@ import { RoleGuard } from "~/routes/RoleGuard";
 import { useAuth } from "~/hooks/useAuth";
 import type { ContextType } from "~/root";
 import { chatService } from "~/services/chatService";
+import { sidangApi } from "~/api/sidangApi";
 
 import { SidebarProvider, Sidebar, SidebarContent, useSidebar, SidebarTrigger } from "~/components/ui/sidebar";
 import { cn } from "~/lib/utils";
@@ -29,7 +33,13 @@ type MenuKey =
   | "bimbingan"
   | "chat"
   | "acara"
+  | "sidang"
   | "penilaian"
+  | "laporan"
+  | "logbook"
+  | "prodiSidang"
+  | "prodiBimbingan"
+  | "profile"
   | "logout";
 
 const pathToKey = (pathname: string): MenuKey | undefined => {
@@ -38,7 +48,13 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/dosen/bimbingan")) return "bimbingan";
   if (pathname.startsWith("/dosen/chat")) return "chat";
   if (pathname.startsWith("/dosen/acara")) return "acara";
+  if (pathname.startsWith("/dosen/sidang")) return "sidang";
   if (pathname.startsWith("/dosen/penilaian")) return "penilaian";
+  if (pathname.startsWith("/dosen/laporan")) return "laporan";
+  if (pathname.startsWith("/dosen/prodi/sidang")) return "prodiSidang";
+  if (pathname.startsWith("/dosen/prodi/bimbingan")) return "prodiBimbingan";
+  if (pathname.startsWith("/dosen/profile")) return "profile";
+  if (pathname.startsWith("/dosen/logbook")) return "logbook";
   if (pathname === "/dosen" || pathname.startsWith("/dosen/"))
     return "dashboard";
   return undefined;
@@ -64,6 +80,12 @@ const menuItems = [
     url: "/dosen/peninjauan",
   },
   {
+    key: "logbook" as MenuKey,
+    title: "Logbook Mahasiswa",
+    icon: BookOpen,
+    url: "/dosen/logbook",
+  },
+  {
     key: "bimbingan" as MenuKey,
     title: "Bimbingan",
     icon: Users,
@@ -77,15 +99,47 @@ const menuItems = [
   },
   {
     key: "acara" as MenuKey,
-    title: "Acara",
+    title: "Pengumuman",
     icon: Calendar,
     url: "/dosen/acara",
+  },
+  {
+    key: "sidang" as MenuKey,
+    title: "Manajemen Sidang",
+    icon: Calendar,
+    url: "/dosen/sidang",
   },
   {
     key: "penilaian" as MenuKey,
     title: "Penilaian",
     icon: Award,
     url: "/dosen/penilaian",
+  },
+  {
+    key: "laporan" as MenuKey,
+    title: "Laporan",
+    icon: FileText,
+    url: "/dosen/laporan",
+  },
+  {
+    key: "prodiSidang" as MenuKey,
+    title: "Manajemen Sidang (Prodi)",
+    icon: Calendar,
+    url: "/dosen/prodi/sidang",
+    prodiOnly: true
+  },
+  {
+    key: "prodiBimbingan" as MenuKey,
+    title: "Monitoring Bimbingan",
+    icon: Users,
+    url: "/dosen/prodi/bimbingan",
+    prodiOnly: true
+  },
+  {
+    key: "profile" as MenuKey,
+    title: "Profil Saya",
+    icon: User,
+    url: "/dosen/profile",
   },
 ];
 
@@ -102,6 +156,8 @@ export function AppSidebar() {
   const [pendingCount, setPendingCount] = React.useState(0);
   const [unreadCount, setUnreadCount] = React.useState(0);
   const [bimbinganBadgeCount, setBimbinganBadgeCount] = React.useState(0);
+  const [sidangBadgeCount, setSidangBadgeCount] = React.useState(0);
+  const [prodiSidangBadgeCount, setProdiSidangBadgeCount] = React.useState(0);
 
   React.useEffect(() => {
     const fetchPendingCount = async () => {
@@ -147,30 +203,54 @@ export function AppSidebar() {
       }
     };
 
+    const fetchSidangBadge = async () => {
+      try {
+        const data = await sidangApi.getSidangByDosen();
+        if (data && Array.isArray(data)) {
+            // Advisor badge: status MENUNGGU_PERSETUJUAN_PEMBIMBING
+            const advisorCount = data.filter((item: any) => 
+                item.status === 'MENUNGGU_PERSETUJUAN_PEMBIMBING' && item.dosenId === user?.dosenId
+            ).length;
+            setSidangBadgeCount(advisorCount);
+
+            // Prodi badge: status MENUNGGU_PENJADWALAN_PRODI, MENUNGGU_VERIFIKASI_KAPRODI, MENUNGGU_KONFIRMASI_JADWAL_KAPRODI
+            const prodiStatuses = ['MENUNGGU_PENJADWALAN_PRODI', 'MENUNGGU_VERIFIKASI_KAPRODI', 'MENUNGGU_KONFIRMASI_JADWAL_KAPRODI'];
+            const prodiCount = data.filter((item: any) => 
+                prodiStatuses.includes(item.status)
+            ).length;
+            setProdiSidangBadgeCount(prodiCount);
+        }
+      } catch (error) {
+        console.error("Failed to fetch sidang badge:", error);
+      }
+    };
+
     // Initial fetch
     fetchPendingCount();
     fetchUnread();
     fetchBimbinganBadge();
+    fetchSidangBadge();
     
     // Setup interval to periodically check (optional, but good for real-time feel)
     const intervalId = setInterval(() => {
         fetchPendingCount();
         fetchUnread();
         fetchBimbinganBadge();
+        fetchSidangBadge();
     }, 30000); // Check every 30s
     return () => clearInterval(intervalId);
   }, [user]);
 
-  const handleNavigate = (key: MenuKey) => {
+  const handleNavigate = (key: string) => {
+    if (key === "logout") {
+        logout();
+        return;
+    }
     const item = menuItems.find((item) => item.key === key);
-    if (item) {
+    if (item && item.url) {
       if (isMobile) setOpenMobile(false);
       navigate(item.url);
       return;
-    }
-
-    if (key === "logout") {
-        logout();
     }
   };
 
@@ -193,14 +273,33 @@ export function AppSidebar() {
               Menu Utama
             </h2>
             <div className="flex flex-col gap-1">
-              {menuItems.map((item) => {
+              {menuItems.filter(item => {
+                const jabatan = (user?.jabatan || "").toLowerCase().trim();
+                const isAuthorized = jabatan === "pejabat prodi" || 
+                                   jabatan === "penjabat prodi" || 
+                                   jabatan === "dosen reguler";
+                
+                const isDosenReguler = jabatan === "dosen reguler";
+                
+                // Whitelist for Prodi-only areas
+                const isProdiItem = (item as any).prodiOnly || 
+                                   item.key === "prodiSidang" || 
+                                   item.key === "prodiBimbingan";
+
+                // Hide active supervision menus for Dosen Reguler
+                const hiddenForReguler = ["peninjauan", "bimbingan", "chat", "penilaian", "sidang", "logbook", "laporan"];
+                if (isDosenReguler && hiddenForReguler.includes(item.key || "")) return false;
+
+                if (isProdiItem) return isAuthorized;
+                return true;
+              }).map((item) => {
                 const isActive = active === item.key;
                 const IconComponent = item.icon;
 
                 return (
                   <div key={item.key} className="flex flex-col gap-1">
                     <div
-                      onClick={() => handleNavigate(item.key)}
+                      onClick={() => handleNavigate(item.key || "")}
                       className={cn(
                         "group flex items-center justify-between px-3 py-3 rounded-xl cursor-pointer transition-all duration-200",
                         isActive ? "bg-[#FFF0EB]" : "hover:bg-gray-50",
@@ -213,7 +312,7 @@ export function AppSidebar() {
                             isActive ? "bg-[#D25026]" : "bg-[#A1A1A1] group-hover:bg-gray-400"
                           )}
                         >
-                          <IconComponent className="w-5 h-5 text-white" />
+                          {IconComponent && <IconComponent className="w-5 h-5 text-white" />}
                         </div>
                         <span
                           className={cn(
@@ -240,6 +339,16 @@ export function AppSidebar() {
                           {unreadCount}
                         </div>
                       )}
+                      {item.key === "sidang" && sidangBadgeCount > 0 && (
+                        <div className="bg-[#D25026] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
+                          {sidangBadgeCount}
+                        </div>
+                      )}
+                      {item.key === "prodiSidang" && prodiSidangBadgeCount > 0 && (
+                        <div className="bg-[#D25026] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
+                          {prodiSidangBadgeCount}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -258,6 +367,7 @@ export function AppSidebar() {
             <span className="font-medium text-[1rem] text-black">Log Out</span>
           </button>
         </div>
+
       </SidebarContent>
     </Sidebar>
   );
@@ -268,7 +378,7 @@ export default function DosenLayout() {
   const { isMobile } = useRouteLoaderData<ContextType>("root") as ContextType;
   return (
     <ProtectedRoute>
-      <RoleGuard allowedRoles={["dosen", "dosen_pembimbing"]}>
+      <RoleGuard allowedRoles={["dosen", "dosen_pembimbing", "kaprodi", "staf"]}>
         <SidebarProvider isMobile={isMobile}>
           <div className="flex w-full h-screen overflow-hidden bg-neutral-50">
             <AppSidebar />

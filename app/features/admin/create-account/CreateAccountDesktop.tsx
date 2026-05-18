@@ -2,7 +2,7 @@ import { useCreateAccount } from "./UseCreateAccount";
 import { cn } from "~/lib/utils";
 import { useState } from "react";
 import { Toast } from "~/components/ui/toast";
-import { Check, ChevronDown, Eye, EyeOff, Loader2, X, ArrowLeft } from "lucide-react";
+import { Check, ChevronDown, Eye, EyeOff, Loader2, X, ArrowLeft, UploadCloud, FileSpreadsheet, Download } from "lucide-react";
 import { useNavigate } from "react-router";
 import { CustomSelect } from "~/components/ui/custom-select";
 
@@ -20,6 +20,13 @@ export const CreateAccountDesktop = () => {
     passwordValidation,
     handleSubmit,
     handleCancel,
+    registrationMode,
+    setRegistrationMode,
+    handleFileUpload,
+    fileName,
+    massData,
+    handleDownloadPreview,
+    clearExcel,
   } = useCreateAccount();
 
   const [isRoleOpen, setIsRoleOpen] = useState(false);
@@ -44,12 +51,37 @@ export const CreateAccountDesktop = () => {
       </div>
 
       <div className="flex flex-col gap-6 w-full">
+        {/* Registration Mode Selection */}
+        {(formData.role === 'mahasiswa' || formData.role === 'dosen') && (
+           <div className="flex bg-gray-100 p-1 rounded-xl w-fit">
+              <button
+                 type="button"
+                 onClick={() => setRegistrationMode('manual')}
+                 className={cn(
+                    "px-6 py-2 rounded-lg text-sm font-medium transition-all",
+                    registrationMode === 'manual' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                 )}
+              >
+                 Manual Input
+              </button>
+              <button
+                 type="button"
+                 onClick={() => setRegistrationMode('mass')}
+                 className={cn(
+                    "px-6 py-2 rounded-lg text-sm font-medium transition-all",
+                    registrationMode === 'mass' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                 )}
+              >
+                 Import Excel
+              </button>
+           </div>
+        )}
         
         {/* Role Selection */}
         <div className="flex flex-col gap-2">
            <label className="text-sm font-semibold text-[#18181B]">Role</label>
            <div className="flex gap-4">
-               {['Mahasiswa', 'Dosen'].map((role) => (
+               {['Mahasiswa', 'Dosen', 'Staf'].map((role) => (
                    <button
                        key={role}
                        type="button"
@@ -67,20 +99,9 @@ export const CreateAccountDesktop = () => {
            </div>
         </div>
 
-            <div className="flex flex-col gap-6">
-                {/* Email Field */}
-                <div className="flex flex-col gap-3">
-                <label className="text-base font-semibold text-[#18181B]">Email</label>
-                <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    placeholder={formData.role === 'mahasiswa' ? "mahasiswa@student.univ.ac.id" : "dosen@univ.ac.id"}
-                    disabled={isLoading}
-                    className="w-full px-5 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-base disabled:opacity-50 disabled:bg-gray-50 bg-white"
-                />
-                </div>
+        {registrationMode === 'manual' ? (
+            <>
+                <div className="flex flex-col gap-6">
 
                 {/* Name Field */}
                 <div className="flex flex-col gap-3">
@@ -96,6 +117,20 @@ export const CreateAccountDesktop = () => {
                 />
                 </div>
             </div>
+
+                 {/* Email Field */}
+                <div className="flex flex-col gap-3">
+                <label className="text-base font-semibold text-[#18181B]">Email</label>
+                <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    placeholder={formData.role === 'mahasiswa' ? "mahasiswa@student.univ.ac.id" : formData.role === 'dosen' ? "dosen@univ.ac.id" : "staf@univ.ac.id"}
+                    disabled={isLoading}
+                    className="w-full px-5 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-base disabled:opacity-50 disabled:bg-gray-50 bg-white"
+                />
+                </div>
 
             {/* Conditional Fields for Mahasiswa */}
             {formData.role === 'mahasiswa' && (
@@ -233,6 +268,98 @@ export const CreateAccountDesktop = () => {
             ))}
           </div> */}
         </div>
+            </>
+         ) : (
+            // MASS REGISTRATION VIEW
+            <div className="flex flex-col gap-6 mt-4">
+                <div className="w-full border-2 border-dashed border-gray-300 rounded-2xl p-10 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer relative">
+                    <input 
+                       type="file" 
+                       accept=".xlsx, .xls" 
+                       onChange={handleFileUpload}
+                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <UploadCloud className="w-12 h-12 text-gray-400 mb-4" />
+                    <p className="text-gray-700 font-medium mb-1">Click to upload Excel file</p>
+                    <p className="text-gray-500 text-sm">
+                        Must contain {formData.role === 'mahasiswa' ? "NPM/NIM" : "NIDN/NIP"} and Nama columns (.xlsx, .xls)
+                    </p>
+                </div>
+
+                {fileName && (
+                    <div className="flex items-center gap-3 p-4 bg-orange-50 border border-orange-100 rounded-xl text-orange-800">
+                        <FileSpreadsheet className="w-6 h-6 text-orange-600" />
+                        <div className="flex flex-col">
+                            <span className="font-semibold text-sm">{fileName}</span>
+                            <span className="text-xs opacity-80">{massData.length} records parsed</span>
+                        </div>
+                        <button 
+                            type="button"
+                            onClick={clearExcel}
+                            className="ml-auto p-1.5 text-orange-600 hover:bg-orange-100 rounded-lg transition-colors group"
+                            aria-label="Remove uploaded file"
+                        >
+                            <X size={18} className="group-active:scale-95 transition-transform" />
+                        </button>
+                    </div>
+                )}
+
+                {massData.length > 0 && (
+                    <div className="border border-gray-200 rounded-xl overflow-hidden flex flex-col">
+                        <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 font-semibold text-sm text-gray-700 flex justify-between items-center">
+                            <span>Data Preview ({massData.length} records)</span>
+                            <button
+                                type="button"
+                                onClick={handleDownloadPreview}
+                                className="px-3 py-1.5 text-xs font-semibold text-orange-700 bg-orange-100 hover:bg-orange-200 rounded-lg transition-colors flex items-center gap-1.5"
+                            >
+                                <Download size={14} /> Download Excel
+                            </button>
+                        </div>
+                        <div className="overflow-x-auto overflow-y-auto max-h-[400px]">
+                            <table className="w-full text-left text-sm text-gray-600">
+                                <thead className="bg-gray-100 text-gray-600 border-b border-gray-200">
+                                    <tr>
+                                        <th className="px-4 py-3 font-bold text-[11px] uppercase tracking-wider w-12 text-center">No</th>
+                                        <th className="px-4 py-3 font-bold text-[11px] uppercase tracking-wider">{formData.role === 'mahasiswa' ? 'NPM' : 'NIDN'}</th>
+                                        <th className="px-4 py-3 font-bold text-[11px] uppercase tracking-wider">Nama</th>
+                                        <th className="px-4 py-3 font-bold text-[11px] uppercase tracking-wider">Email</th>
+                                        <th className="px-4 py-3 font-bold text-[11px] uppercase tracking-wider">Password</th>
+                                        {formData.role === 'mahasiswa' ? (
+                                            <>
+                                                <th className="px-4 py-3 font-bold text-[11px] uppercase tracking-wider">Tahun Masuk</th>
+                                                <th className="px-4 py-3 font-bold text-[11px] uppercase tracking-wider">Jurusan</th>
+                                            </>
+                                        ) : (
+                                            <th className="px-4 py-3 font-bold text-[11px] uppercase tracking-wider">Jabatan</th>
+                                        )}
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200 bg-white">
+                                    {massData.map((user, idx) => (
+                                        <tr key={idx} className="hover:bg-orange-50/50 transition-colors">
+                                            <td className="px-4 py-3 text-center font-medium text-gray-400 border-r border-gray-100">{idx + 1}</td>
+                                            <td className="px-4 py-3 font-mono text-xs font-semibold text-gray-700">{user.nim}</td>
+                                            <td className="px-4 py-3 truncate max-w-[150px] font-medium">{user.nama}</td>
+                                            <td className="px-4 py-3 truncate max-w-[150px] text-gray-500">{user.email}</td>
+                                            <td className="px-4 py-3 font-mono text-xs bg-gray-50/50 text-orange-600">{user.password}</td>
+                                            {formData.role === 'mahasiswa' ? (
+                                                <>
+                                                    <td className="px-4 py-3 text-gray-600">{user.tahunMasuk}</td>
+                                                    <td className="px-4 py-3 text-gray-600">{user.jurusan}</td>
+                                                </>
+                                            ) : (
+                                                <td className="px-4 py-3 text-gray-600">{user.jabatan}</td>
+                                            )}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+            </div>
+         )}
 
         {/* Action Buttons */}
         <div className="mt-6 flex justify-end gap-4">
@@ -260,8 +387,8 @@ export const CreateAccountDesktop = () => {
       {toastProps && (
         <div className="fixed top-20 right-10 z-[100]">
           <Toast
-            title={toastProps.title}
-            variant={toastProps.variant}
+            title={toastProps?.title}
+            variant={toastProps?.variant}
             onClose={() => setToastProps(null)}
           />
         </div>

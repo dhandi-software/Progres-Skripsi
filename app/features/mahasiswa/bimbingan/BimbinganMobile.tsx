@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { bimbinganApi } from "~/api/bimbinganApi";
+import { UPLOADS_URL } from "~/api/client";
 import { BookOpen, Calendar, Clock, Loader2, CheckCircle2, ChevronLeft, FileText, Upload, Download, AlertCircle, Eye, X } from "lucide-react";
 import { Link } from "react-router";
 import { lazy, Suspense } from "react";
 import { Loader2 as LoaderIcon } from "lucide-react";
+import { Toast } from "~/components/ui/toast";
 
 // Use dynamic import for client-side only component
 const SharedPdfViewer = lazy(() => import('../../components/SharedPdfViewer.client').then(m => ({ default: m.SharedPdfViewer })));
@@ -51,6 +53,13 @@ export function BimbinganMobile() {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [keteranganProgres, setKeteranganProgres] = useState("");
     const [uploading, setUploading] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+
+    const [toastProps, setToastProps] = useState<{title: string, variant?: "success" | "destructive" | "default"} | null>(null);
+
+    const showToast = (title: string, variant: "success" | "destructive" | "default" = "success") => {
+        setToastProps({ title, variant });
+    };
 
     // Viewer Modal State
     const [viewingReview, setViewingReview] = useState(false);
@@ -99,13 +108,13 @@ export function BimbinganMobile() {
         setUploading(true);
         try {
             await bimbinganApi.uploadDraftMahasiswa(activeTask.id, selectedFile, keteranganProgres);
-            alert("File berhasil diunggah!");
+            showToast("File berhasil diunggah!", "success");
             setSelectedFile(null);
             setKeteranganProgres("");
             fetchTask();
         } catch (error) {
             console.error(error);
-            alert("Gagal mengunggah file.");
+            showToast("Gagal mengunggah file.", "destructive");
         } finally {
             setUploading(false);
         }
@@ -137,6 +146,16 @@ export function BimbinganMobile() {
 
     return (
         <div className="min-h-screen bg-gray-50 font-geist pb-20">
+            {toastProps && (
+                <div className="fixed top-4 right-4 left-4 z-[150]">
+                    <Toast
+                        title={toastProps.title}
+                        variant={toastProps.variant}
+                        duration={toastProps.variant === 'success' ? 3000 : 5000}
+                        onClose={() => setToastProps(null)}
+                    />
+                </div>
+            )}
             {/* Header */}
             <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 flex items-center gap-3">
                  <Link to="/mahasiswa/dashboard" className="p-2 -ml-2 text-gray-600">
@@ -205,11 +224,36 @@ export function BimbinganMobile() {
                                             </div>
                                         )}
                                         
-                                        {(activeTask.status === 'ASSIGNED' || activeTask.status === 'REVISION') && (
+                                        {/* Jika status SUBMITTED dan sedang tidak edit, tampilkan tombol Edit saja */}
+                                        {activeTask.status === 'SUBMITTED' && !isEditing && !getTimeRemaining(activeTask.jadwalBimbingan).isLate && (
                                             <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-xl">
-                                                <label className="block text-xs font-bold text-gray-700 mb-2">
-                                                    Pengumpulan Draf (.pdf, .doc, .docx)
-                                                </label>
+                                                <h3 className="text-sm font-bold text-gray-800">Draf telah dikumpulkan</h3>
+                                                <p className="text-[10px] text-gray-500 mt-1 mb-3">Jika perlu, perbarui draf sebelum dosen reviu.</p>
+                                                <button 
+                                                    onClick={() => setIsEditing(true)}
+                                                    className="w-full px-4 py-2.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 font-bold rounded-lg transition-colors text-xs text-center"
+                                                >
+                                                    Edit Pengajuan (Draf)
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {/* Form upload ditampilkan jika status ASSIGNED, REVISION, atau ketika isEditing true */}
+                                        {(activeTask.status === 'ASSIGNED' || activeTask.status === 'REVISION' || isEditing) && (
+                                            <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                                                <div className="flex justify-between items-center mb-3">
+                                                    <label className="block text-xs font-bold text-gray-700">
+                                                        Pengumpulan Draf (.pdf, .doc)
+                                                    </label>
+                                                    {isEditing && (
+                                                        <button 
+                                                            onClick={() => setIsEditing(false)}
+                                                            className="text-[10px] text-gray-500 hover:text-gray-700 font-bold"
+                                                        >
+                                                            Batal
+                                                        </button>
+                                                    )}
+                                                </div>
                                                 <input 
                                                     type="file" 
                                                     accept=".pdf,application/pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
@@ -240,7 +284,7 @@ export function BimbinganMobile() {
                                                         className="mt-4 w-full py-2.5 bg-[#4267B2] hover:bg-[#365899] disabled:opacity-50 text-white font-bold rounded-lg transition-all text-xs flex items-center justify-center gap-1.5"
                                                     >
                                                         {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                                                        KIRIMKAN
+                                                        {activeTask.status === 'SUBMITTED' ? "PERBARUI DRAF" : "KIRIMKAN"}
                                                     </button>
                                                 )}
                                             </div>
@@ -257,6 +301,19 @@ export function BimbinganMobile() {
                                                     <tr className="bg-gray-50/50">
                                                         <th className="py-2.5 px-3 font-bold text-gray-700 w-2/5 border-r border-gray-200 align-top">Penilaian</th>
                                                         <td className="py-2.5 px-3 text-gray-900 bg-white font-medium">{getStatusPenilaian(activeTask.status)}</td>
+                                                    </tr>
+                                                    {/* Baris baru untuk File Draf */}
+                                                    <tr className="bg-gray-50/50">
+                                                        <th className="py-2.5 px-3 font-bold text-gray-700 w-2/5 border-r border-gray-200 align-top">File Draf</th>
+                                                        <td className="py-2.5 px-3 text-gray-900 bg-white">
+                                                            {activeTask.fileMahasiswa ? (
+                                                                <a href={`${UPLOADS_URL}${activeTask.fileMahasiswa}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-bold text-[#119DA4] hover:underline text-[10px] break-all leading-tight">
+                                                                    <FileText className="w-3 h-3 shrink-0" /> Lihat File
+                                                                </a>
+                                                            ) : (
+                                                                <span className="text-gray-400 italic text-[10px]">Belum diunggah</span>
+                                                            )}
+                                                        </td>
                                                     </tr>
                                                     <tr className="bg-gray-50/50">
                                                         <th className="py-2.5 px-3 font-bold text-gray-700 w-2/5 border-r border-gray-200 align-top">Batas Waktu</th>
@@ -282,7 +339,7 @@ export function BimbinganMobile() {
                                                             )}
                                                             
                                                             {activeTask.fileDosen && (
-                                                                <a href={`http://localhost:5002${activeTask.fileDosen}`} target="_blank" rel="noreferrer" className="mt-2 text-center w-full block py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-[10px] font-bold transition-colors">
+                                                                <a href={`${UPLOADS_URL}${activeTask.fileDosen}`} target="_blank" rel="noreferrer" className="mt-2 text-center w-full block py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-[10px] font-bold transition-colors">
                                                                     Unduh File Dosen
                                                                 </a>
                                                             )}
@@ -334,7 +391,7 @@ export function BimbinganMobile() {
                                                     {item.status === 'APPROVED' && <p className="text-green-600 font-medium">Disetujui (ACC)</p>}
                                                     
                                                     {item.fileMahasiswa && item.status !== 'ASSIGNED' && (
-                                                        <a href={`http://localhost:5002${item.fileMahasiswa}`} target="_blank" rel="noreferrer" className="inline-block mt-1 font-bold text-blue-600 active:text-blue-700">
+                                                        <a href={`${UPLOADS_URL}${item.fileMahasiswa}`} target="_blank" rel="noreferrer" className="inline-block mt-1 font-bold text-blue-600 active:text-blue-700">
                                                             Unduh PDF
                                                         </a>
                                                     )}
@@ -378,7 +435,7 @@ export function BimbinganMobile() {
                                             </p>
                                             <div className="flex gap-2 pt-3 border-t border-gray-50">
                                                 {task.fileDosen && (
-                                                    <a href={`http://localhost:5002${task.fileDosen}`} target="_blank" rel="noreferrer" className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-green-50 text-green-700 rounded-md text-[10px] font-bold">
+                                                    <a href={`${UPLOADS_URL}${task.fileDosen}`} target="_blank" rel="noreferrer" className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-green-50 text-green-700 rounded-md text-[10px] font-bold">
                                                         <Download className="w-3 h-3" /> Final
                                                     </a>
                                                 )}
@@ -414,7 +471,7 @@ export function BimbinganMobile() {
                         <div className="bg-gray-50 flex-1 relative min-h-[300px] overflow-hidden">
                             <Suspense fallback={<div className="flex h-full items-center justify-center bg-gray-50"><LoaderIcon className="w-8 h-8 animate-spin text-[#119DA4]" /></div>}>
                                 <SharedPdfViewer 
-                                    url={`http://localhost:5002${[...completedTasks, activeTask].find(t => t?.topik === viewingTaskTopik)?.fileMahasiswa || ''}`}
+                                    url={`${UPLOADS_URL}${[...completedTasks, activeTask].find(t => t?.topik === viewingTaskTopik)?.fileMahasiswa || ''}`}
                                     initialHighlights={annotations}
                                     readOnly={true}
                                 />

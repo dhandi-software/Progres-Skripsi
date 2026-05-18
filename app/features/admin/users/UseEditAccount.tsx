@@ -111,12 +111,7 @@ export const useEditAccount = () => {
                 ...formData,
             };
 
-            // Send password even if it's the hash. Backend checks for equality.
-            // If empty string (user cleared it?), we might NOT want to update password to empty string.
-            // But if user.password was pre-filled, it shouldn't be empty unless user cleared it.
-            // If user cleared it, they probably want to remove password? Unlikely.
-            // Let's safe guard: if empty, don't send.
-            // If empty string (user cleared it?) or default placeholder, we don't update.
+            // If empty string (user cleared it) or default placeholder, we don't update password.
             if (!formData.password || formData.password === "********") {
                 delete payload.password;
             }

@@ -3,6 +3,8 @@ export interface User {
     email: string;
     role: "admin" | "writer" | "editor" | "mahasiswa" | "dosen" | "dosen_pembimbing" | "kaprodi" | "staf" | "staf_univ";
     token: string;
+    name?: string;
+    nama?: string;
     refresh_token?: string;
     last_login?: string;
 }

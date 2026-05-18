@@ -8,7 +8,7 @@ import { Button } from "~/components/ui/button";
 
 const MAX_TITLE_LENGTH = 500;
 
-export default function CreateNewsVideoMobile() {
+export function CreateNewsVideoMobile() {
   const { setOpenMobile } = useSidebar();
   const {
     formData,

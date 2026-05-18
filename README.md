@@ -73,4 +73,13 @@ skripsi-fe/
 Project ini menggunakan **React Router v7**. Semua rute didefinisikan dalam folder `app/routes/` yang secara otomatis memetakan URL ke komponen halaman yang sesuai.
 
 ---
+---
 **Catatan Penting**: Folder seperti `Mining`, `Nickel`, atau module lain yang tidak relevan dengan sistem Kerja Praktik adalah legacy code dan tidak digunakan dalam flow utama aplikasi ini.
+
+### 🤖 Gemini AI Assistant
+Aplikasi ini dilengkapi dengan Asisten AI (Gemini 1.5 Flash) untuk membantu pengguna publik di halaman landing.
+- **Rute Backend**: `app/routes/api.chat.ts` (Resource Route)
+- **Komponen**: `app/components/template/LandingChat.tsx`
+- **Konfigurasi**: Memerlukan `GEMINI_API_KEY` di file `.env`.
+- **Fitur**: AI dibatasi hanya untuk menjawab seputar informasi Kerja Praktik guna menjaga relevansi dan keamanan penggunaan kuota.
+

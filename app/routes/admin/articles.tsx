@@ -1,6 +1,5 @@
 import { useOutletContext } from "react-router";
-import { ArticlesDesktop } from "../../features/admin/articles/ArticlesDesktop";
-import { ArticlesMobile } from "../../features/admin/articles/ArticlesMobile";
+import { ArticlesDesktop, ArticlesMobile } from "~/features/admin/articles";
 
 export default function ArticlesPage() {
   const { isMobile } = useOutletContext<{ isMobile: boolean }>();

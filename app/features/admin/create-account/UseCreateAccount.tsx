@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { userApi } from "~/api/userApi";
 import { useNavigate, useSearchParams } from "react-router";
+import * as XLSX from 'xlsx';
 
 interface ToastProps {
   title: string;
@@ -12,6 +13,10 @@ export const useCreateAccount = () => {
   const [searchParams] = useSearchParams();
   const roleParam = searchParams.get("role");
 
+  const [registrationMode, setRegistrationMode] = useState<"manual" | "mass">("manual");
+  const [massData, setMassData] = useState<any[]>([]);
+  const [fileName, setFileName] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     email: "",
     name: "",
@@ -19,7 +24,7 @@ export const useCreateAccount = () => {
     role: "mahasiswa", 
     // Specific fields
     nim: "",
-    jurusan: "",
+    jurusan: "Teknik Informatika",
     tahunMasuk: "",
     nidn: "",
     jabatan: "",
@@ -27,8 +32,13 @@ export const useCreateAccount = () => {
 
   // Sync role with URL param on mount
   useEffect(() => {
-    if (roleParam && (roleParam === "mahasiswa" || roleParam === "dosen")) {
-        setFormData(prev => ({ ...prev, role: roleParam }));
+    if (roleParam && (roleParam === "mahasiswa" || roleParam === "dosen" || roleParam === "staf")) {
+        setFormData(prev => ({ 
+            ...prev, 
+            role: roleParam,
+            jurusan: roleParam === 'mahasiswa' ? "Teknik Informatika" : prev.jurusan,
+            jabatan: roleParam === 'dosen' ? "Dosen Reguler" : prev.jabatan
+        }));
     }
   }, [roleParam]);
 
@@ -57,8 +67,168 @@ export const useCreateAccount = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const [rawExcelBinary, setRawExcelBinary] = useState<any>(null);
+
   const handleRoleChange = (role: string) => {
-    setFormData((prev) => ({ ...prev, role }));
+    setFormData((prev) => ({ 
+        ...prev, 
+        role,
+        jurusan: role === 'mahasiswa' ? "TEKNIK INFORMATIKA" : prev.jurusan,
+        jabatan: role === 'dosen' ? "Dosen Reguler" : prev.jabatan
+    }));
+    // User requested to reset the excel file when switching roles
+    setMassData([]);
+    setFileName(null);
+    setRawExcelBinary(null);
+  };
+
+  const clearExcel = () => {
+    setMassData([]);
+    setFileName(null);
+    setRawExcelBinary(null);
+  };
+
+  const parseExcelData = (bstr: any, role: string) => {
+    try {
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
+        
+        let headerRowIdx = -1;
+        let idColIdx = -1; // NIM or NIDN
+        let namaColIdx = -1;
+        let emailColIdx = -1;
+        let jabatanColIdx = -1;
+        
+        const isMahasiswa = role === 'mahasiswa';
+
+        for (let i = 0; i < data.length; i++) {
+             const row = data[i] as any[];
+             if (!row || !Array.isArray(row)) continue;
+             
+             for (let j = 0; j < row.length; j++) {
+                  const cellText = String(row[j] || '').toLowerCase().trim();
+                  
+                  // ID detection (NIM/NPM or NIDN/NIP)
+                  if (isMahasiswa) {
+                      if (cellText === 'npm' || cellText === 'nim') {
+                          idColIdx = j;
+                          headerRowIdx = i;
+                      }
+                  } else {
+                      if (cellText === 'nidn' || cellText === 'nip') {
+                          idColIdx = j;
+                          headerRowIdx = i;
+                      }
+                  }
+
+                  if (cellText === 'nama' || cellText === 'name') {
+                       namaColIdx = j;
+                  }
+                  if (cellText === 'email') {
+                       emailColIdx = j;
+                  }
+                  if (!isMahasiswa && (cellText === 'jabatan' || cellText === 'position')) {
+                       jabatanColIdx = j;
+                  }
+             }
+             if (idColIdx !== -1 && namaColIdx !== -1) break;
+        }
+
+        if (headerRowIdx === -1 || idColIdx === -1 || namaColIdx === -1) {
+             const idLabel = isMahasiswa ? "NIM/NPM" : "NIDN/NIP";
+             showToast(`Could not find ${idLabel} and Nama columns in Excel`, "destructive");
+             setMassData([]);
+             return;
+        }
+
+        const mappedData = [];
+        for (let i = headerRowIdx + 1; i < data.length; i++) {
+             const row = data[i] as any[];
+             if (!row || row.length === 0) continue;
+
+             const idVal = String(row[idColIdx] || '').trim();
+             const nama = String(row[namaColIdx] || '').trim();
+
+             if (!idVal || !nama) continue; 
+             
+             // Skip if it looks like header again
+             if (idVal.toLowerCase() === 'nim' || idVal.toLowerCase() === 'npm' || 
+                 idVal.toLowerCase() === 'nidn' || idVal.toLowerCase() === 'nip' || 
+                 nama.toLowerCase() === 'nama') continue;
+
+             // Generate Email
+             let email = emailColIdx !== -1 ? String(row[emailColIdx] || '').trim() : "";
+             if (!email) {
+                 email = isMahasiswa ? `${idVal}@student.univ.ac.id` : `${idVal}@univ.ac.id`;
+             }
+
+             // Handle Jabatan for Dosen
+             let jabatan = "Dosen";
+             if (!isMahasiswa && jabatanColIdx !== -1) {
+                 jabatan = String(row[jabatanColIdx] || '').trim() || "Dosen";
+             }
+
+             // Tahun Masuk & Jurusan for Mahasiswa
+             let tahunMasuk = "";
+             if (isMahasiswa) {
+                 const yearDigits = idVal.length >= 4 ? idVal.substring(2, 4) : "";
+                 tahunMasuk = yearDigits ? `20${yearDigits}` : "2024";
+             }
+
+             // Password Generation
+             const length = 12;
+             const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*";
+             let generatedPassword = "";
+             for (let j = 0; j < length; ++j) {
+                 generatedPassword += charset.charAt(Math.floor(Math.random() * charset.length));
+             }
+
+             const item: any = {
+                 nim: idVal, // using 'nim' as a generic ID field for massData state
+                 nama,
+                 email,
+                 password: generatedPassword, 
+             };
+
+             if (isMahasiswa) {
+                 item.jurusan = "TEKNIK INFORMATIKA";
+                 item.tahunMasuk = tahunMasuk;
+             } else {
+                 item.jabatan = jabatan;
+             }
+
+             mappedData.push(item);
+        }
+
+        setMassData(mappedData);
+    } catch (error) {
+        console.error("Error parsing excel:", error);
+        showToast("Failed to parse Excel file. Make sure format is correct.", "destructive");
+        setMassData([]);
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Clear previous data before parsing new file
+    setMassData([]);
+    setFileName(file.name);
+    setRawExcelBinary(null);
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+        const bstr = evt.target?.result;
+        setRawExcelBinary(bstr);
+        parseExcelData(bstr, formData.role);
+    };
+    reader.readAsBinaryString(file);
+    
+    // Reset the input value so the same file selection triggers onChange again
+    e.target.value = "";
   };
 
   const togglePasswordVisibility = () => {
@@ -118,35 +288,62 @@ export const useCreateAccount = () => {
   };
 
   const handleSubmit = async () => {
-    if (!validate()) return;
+    if (registrationMode === 'manual') {
+      if (!validate()) return;
+    } else {
+      if (massData.length === 0) {
+        showToast("Please upload a valid Excel file first", "destructive");
+        return;
+      }
+      if (formData.role !== 'mahasiswa' && formData.role !== 'dosen') {
+        showToast("Mass registration is not available for this role", "destructive");
+        return;
+      }
+    }
 
     setIsLoading(true);
     try {
-      if (formData.role.toLowerCase() === 'mahasiswa') {
-          await userApi.createMahasiswa({
-              email: formData.email,
-              password: formData.password,
-              nama: formData.name,
-              nim: formData.nim,
-              jurusan: formData.jurusan,
-              tahunMasuk: formData.tahunMasuk
-          });
-      } else if (formData.role.toLowerCase() === 'dosen') {
-          await userApi.createDosen({
-              email: formData.email,
-              password: formData.password,
-              nama: formData.name,
-              nidn: formData.nidn,
-              jabatan: formData.jabatan
-          });
+      if (registrationMode === 'mass') {
+          if (formData.role === 'mahasiswa') {
+              await userApi.createMahasiswaMassal(massData);
+          } else {
+              await userApi.createDosenMassal(massData);
+          }
       } else {
-        throw new Error("Invalid role selected");
+          if (formData.role.toLowerCase() === 'mahasiswa') {
+              await userApi.createMahasiswa({
+                  email: formData.email,
+                  password: formData.password,
+                  nama: formData.name,
+                  nim: formData.nim,
+                  jurusan: formData.jurusan,
+                  tahunMasuk: formData.tahunMasuk
+              });
+          } else if (formData.role.toLowerCase() === 'dosen') {
+              await userApi.createDosen({
+                  email: formData.email,
+                  password: formData.password,
+                  nama: formData.name,
+                  nidn: formData.nidn,
+                  jabatan: formData.jabatan
+              });
+          } else if (formData.role.toLowerCase() === 'staf') {
+              await userApi.createStaf({
+                  email: formData.email,
+                  password: formData.password,
+                  nama: formData.name,
+              });
+          } else {
+            throw new Error("Invalid role selected");
+          }
       }
 
       showToast("Account created successfully", "success");
 
-      // Redirect back to list immediately
-      navigate(`/admin/users?tab=${formData.role}`);
+      // Wait for toast to be visible before redirecting
+      setTimeout(() => {
+          navigate(`/admin/users?tab=${formData.role}`);
+      }, 1500);
 
     } catch (error: any) {
       const message = error.response?.data?.message || error.message || "Failed to create account";
@@ -156,7 +353,46 @@ export const useCreateAccount = () => {
     }
   };
 
+  const handleDownloadPreview = () => {
+    if (massData.length === 0) {
+      showToast("No data to download", "destructive");
+      return;
+    }
+    
+    const isMahasiswa = formData.role === 'mahasiswa';
+    const formattedData = massData.map(user => {
+        if (isMahasiswa) {
+            return {
+                NPM: user.nim,
+                Nama: user.nama,
+                Email: user.email,
+                Password: user.password,
+                "Tahun Masuk": user.tahunMasuk,
+                Jurusan: user.jurusan
+            };
+        } else {
+            return {
+                NIDN: user.nim,
+                Nama: user.nama,
+                Email: user.email,
+                Password: user.password,
+                Jabatan: user.jabatan
+            };
+        }
+    });
+
+    const ws = XLSX.utils.json_to_sheet(formattedData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, `Akun ${isMahasiswa ? 'Mahasiswa' : 'Dosen'}`);
+    XLSX.writeFile(wb, `Data_Password_${isMahasiswa ? 'Mahasiswa' : 'Dosen'}_Baru.xlsx`);
+  };
+
   return {
+    registrationMode,
+    setRegistrationMode,
+    massData,
+    fileName,
+    handleFileUpload,
     formData,
     showPassword,
     isLoading,
@@ -169,5 +405,7 @@ export const useCreateAccount = () => {
     passwordValidation,
     handleSubmit,
     handleCancel,
+    handleDownloadPreview,
+    clearExcel,
   };
 };

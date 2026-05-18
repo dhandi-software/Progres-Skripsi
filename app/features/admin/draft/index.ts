@@ -1,4 +1,2 @@
-export { default as DraftDesktop } from "./DraftDesktop";
-export { default as DraftMobile } from "./DraftMobile";
-export { useDraft } from "./UseDraft";
-export type { DraftArticle } from "./UseDraft";
+export * from "~/features/admin/draft/DraftDesktop";
+export * from "~/features/admin/draft/DraftMobile";

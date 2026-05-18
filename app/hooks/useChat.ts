@@ -1,10 +1,11 @@
 import { useEffect, useState, useRef, useCallback } from "react";
+import { UPLOADS_URL } from "~/api/client";
 import { io, Socket } from "socket.io-client";
 import { chatService } from "~/services/chatService";
 import type { Message, ChatContact, SendMessagePayload } from "~/types/chat";
 import { useAuth } from "~/hooks/useAuth";
 
-const SOCKET_URL = "http://localhost:5002";
+const SOCKET_URL = UPLOADS_URL;
 
 export function useChat() {
   const { user } = useAuth();
@@ -15,6 +16,35 @@ export function useChat() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [unreadCounts, setUnreadCounts] = useState<Record<string | number, number>>({});
   const [toastProps, setToastProps] = useState<{title: string, variant: 'default'|'destructive', description?: string} | null>(null);
+  const [isSending, setIsSending] = useState(false);
+  const [publicMembers, setPublicMembers] = useState<any[]>([]);
+
+  const fetchPublicMembers = useCallback(async () => {
+    try {
+      const data = await chatService.getPublicMembers();
+      setPublicMembers(data);
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const kickFromPublic = useCallback(async (userId: number) => {
+      try {
+          await chatService.kickFromPublic(userId);
+          await fetchPublicMembers();
+      } catch (e) {
+          console.error(e);
+      }
+  }, [fetchPublicMembers]);
+
+  const unbanFromPublic = useCallback(async (userId: number) => {
+      try {
+          await chatService.unbanFromPublic(userId);
+          await fetchPublicMembers();
+      } catch (e) {
+          console.error(e);
+      }
+  }, [fetchPublicMembers]);
   
   const activeContactRef = useRef<ChatContact | null>(null);
 
@@ -33,13 +63,18 @@ export function useChat() {
 
     newSocket.emit("join", user.id);
 
-    newSocket.on("receive_message", (message: Message) => {
+  newSocket.on("receive_message", (message: Message) => {
       // Use ref to get current active contact without re-triggering effect
       const currentActive = activeContactRef.current;
+      const isGroupMessage = !!message.roomId;
       
       // Play sound and show notification if message is not from self
       if (message.senderId !== user.id) {
-          const isChatOpen = currentActive?.id === message.senderId || (currentActive?.id === 0 && message.isPublic);
+          const isChatOpen = 
+            (isGroupMessage && currentActive?.isGroup && currentActive.realId === message.roomId) || 
+            (message.isPublic && currentActive?.id === 0) ||
+            (!isGroupMessage && !message.isPublic && currentActive?.id === message.senderId);
+
           const isWindowFocused = document.hasFocus();
 
           if (!isChatOpen || !isWindowFocused) {
@@ -55,8 +90,11 @@ export function useChat() {
               }
               
               // Increment Unread Count
-              // Logic: If public, increment 0. If private, increment senderId.
-              const contactIdToUpdate = message.isPublic ? 0 : message.senderId;
+              // Logic: If public, increment 0. If group, increment group_ID. If private, increment senderId.
+              let contactIdToUpdate: string | number = message.senderId;
+              if (message.isPublic) contactIdToUpdate = 0;
+              else if (isGroupMessage) contactIdToUpdate = `group_${message.roomId}`;
+
               setUnreadCounts(prev => ({
                   ...prev,
                   [contactIdToUpdate]: (prev[contactIdToUpdate] || 0) + 1
@@ -81,6 +119,27 @@ export function useChat() {
 
       setMessages((prev) => {
           const currentActive = activeContactRef.current;
+          
+          // --- CEK DUPLIKASI ---
+          if (prev.find(m => m.id === message.id)) return prev;
+
+          // --- CEK OPTIMISTIK ---
+          // Jika pesan ini dikirim oleh saya (tab lain atau broadcast), 
+          // coba ganti pesan yang sedang loading (optimistic) jika ada.
+          if (message.senderId === user.id) {
+              const tempIdx = prev.findIndex(m => 
+                  (m as any).isOptimistic === true && 
+                  (m.content === message.content || (!m.content && !message.content)) &&
+                  (m.attachmentUrl === message.attachmentUrl || m.fileName === message.fileName)
+              );
+
+              if (tempIdx !== -1) {
+                  const next = [...prev];
+                  next[tempIdx] = message;
+                  return next;
+              }
+          }
+
           // Check if message belongs to current active conversation
           // Case 1: Public Chat
           if (currentActive?.id === 0 && message.isPublic) {
@@ -97,6 +156,10 @@ export function useChat() {
           ) {
              return [...prev, message];
           }
+          // Case 3: Group Chat
+          if (!message.isPublic && isGroupMessage && currentActive?.isGroup && message.roomId === currentActive.realId) {
+              return [...prev, message];
+          }
           return prev;
       });
 
@@ -105,51 +168,92 @@ export function useChat() {
           return prevContacts.map(contact => {
               // Public Chat Update
               if (message.isPublic) {
-                   if (contact.id === 0) {
-                       return { ...contact, lastMessage: message };
-                   }
-                   return contact;
+                   return contact.id === 0 ? { ...contact, lastMessage: message } : contact;
               }
+
+              // Group Chat Update
+              if (isGroupMessage) {
+                  return (contact.isGroup && contact.realId === message.roomId) 
+                    ? { ...contact, lastMessage: message } 
+                    : contact;
+              }
+
               // Private Chat Update
-              if (
-                  (message.senderId === contact.id && message.receiverId === user.id) ||
-                  (message.senderId === user.id && message.receiverId === contact.id)
-              ) {
-                  return { ...contact, lastMessage: message };
+              if (!contact.isGroup && contact.id !== 0) {
+                  const isMatch = (message.senderId === contact.id && message.receiverId === user.id) ||
+                                  (message.senderId === user.id && message.receiverId === contact.id);
+                  return isMatch ? { ...contact, lastMessage: message } : contact;
               }
+
               return contact;
           });
       });
     });
     
-    // Also listen for my own messages sent from other tabs/devices or confirmed by server
+    newSocket.on("public_banned", () => {
+        fetchContacts();
+        setActiveContact(prev => prev?.id === 0 ? null : prev);
+    });
+
+    newSocket.on("public_unbanned", () => {
+        fetchContacts();
+    });
+
+    newSocket.on("group_member_removed", ({ groupId }) => {
+        fetchContacts();
+        setActiveContact(prev => (prev?.isGroup && prev.realId === groupId) ? null : prev);
+    });
+
+    newSocket.on("group_deleted", ({ groupId }) => {
+        fetchContacts();
+        setActiveContact(prev => (prev?.isGroup && prev.realId === groupId) ? null : prev);
+    });
+
     newSocket.on("message_sent", (message: Message) => {
         const currentActive = activeContactRef.current;
-       if (
-        currentActive &&
-        !message.isPublic && 
-        (message.receiverId === currentActive.id)
-      ) {
-         setMessages((prev) => {
-             if (prev.find(m => m.id === message.id)) return prev;
-             return [...prev, message];
-         });
-      }
+        const isGroupMessage = !!message.roomId;
+        
+        if (currentActive) {
+            const isTargetActive = message.isPublic 
+                ? currentActive.id === 0 
+                : isGroupMessage 
+                    ? message.roomId === currentActive.realId 
+                    : message.receiverId === currentActive.id;
+
+            if (isTargetActive) {
+                setMessages((prev) => {
+                    if (prev.find(m => m.id === message.id)) return prev;
+
+                    // Cari pesan optimistik yang sesuai, ganti dengan yang asli
+                    const tempIdx = prev.findIndex(m => 
+                        (m as any).isOptimistic === true && 
+                        (m.content === message.content || (!m.content && !message.content)) &&
+                        (m.attachmentUrl === message.attachmentUrl || m.fileName === message.fileName)
+                    );
+
+                    if (tempIdx !== -1) {
+                        const next = [...prev];
+                        next[tempIdx] = message;
+                        return next;
+                    }
+
+                    return [...prev, message];
+                });
+            }
+        }
 
        // Update Last Message in Sidebar for Sent Messages
         setContacts(prevContacts => {
             return prevContacts.map(contact => {
-                 // Public Chat
-                if (message.isPublic && contact.id === 0) {
-                     return { ...contact, lastMessage: message };
-                }
+                const isGroupContact = contact.isGroup;
+                
+                // Public Chat
+                if (message.isPublic && contact.id === 0) return { ...contact, lastMessage: message };
+                // Group Chat
+                if (isGroupMessage && isGroupContact && message.roomId === contact.realId) return { ...contact, lastMessage: message };
                 // Private Chat
-                 if (
-                    !message.isPublic &&
-                    (message.receiverId === contact.id)
-                ) {
-                    return { ...contact, lastMessage: message };
-                }
+                if (!message.isPublic && !isGroupMessage && !isGroupContact && message.receiverId === contact.id) return { ...contact, lastMessage: message };
+                
                 return contact;
             });
         });
@@ -183,7 +287,19 @@ export function useChat() {
             lastMessage: lastPublicMsg
         };
         const validContacts = Array.isArray(data) ? data : [];
-        setContacts([publicRoom, ...validContacts]);
+        
+        // Prioritaskan chat grup agar tampil di bagian paling atas
+        validContacts.sort((a: any, b: any) => {
+            if (a.isGroup && !b.isGroup) return -1;
+            if (!a.isGroup && b.isGroup) return 1;
+            return 0;
+        });
+        
+        if (!response.isBannedFromPublic) {
+            setContacts([publicRoom, ...validContacts]);
+        } else {
+            setContacts(validContacts);
+        }
 
         const initialUnread: Record<string | number, number> = {};
         if (!Array.isArray(response) && response.publicUnreadCount) {
@@ -209,6 +325,10 @@ export function useChat() {
   useEffect(() => {
     if (!user || activeContact === null) return;
 
+    if (activeContact.id === 0) {
+        fetchPublicMembers();
+    }
+
     setIsLoadingHistory(true);
     const targetId = activeContact.id === 0 ? 'public' : activeContact.id as number | string;
     
@@ -216,7 +336,7 @@ export function useChat() {
       .then(setMessages)
       .catch(console.error)
       .finally(() => setIsLoadingHistory(false));
-  }, [user, activeContact]);
+  }, [user, activeContact, fetchPublicMembers]);
 
   // Request Notification Permission
   useEffect(() => {
@@ -268,15 +388,30 @@ export function useChat() {
         // Ideally we should refetch or logic is complex. For now just remove from chat.
     });
 
+    const handleGroupRemoval = (groupId: number) => {
+        setContacts(prev => prev.filter(c => !(c.isGroup && c.realId === groupId)));
+        if (activeContactRef.current?.isGroup && activeContactRef.current?.realId === groupId) {
+             setActiveContact(null);
+        }
+    };
+
+    socket.on("group_member_removed", ({ groupId }) => handleGroupRemoval(groupId));
+    socket.on("group_deleted", ({ groupId }) => handleGroupRemoval(groupId));
+
     return () => {
         socket.off("messages_read");
         socket.off("message_deleted");
         socket.off("message_deleted_for_me");
+        socket.off("group_member_removed");
+        socket.off("group_deleted");
     };
   }, [socket, user]);
 
   const sendMessage = useCallback(async (content: string, file?: File, replyToId?: number) => {
-    if (!user || !activeContact || !socket) return;
+    if (!user || !activeContact || !socket || isSending) return;
+    
+    setIsSending(true);
+    try {
 
     let attachmentUrl = null;
     let attachmentType: "image" | "document" | "none" = "none";
@@ -303,26 +438,70 @@ export function useChat() {
       content: content || undefined,
       attachmentUrl: attachmentUrl || undefined,
       attachmentType: attachmentType === "none" ? undefined : attachmentType,
+      fileName: file ? file.name : undefined,
       isPublic: activeContact.id === 0,
       replyToId
     };
 
-    socket.emit("send_message", payload);
-  }, [user, activeContact, socket]);
+    // --- Optimistic UI Update Mencegah Delay ---
+    const tempId = Date.now() + Math.floor(Math.random() * 1000);
+    const optimisticMessage: Message = {
+      id: tempId,
+      content: payload.content || "",
+      senderId: user.id,
+      receiverId: payload.receiverId,
+      roomId: targetPayload.roomId,
+      createdAt: new Date().toISOString(),
+      isPublic: payload.isPublic,
+      isRead: false,
+      isDeleted: false,
+      isEdited: false,
+      attachmentUrl: payload.attachmentUrl || null,
+      attachmentType: payload.attachmentType || null,
+      fileName: payload.fileName || null,
+      replyToId: payload.replyToId,
+      sender: { username: "Anda", role: user.role || "dosen" } // Dummy
+    };
 
-  const markAsRead = useCallback((senderId: number) => {
+    (optimisticMessage as any).isOptimistic = true;
+
+    setMessages(prev => [...prev, optimisticMessage]);
+
+    socket.emit("send_message", payload);
+    } catch (error) {
+        console.error("SendMessage Error:", error);
+    } finally {
+        setIsSending(false);
+    }
+  }, [user, activeContact, socket, isSending]);
+
+  const markAsRead = useCallback((targetId: number | string, isGroup?: boolean) => {
       if (!socket || !user) return;
-      socket.emit("mark_read", { conversationWithId: senderId, userId: user.id });
+
+      if (targetId === 0) {
+          // Public Room
+          socket.emit("mark_read", { isPublic: true, userId: user.id });
+      } else if (isGroup) {
+          // Group Room
+          const roomId = typeof targetId === 'string' ? parseInt(targetId.split('_')[1]) : targetId;
+          socket.emit("mark_read", { roomId, userId: user.id });
+      } else {
+          // Private DM
+          socket.emit("mark_read", { conversationWithId: targetId, userId: user.id });
+      }
       
-      // Optimistic update
-      setMessages(prev => prev.map(msg => {
-          if (msg.senderId === senderId && !msg.isRead) {
-               return { ...msg, isRead: true };
-          }
-          return msg;
-      }));
-      
-      resetUnreadCount(senderId);
+      // Optimistic update for UI counts
+      resetUnreadCount(targetId);
+
+      // Optimistic update for message status if private
+      if (!isGroup && targetId !== 0) {
+          setMessages(prev => prev.map(msg => {
+              if (msg.senderId === targetId && !msg.isRead) {
+                   return { ...msg, isRead: true };
+              }
+              return msg;
+          }));
+      }
   }, [socket, user]);
 
   const deleteMessage = useCallback((messageId: number) => {
@@ -400,19 +579,50 @@ export function useChat() {
           await fetchContacts();
           
           // Set active contact immediately to the newly generated group
-          const groupContact: ChatContact = {
-              id: `group_${newRoom.id}`,
-              realId: newRoom.id,
-              isGroup: true,
-              username: newRoom.name,
-              role: "group",
+          setActiveContact({
+              ...(newRoom || {}),
               email: ""
-          };
-          setActiveContact(groupContact);
+          } as any);
           
       } catch (e) {
           console.error('Failed to create group:', e);
           throw e; // Let the caller handle the layout error if needed
+      }
+  }, [user, fetchContacts]);
+
+  const addMembersToGroup = useCallback(async (groupId: number, participantIds: number[]) => {
+      if (!user) return;
+      try {
+          const updatedGroup = await chatService.addMembersToGroup(groupId, participantIds, user.id);
+          setActiveContact({ ...(updatedGroup || {}), email: "" } as any);
+          await fetchContacts();
+      } catch (e) {
+          console.error('Failed to add members:', e);
+          throw e;
+      }
+  }, [user, fetchContacts]);
+
+  const removeMemberFromGroup = useCallback(async (groupId: number, targetUserId: number) => {
+      if (!user) return;
+      try {
+          const updatedGroup = await chatService.removeMemberFromGroup(groupId, targetUserId, user.id);
+          setActiveContact({ ...(updatedGroup || {}), email: "" } as any);
+          await fetchContacts();
+      } catch (e) {
+          console.error('Failed to remove member:', e);
+          throw e;
+      }
+  }, [user, fetchContacts]);
+
+  const deleteGroup = useCallback(async (groupId: number) => {
+      if (!user) return;
+      try {
+          await chatService.deleteGroup(groupId, user.id);
+          setActiveContact(null);
+          await fetchContacts();
+      } catch (e) {
+          console.error('Failed to delete group:', e);
+          throw e;
       }
   }, [user, fetchContacts]);
 
@@ -431,7 +641,15 @@ export function useChat() {
     deleteMessageForMe,
     editMessage,
     createGroup,
+    deleteGroup,
+    addMembersToGroup,
+    removeMemberFromGroup,
+    publicMembers,
+    fetchPublicMembers,
+    kickFromPublic,
+    unbanFromPublic,
     toastProps,
-    setToastProps
+    setToastProps,
+    isSending
   };
-}
+};

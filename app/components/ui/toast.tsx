@@ -41,11 +41,11 @@ export function Toast({
     const getVariantStyles = () => {
         switch (variant) {
             case "success":
-                return "bg-brand-destructive-muted-foreground border-accent-success";
+                return "bg-white border-accent-success shadow-[0_4px_20px_-4px_rgba(34,197,94,0.1)]";
             case "destructive":
-                return "bg-destructive border-destructive text-white";
+                return "bg-destructive border-destructive text-white shadow-[0_4px_20px_-4px_rgba(239,68,68,0.2)]";
             default:
-                return "bg-background border-border";
+                return "bg-white border-border shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)]";
         }
     };
 
@@ -93,17 +93,20 @@ export function Toast({
     return (
         <div
             className={cn(
-                "flex items-center rounded-md border shadow-elevation-medium transition-all duration-300 animate-in slide-in-from-right-full",
+                "flex items-start rounded-xl border transition-all duration-300 animate-in slide-in-from-right-full backdrop-blur-sm",
+                "max-w-[90vw] md:max-w-[850px] w-fit min-w-[300px]",
                 getVariantStyles(),
                 getSizeStyles(),
                 className,
             )}
         >
-            <div className="flex items-center gap-2 flex-1">
-                {getIcon()}
+            <div className="flex items-start gap-3 flex-1 py-0.5">
+                <div className="mt-1 flex-shrink-0">
+                    {getIcon()}
+                </div>
                 <span
                     className={cn(
-                        "text-label whitespace-nowrap",
+                        "text-label whitespace-normal break-words leading-relaxed",
                         getTextColor(),
                     )}
                 >
@@ -115,13 +118,13 @@ export function Toast({
                 size="icon"
                 onClick={handleClose}
                 className={cn(
-                    "w-5 h-5 hover:bg-transparent ml-2",
+                    "w-6 h-6 hover:bg-black/5 rounded-full ml-3 flex-shrink-0 mt-0.5",
                     variant === "destructive"
-                        ? "text-white hover:text-white/80"
+                        ? "text-white hover:text-white/80 hover:bg-white/10"
                         : "text-muted-foreground",
                 )}
             >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
             </Button>
         </div>
     );

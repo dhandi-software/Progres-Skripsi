@@ -6,6 +6,12 @@ interface ApiResponse<T> {
     status: string;
     message: string;
     data: T;
+    pagination?: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    };
 }
 
 export interface CountResponse {
@@ -29,8 +35,10 @@ export const adminApi = {
      * Get users by role
      * GET /admin/users-role?role=...
      */
-    getUsersByRole: async (role: string): Promise<ApiResponse<any[]>> => {
-        const response = await client.get<ApiResponse<any[]>>(`/admin/users-role?role=${role}`);
+    getUsersByRole: async (role: string, page: number = 1, limit: number = 10, search: string = ''): Promise<ApiResponse<any[]>> => {
+        const response = await client.get<ApiResponse<any[]>>(`/admin/users-role`, {
+            params: { role, page, limit, search }
+        });
         return response.data;
     },
 
@@ -56,8 +64,36 @@ export const adminApi = {
      * Delete user
      * DELETE /admin/users/:id
      */
-    deleteUser: async (id: string | number): Promise<ApiResponse<any>> => {
-        const response = await client.delete<ApiResponse<any>>(`/admin/users/${id}`);
+    deleteUser: async (id: string | number, force: boolean = false): Promise<ApiResponse<any>> => {
+        const url = force ? `/admin/users/${id}?force=true` : `/admin/users/${id}`;
+        const response = await client.delete<ApiResponse<any>>(url);
+        return response.data;
+    },
+
+    /**
+     * Delete users in batch
+     * POST /admin/users/batch-delete
+     */
+    deleteUsersBatch: async (ids: number[]): Promise<ApiResponse<any>> => {
+        const response = await client.post<ApiResponse<any>>("/admin/users/batch-delete", { ids });
+        return response.data;
+    },
+
+    /**
+     * Clear all mahasiswa users
+     * POST /admin/users/mahasiswa/clear-all
+     */
+    clearAllMahasiswa: async (forceAll: boolean = false): Promise<ApiResponse<any>> => {
+        const response = await client.post<ApiResponse<any>>("/admin/users/mahasiswa/clear-all", { forceAll });
+        return response.data;
+    },
+
+    /**
+     * Clear all dosen users
+     * POST /admin/users/dosen/clear-all
+     */
+    clearAllDosen: async (forceAll: boolean = false): Promise<ApiResponse<any>> => {
+        const response = await client.post<ApiResponse<any>>("/admin/users/dosen/clear-all", { forceAll });
         return response.data;
     },
 
@@ -76,6 +112,24 @@ export const adminApi = {
      */
      getDashboardStats: async (): Promise<ApiResponse<any>> => {
         const response = await client.get<ApiResponse<any>>("/admin/dashboard-stats");
+        return response.data;
+    },
+
+    /**
+     * Get students without proposal
+     * GET /admin/mahasiswa-tanpa-pengajuan
+     */
+    getMahasiswaTanpaPengajuan: async (): Promise<ApiResponse<any[]>> => {
+        const response = await client.get<ApiResponse<any[]>>("/admin/mahasiswa-tanpa-pengajuan");
+        return response.data;
+    },
+
+    /**
+     * Get students with proposal
+     * GET /admin/mahasiswa-sudah-pengajuan
+     */
+    getMahasiswaSudahPengajuan: async (): Promise<ApiResponse<any[]>> => {
+        const response = await client.get<ApiResponse<any[]>>("/admin/mahasiswa-sudah-pengajuan");
         return response.data;
     },
 };

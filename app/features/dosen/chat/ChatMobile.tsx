@@ -5,9 +5,11 @@ import { useChat } from "~/hooks/useChat";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { CreateGroupModal } from "./CreateGroupModal";
+import { AddMemberModal } from "./AddMemberModal";
 
 export function ChatMobile() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
     
     const {
         contacts,
@@ -23,7 +25,14 @@ export function ChatMobile() {
         deleteMessage,
         deleteMessageForMe,
         editMessage,
-        createGroup
+        createGroup,
+        deleteGroup,
+        addMembersToGroup,
+        removeMemberFromGroup,
+        publicMembers,
+        kickFromPublic,
+        unbanFromPublic,
+        isSending
     } = useChat();
 
     const [view, setView] = useState<"list" | "chat">("list");
@@ -64,7 +73,22 @@ export function ChatMobile() {
                         onMarkAsRead={markAsRead}
                         onDeleteMessage={deleteMessage}
                         onDeleteMessageForMe={deleteMessageForMe}
-                    />
+                        onAddMembers={() => setIsAddMemberOpen(true)}
+                        onRemoveMember={(memberId) => {
+                            if (activeContact?.isGroup && activeContact.realId) {
+                                return removeMemberFromGroup(activeContact.realId, memberId);
+                            }
+                        }}
+                            onDeleteGroup={() => {
+                                if (activeContact?.isGroup && activeContact.realId) {
+                                    return deleteGroup(activeContact.realId);
+                                }
+                            }}
+                            publicMembers={publicMembers}
+                            onKickPublic={kickFromPublic}
+                            onUnbanPublic={unbanFromPublic}
+                            isSending={isSending}
+                        />
                 </div>
             )}
             <CreateGroupModal
@@ -73,6 +97,17 @@ export function ChatMobile() {
                 contacts={contacts}
                 onCreate={createGroup}
             />
+            {activeContact?.isGroup && (
+               <AddMemberModal
+                   isOpen={isAddMemberOpen}
+                   onClose={() => setIsAddMemberOpen(false)}
+                   contacts={contacts}
+                   currentMemberIds={activeContact.members?.map(m => m.id) || []}
+                   onAdd={async (participantIds) => {
+                       await addMembersToGroup(activeContact.realId!, participantIds);
+                   }}
+               />
+            )}
         </div>
     );
 }

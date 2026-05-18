@@ -3,6 +3,7 @@ import type { ContextType } from "~/root";
 import Header from "~/components/template/Header";
 import Footer from "~/components/template/footer";
 import Navbar from "~/components/template/navbar";
+import LandingChat from "~/components/template/LandingChat";
 
 export default function LandingLayout() {
     const { isMobile } = useRouteLoaderData("root");
@@ -23,6 +24,7 @@ export default function LandingLayout() {
                 />
             </main>
             <Footer isMobile={isMobile} />
+            <LandingChat />
         </>
     );
 }
