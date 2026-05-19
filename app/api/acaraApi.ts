@@ -11,6 +11,14 @@ export interface Acara {
     dosen: {
         nama: string;
     };
+    user?: {
+        username: string;
+        role: string;
+        id: number;
+        photo?: string | null;
+        mahasiswa?: { nama: string };
+        dosen?: { nama: string };
+    } | null;
     comments: AcaraComment[];
     isRead?: boolean; // Only present for students
     isReadByMe?: boolean; // New property for robust sync

@@ -6,6 +6,7 @@ import {
   User,
   Calendar,
   MessageSquare,
+  Megaphone,
 } from "lucide-react";
 import { Outlet, useRouteLoaderData } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
@@ -21,6 +22,7 @@ import { cn } from "~/lib/utils";
 type MenuKey =
   | "dashboard"
   | "sidang"
+  | "acara"
   | "chat"
   | "profile"
   | "logout";
@@ -29,6 +31,7 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/staf/profile")) return "profile";
   if (pathname.startsWith("/staf/chat")) return "chat";
   if (pathname.startsWith("/staf/sidang")) return "sidang";
+  if (pathname.startsWith("/staf/acara")) return "acara";
   if (pathname === "/staf" || pathname.startsWith("/staf/"))
     return "dashboard";
   return undefined;
@@ -46,6 +49,12 @@ const menuItems = [
     title: "Penjadwalan Sidang",
     icon: Calendar,
     url: "/staf/sidang",
+  },
+  {
+    key: "acara" as MenuKey,
+    title: "Pengumuman & Acara",
+    icon: Megaphone,
+    url: "/staf/acara",
   },
   {
     key: "chat" as MenuKey,

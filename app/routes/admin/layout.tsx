@@ -7,7 +7,8 @@ import {
   Settings,
   FileText,
   BarChart3,
-  MessageSquare
+  MessageSquare,
+  ClipboardList
 } from "lucide-react";
 import { Outlet, useRouteLoaderData } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
@@ -22,6 +23,7 @@ type MenuKey =
   | "dashboard"
   | "users"
   | "monitoring"
+  | "acara"
   | "chat"
   | "logout";
 
@@ -29,6 +31,7 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/admin/users") || pathname.startsWith("/admin/create-account") || pathname.startsWith("/admin/edit-account")) return "users";
   if (pathname.startsWith("/admin/monitoring")) return "monitoring";
   if (pathname.startsWith("/admin/chat")) return "chat";
+  if (pathname.startsWith("/admin/acara")) return "acara";
   if (pathname === "/admin" || pathname.startsWith("/admin/"))
     return "dashboard";
   return undefined;
@@ -52,6 +55,12 @@ const menuItems = [
     title: "Monitoring Bimbingan",
     icon: BarChart3,
     url: "/admin/monitoring",
+  },
+  {
+    key: "acara" as MenuKey,
+    title: "Pengumuman",
+    icon: ClipboardList,
+    url: "/admin/acara",
   },
   {
     key: "chat" as MenuKey,

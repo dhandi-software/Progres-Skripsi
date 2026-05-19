@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { ArrowLeft, Bold, Italic, Underline, List, ListOrdered, Image as ImageIcon, FileText, Trash2, Outdent, Indent, ChevronDown, Megaphone, BookOpen } from "lucide-react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useLocation } from "react-router";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { acaraApi } from "~/api/acaraApi";
@@ -9,8 +9,14 @@ import { Toast } from "~/components/ui/toast";
 
 export function CreateAcaraMobile() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { id } = useParams<{ id: string }>();
     const isEditMode = !!id;
+    const routePrefix = location.pathname.startsWith("/admin") 
+        ? "/admin/acara" 
+        : location.pathname.startsWith("/staf")
+        ? "/staf/acara"
+        : "/dosen/acara";
 
     const [isUploading, setIsUploading] = useState(false);
     const [toast, setToast] = useState<{title: string, variant: "success" | "destructive"} | null>(null);
@@ -176,7 +182,7 @@ export function CreateAcaraMobile() {
                 await acaraApi.createAcara({ ...formData, content });
                 setToast({ title: "Berhasil dipublish!", variant: "success" });
             }
-            setTimeout(() => navigate("/dosen/acara"), 1500);
+            setTimeout(() => navigate(routePrefix), 1500);
         } catch (error) {
             setToast({ title: "Gagal menyimpan.", variant: "destructive" });
         }
@@ -195,7 +201,7 @@ export function CreateAcaraMobile() {
             <div className="flex items-center justify-between px-6 h-20 border-b border-slate-100 shrink-0">
                 <div className="flex items-center gap-4">
                     <button 
-                        onClick={() => navigate("/dosen/acara")} 
+                        onClick={() => navigate(routePrefix)} 
                         className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 active:scale-90 transition-all font-geist"
                     >
                         <ArrowLeft size={20} />

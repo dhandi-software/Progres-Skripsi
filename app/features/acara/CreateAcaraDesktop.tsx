@@ -6,7 +6,7 @@ import {
     Undo2, Redo2, Strikethrough, ArrowLeft, ChevronRight,
     Indent, Outdent, ChevronDown, Megaphone, BookOpen
 } from "lucide-react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useLocation } from "react-router";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { acaraApi } from "~/api/acaraApi";
@@ -15,8 +15,14 @@ import { Toast } from "~/components/ui/toast";
 
 export function CreateAcaraDesktop() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { id } = useParams<{ id: string }>();
     const isEditMode = !!id;
+    const routePrefix = location.pathname.startsWith("/admin") 
+        ? "/admin/acara" 
+        : location.pathname.startsWith("/staf")
+        ? "/staf/acara"
+        : "/dosen/acara";
 
     const [isUploading, setIsUploading] = useState(false);
     const [toast, setToast] = useState<{title: string, variant: "success" | "destructive"} | null>(null);
@@ -189,7 +195,7 @@ export function CreateAcaraDesktop() {
                 await acaraApi.createAcara({ ...formData, content });
                 setToast({ title: "Berhasil mempublish postingan ke timeline!", variant: "success" });
             }
-            setTimeout(() => navigate("/dosen/acara"), 1500);
+            setTimeout(() => navigate(routePrefix), 1500);
         } catch (error) {
             setToast({ title: "Gagal menyimpan postingan.", variant: "destructive" });
         }
@@ -213,7 +219,7 @@ export function CreateAcaraDesktop() {
                     
                     <div className="relative z-10">
                         <button 
-                            onClick={() => navigate("/dosen/acara")}
+                            onClick={() => navigate(routePrefix)}
                             className="flex items-center gap-3 text-slate-400 hover:text-white transition-colors font-black uppercase tracking-widest text-[10px] mb-12"
                         >
                             <ArrowLeft size={16} /> Batal & Kembali
@@ -253,7 +259,7 @@ export function CreateAcaraDesktop() {
                     <div className="flex justify-between items-center mb-12">
                         <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Editor Postingan Pintar v1.0</span>
                         <button 
-                            onClick={() => navigate("/dosen/acara")} 
+                            onClick={() => navigate(routePrefix)} 
                             className="p-3 hover:bg-slate-100 rounded-2xl transition-colors"
                         >
                             <X size={28} className="text-slate-300 hover:text-slate-600" />

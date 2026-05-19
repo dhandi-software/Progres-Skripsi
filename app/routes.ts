@@ -68,6 +68,10 @@ export default [
         ...prefix("staf", [
             index("routes/staf/dashboard.tsx"),
             route("sidang", "routes/staf/sidang.tsx"),
+            // Acara Staf
+            route("acara", "routes/staf/acara.tsx"),
+            route("acara/create", "routes/staf/acara.create.tsx"),
+            route("acara/edit/:id", "routes/staf/acara.edit.$id.tsx"),
             route("chat", "routes/staf/chat.tsx"),
             route("profile", "routes/staf/profile.tsx"),
         ]),
@@ -81,6 +85,9 @@ export default [
             route("create-account", "routes/admin/create-account.tsx"),
             route("edit-account/:id", "routes/admin/edit-account.$id.tsx"),
             route("monitoring", "routes/admin/monitoring.tsx"),
+            route("acara", "routes/admin/acara.tsx"),
+            route("acara/create", "routes/admin/acara.create.tsx"),
+            route("acara/edit/:id", "routes/admin/acara.edit.$id.tsx"),
             route("chat", "routes/admin/chat.tsx"),
         ]),
     ]),

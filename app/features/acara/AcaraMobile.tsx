@@ -7,7 +7,7 @@ import {
     MoreVertical, Users, 
     Link as LinkIcon, Check
 } from "lucide-react";
-import { useNavigate, useSearchParams } from "react-router";
+import { useNavigate, useSearchParams, useLocation } from "react-router";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { useAuth } from "~/hooks/useAuth";
@@ -39,6 +39,12 @@ export function AcaraMobile({ title }: { title: string }) {
     const myName = user?.name || user?.username || "?";
     const myInitial = myName.charAt(0).toUpperCase();
     const navigate = useNavigate();
+    const location = useLocation();
+    const routePrefix = location.pathname.startsWith("/admin") 
+        ? "/admin/acara" 
+        : location.pathname.startsWith("/staf")
+        ? "/staf/acara"
+        : "/dosen/acara";
 
     const [acaras, setAcaras] = useState<Acara[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -176,8 +182,21 @@ export function AcaraMobile({ title }: { title: string }) {
                     </div>
                     <div className="flex-1 min-w-0">
                         <h1 className="text-sm font-black text-slate-900 truncate tracking-tight">{selectedAcara.title}</h1>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-0.5">
-                            {selectedAcara.dosen.nama} • {format(new Date(selectedAcara.createdAt), "dd MMM", { locale: id })}
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1 flex items-center gap-1.5 flex-wrap">
+                            <span>{selectedAcara.user?.mahasiswa?.nama || selectedAcara.user?.dosen?.nama || selectedAcara.user?.username || selectedAcara.dosen.nama || "Sistem"}</span>
+                            <span className={cn(
+                                "text-[7px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider leading-none",
+                                (selectedAcara.user?.role || "DOSEN").toUpperCase() === "MAHASISWA" 
+                                    ? "bg-blue-50 text-blue-500 border border-blue-100/50" 
+                                    : (selectedAcara.user?.role || "DOSEN").toUpperCase() === "DOSEN" || (selectedAcara.user?.role || "DOSEN").toUpperCase() === "KAPRODI"
+                                    ? "bg-purple-50 text-purple-500 border border-purple-100/50"
+                                    : (selectedAcara.user?.role || "DOSEN").toUpperCase() === "ADMIN"
+                                    ? "bg-red-50 text-red-500 border border-red-100/50"
+                                    : "bg-slate-50 text-slate-500 border border-slate-100"
+                            )}>
+                                {(selectedAcara.user?.role || "DOSEN").toUpperCase() === "MAHASISWA" ? "Mahasiswa" : (selectedAcara.user?.role || "DOSEN").toUpperCase() === "DOSEN" || (selectedAcara.user?.role || "DOSEN").toUpperCase() === "KAPRODI" ? "Dosen" : (selectedAcara.user?.role || "DOSEN").toUpperCase() === "ADMIN" ? "Admin" : "Staff"}
+                            </span>
+                            <span>• {format(new Date(selectedAcara.createdAt), "dd MMM", { locale: id })}</span>
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -246,9 +265,19 @@ export function AcaraMobile({ title }: { title: string }) {
                                                 </div>
                                             )}
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 mb-1">
+                                                <div className="flex items-center gap-2 mb-1 flex-wrap">
                                                     <span className="text-[11px] font-black text-slate-900 truncate">
                                                         {displayName}
+                                                    </span>
+                                                    <span className={cn(
+                                                        "text-[9px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider leading-none",
+                                                        comment.user.role.toUpperCase() === "MAHASISWA" 
+                                                            ? "bg-blue-50 text-blue-500 border border-blue-100/50" 
+                                                            : comment.user.role.toUpperCase() === "DOSEN" || comment.user.role.toUpperCase() === "KAPRODI"
+                                                            ? "bg-purple-50 text-purple-500 border border-purple-100/50"
+                                                            : "bg-slate-50 text-slate-500 border border-slate-100"
+                                                    )}>
+                                                        {comment.user.role.toUpperCase() === "MAHASISWA" ? "Mhs" : comment.user.role.toUpperCase() === "DOSEN" || comment.user.role.toUpperCase() === "KAPRODI" ? "Dosen" : "Staff"}
                                                     </span>
                                                     <span className="text-[9px] font-bold text-slate-300">{format(new Date(comment.createdAt), "HH:mm", { locale: id })}</span>
                                                 </div>
@@ -331,6 +360,23 @@ export function AcaraMobile({ title }: { title: string }) {
                                 <ClipboardList size={24} />
                             </div>
                             <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                                    <span className="text-[10px] font-black text-slate-800 leading-none">
+                                        {item.user?.mahasiswa?.nama || item.user?.dosen?.nama || item.user?.username || item.dosen?.nama || "Sistem"}
+                                    </span>
+                                    <span className={cn(
+                                        "text-[7px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider leading-none scale-90 origin-left",
+                                        (item.user?.role || "DOSEN").toUpperCase() === "MAHASISWA" 
+                                            ? "bg-blue-50 text-blue-500 border border-blue-100/50" 
+                                            : (item.user?.role || "DOSEN").toUpperCase() === "DOSEN" || (item.user?.role || "DOSEN").toUpperCase() === "KAPRODI"
+                                            ? "bg-purple-50 text-purple-500 border border-purple-100/50"
+                                            : (item.user?.role || "DOSEN").toUpperCase() === "ADMIN"
+                                            ? "bg-red-50 text-red-500 border border-red-100/50"
+                                            : "bg-slate-50 text-slate-500 border border-slate-100"
+                                    )}>
+                                        {(item.user?.role || "DOSEN").toUpperCase() === "MAHASISWA" ? "Mahasiswa" : (item.user?.role || "DOSEN").toUpperCase() === "DOSEN" || (item.user?.role || "DOSEN").toUpperCase() === "KAPRODI" ? "Dosen" : (item.user?.role || "DOSEN").toUpperCase() === "ADMIN" ? "Admin" : "Staff"}
+                                    </span>
+                                </div>
                                 <h3 className="text-sm font-black text-slate-900 truncate mb-0.5">{item.title}</h3>
                                 <div className="flex items-center gap-2">
                                     <span className="text-[10px] font-bold text-slate-400">{format(new Date(item.createdAt), "dd MMM", { locale: id })}</span>
@@ -351,7 +397,7 @@ export function AcaraMobile({ title }: { title: string }) {
                                     <button 
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            navigate(`/dosen/acara/edit/${item.id}`);
+                                            navigate(`${routePrefix}/edit/${item.id}`);
                                         }}
                                         className="p-2 text-slate-400 hover:text-blue-500 active:scale-90 transition-all"
                                         title="Edit"
@@ -440,7 +486,7 @@ export function AcaraMobile({ title }: { title: string }) {
             </div>
 
             <button 
-                onClick={() => navigate("/dosen/acara/create")}
+                onClick={() => navigate(`${routePrefix}/create`)}
                 className="fixed bottom-8 right-8 w-16 h-16 bg-brand-primary text-white rounded-[24px] flex items-center justify-center shadow-2xl shadow-brand-primary/40 active:scale-90 transition-all z-50"
             >
                 <Plus size={28} strokeWidth={3} />

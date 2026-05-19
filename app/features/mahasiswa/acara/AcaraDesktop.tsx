@@ -178,8 +178,20 @@ export function AcaraDesktop({ title }: { title: string }) {
                     </div>
                     <div className="flex-1">
                         <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-tight">{selectedAcara.title}</h1>
-                        <div className="flex items-center gap-3 mt-1.5">
-                            <span className="text-sm font-bold text-slate-500">{selectedAcara.dosen.nama}</span>
+                        <div className="flex items-center gap-3 mt-2.5 flex-wrap">
+                            <span className="text-sm font-bold text-slate-800">{selectedAcara.user?.mahasiswa?.nama || selectedAcara.user?.dosen?.nama || selectedAcara.user?.username || selectedAcara.dosen.nama || "Sistem"}</span>
+                            <span className={cn(
+                                "text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider leading-none",
+                                (selectedAcara.user?.role || "DOSEN").toUpperCase() === "MAHASISWA" 
+                                    ? "bg-blue-50 text-blue-500 border border-blue-100/50" 
+                                    : (selectedAcara.user?.role || "DOSEN").toUpperCase() === "DOSEN" || (selectedAcara.user?.role || "DOSEN").toUpperCase() === "KAPRODI"
+                                    ? "bg-purple-50 text-purple-500 border border-purple-100/50"
+                                    : (selectedAcara.user?.role || "DOSEN").toUpperCase() === "ADMIN"
+                                    ? "bg-red-50 text-red-500 border border-red-100/50"
+                                    : "bg-slate-50 text-slate-500 border border-slate-100"
+                            )}>
+                                {(selectedAcara.user?.role || "DOSEN").toUpperCase() === "MAHASISWA" ? "Mahasiswa" : (selectedAcara.user?.role || "DOSEN").toUpperCase() === "DOSEN" || (selectedAcara.user?.role || "DOSEN").toUpperCase() === "KAPRODI" ? "Dosen" : (selectedAcara.user?.role || "DOSEN").toUpperCase() === "ADMIN" ? "Admin" : "Staff"}
+                            </span>
                             <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
                             <span className="text-sm text-slate-400 font-medium">
                                 {format(new Date(selectedAcara.createdAt), "dd MMM yyyy", { locale: id })}
@@ -238,10 +250,20 @@ export function AcaraDesktop({ title }: { title: string }) {
                                                 </div>
                                             )}
                                             <div className="flex-1">
-                                                <div className="flex items-center gap-3 mb-1.5">
+                                                <div className="flex items-center gap-3 mb-1.5 flex-wrap">
                                                     <span className="text-sm font-black text-slate-900">
                                                         {displayName}
                                                     </span>
+                                                    <span className={cn(
+                                                        "text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider leading-none",
+                                                        comment.user.role.toUpperCase() === "MAHASISWA" 
+                                                            ? "bg-blue-50 text-blue-500 border border-blue-100/50" 
+                                                             : comment.user.role.toUpperCase() === "DOSEN" || comment.user.role.toUpperCase() === "KAPRODI"
+                                                             ? "bg-purple-50 text-purple-500 border border-purple-100/50"
+                                                             : "bg-slate-50 text-slate-500 border border-slate-100"
+                                                     )}>
+                                                         {comment.user.role.toUpperCase() === "MAHASISWA" ? "Mahasiswa" : comment.user.role.toUpperCase() === "DOSEN" || comment.user.role.toUpperCase() === "KAPRODI" ? "Dosen" : "Staff"}
+                                                     </span>
                                                     <span className="text-[11px] font-bold text-slate-400">{format(new Date(comment.createdAt), "dd MMM, HH:mm", { locale: id })}</span>
                                                 </div>
                                                 <p className="text-sm text-slate-700 leading-relaxed font-medium">{comment.content}</p>
@@ -299,27 +321,47 @@ export function AcaraDesktop({ title }: { title: string }) {
                              <p className="text-slate-400 mx-auto mt-4 font-medium">Pengumuman atau instruksi bimbingan dari dosen akan muncul di sini.</p>
                         </div>
                     ) : (
-                        acaras.map(item => (
-                            <div 
-                                key={item.id} 
-                                onClick={() => handleSelectAcara(item)}
-                                className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-6 lg:p-8 flex items-center justify-between gap-6 hover:shadow-2xl hover:shadow-slate-200/50 hover:border-brand-primary/10 transition-all duration-300 group cursor-pointer w-full relative overflow-hidden"
-                            >
-                                <div className="absolute inset-y-0 left-0 w-2 bg-slate-50 group-hover:bg-brand-primary transition-colors duration-300" />
-                                
-                                <div className="flex items-center gap-6 flex-1 min-w-0 ml-4">
-                                    <div className="w-14 h-14 rounded-2xl bg-[#00bcd4]/10 flex items-center justify-center text-[#00bcd4] shrink-0 group-hover:scale-110 transition-transform duration-500">
-                                        <ClipboardList size={28} />
-                                    </div>
-                                    <div className="flex flex-col min-w-0">
-                                        <div className="flex items-center gap-3">
-                                            <h3 className="text-lg lg:text-xl font-black text-slate-900 truncate tracking-tight mb-1">
-                                                {item.dosen.nama} memposting: {item.title}
-                                            </h3>
-                                            {(item.isReadByMe === false || item.isReadByMe === undefined) && (
-                                                <span className="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm group-hover:animate-pulse" />
-                                            )}
+                        acaras.map(item => {
+                            const publisherName = item.user?.mahasiswa?.nama || item.user?.dosen?.nama || item.user?.username || item.dosen?.nama || "Sistem";
+                            const publisherRole = item.user?.role || "DOSEN";
+                            return (
+                                <div 
+                                    key={item.id} 
+                                    onClick={() => handleSelectAcara(item)}
+                                    className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-6 lg:p-8 flex items-center justify-between gap-6 hover:shadow-2xl hover:shadow-slate-200/50 hover:border-brand-primary/10 transition-all duration-300 group cursor-pointer w-full relative overflow-hidden"
+                                >
+                                    <div className="absolute inset-y-0 left-0 w-2 bg-slate-50 group-hover:bg-brand-primary transition-colors duration-300" />
+                                    
+                                    <div className="flex items-center gap-6 flex-1 min-w-0 ml-4">
+                                        <div className="w-14 h-14 rounded-2xl bg-[#00bcd4]/10 flex items-center justify-center text-[#00bcd4] shrink-0 group-hover:scale-110 transition-transform duration-500">
+                                            <ClipboardList size={28} />
                                         </div>
+                                        <div className="flex flex-col min-w-0">
+                                            <div className="flex items-center gap-2.5 flex-wrap mb-1.5">
+                                                <span className="text-sm font-black text-slate-800 tracking-tight leading-none">
+                                                    {publisherName}
+                                                </span>
+                                                <span className={cn(
+                                                    "text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider leading-none",
+                                                    publisherRole.toUpperCase() === "MAHASISWA" 
+                                                        ? "bg-blue-50 text-blue-500 border border-blue-100/50" 
+                                                        : publisherRole.toUpperCase() === "DOSEN" || publisherRole.toUpperCase() === "KAPRODI"
+                                                        ? "bg-purple-50 text-purple-500 border border-purple-100/50"
+                                                        : publisherRole.toUpperCase() === "ADMIN"
+                                                        ? "bg-red-50 text-red-500 border border-red-100/50"
+                                                        : "bg-slate-50 text-slate-500 border border-slate-100"
+                                                )}>
+                                                    {publisherRole.toUpperCase() === "MAHASISWA" ? "Mahasiswa" : publisherRole.toUpperCase() === "DOSEN" || publisherRole.toUpperCase() === "KAPRODI" ? "Dosen" : publisherRole.toUpperCase() === "ADMIN" ? "Admin" : "Staff"}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <h3 className="text-lg lg:text-xl font-black text-slate-900 truncate tracking-tight mb-1">
+                                                    {item.title}
+                                                </h3>
+                                                {(item.isReadByMe === false || item.isReadByMe === undefined) && (
+                                                    <span className="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm group-hover:animate-pulse" />
+                                                )}
+                                            </div>
                                         <div className="flex items-center gap-2">
                                             <span className="text-xs font-bold text-slate-400">{format(new Date(item.createdAt), "dd MMM yyyy", { locale: id })}</span>
                                             <span className="w-1 h-1 rounded-full bg-slate-200" />
@@ -357,7 +399,8 @@ export function AcaraDesktop({ title }: { title: string }) {
                                     </div>
                                 </div>
                             </div>
-                        ))
+                            );
+                        })
                     )}
                 </div>
 
