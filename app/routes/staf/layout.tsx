@@ -7,6 +7,7 @@ import {
   Calendar,
   MessageSquare,
   Megaphone,
+  Download,
 } from "lucide-react";
 import { Outlet, useRouteLoaderData } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
@@ -23,6 +24,7 @@ type MenuKey =
   | "dashboard"
   | "sidang"
   | "acara"
+  | "download"
   | "chat"
   | "profile"
   | "logout";
@@ -32,6 +34,7 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/staf/chat")) return "chat";
   if (pathname.startsWith("/staf/sidang")) return "sidang";
   if (pathname.startsWith("/staf/acara")) return "acara";
+  if (pathname.startsWith("/staf/download")) return "download";
   if (pathname === "/staf" || pathname.startsWith("/staf/"))
     return "dashboard";
   return undefined;
@@ -55,6 +58,12 @@ const menuItems = [
     title: "Pengumuman & Acara",
     icon: Megaphone,
     url: "/staf/acara",
+  },
+  {
+    key: "download" as MenuKey,
+    title: "Download",
+    icon: Download,
+    url: "/staf/download",
   },
   {
     key: "chat" as MenuKey,

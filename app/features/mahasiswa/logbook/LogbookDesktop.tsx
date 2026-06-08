@@ -629,3 +629,5 @@ export function LogbookDesktop({ mahasiswaId }: LogbookProps) {
         </div>
     );
 }
+
+

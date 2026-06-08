@@ -5,7 +5,7 @@ import {
     AlertCircle, File as FileIcon, CheckCircle2,
     ShieldCheck, HardDrive, Eye
 } from "lucide-react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useLocation } from "react-router";
 import { Button } from "~/components/ui/button";
 import { downloadApi } from "~/api/downloadApi";
 import { UPLOADS_URL } from "~/api/client";
@@ -15,6 +15,12 @@ import { cn } from "~/lib/utils";
 export function CreateDownloadDesktop() {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
+    const location = useLocation();
+    const routePrefix = location.pathname.startsWith("/admin") 
+        ? "/admin/download" 
+        : location.pathname.startsWith("/staf")
+        ? "/staf/download"
+        : "/dosen/download";
     const isEditMode = !!id;
 
     const [isLoading, setIsLoading] = useState(isEditMode);
@@ -111,7 +117,7 @@ export function CreateDownloadDesktop() {
                 setToast({ title: "Materi berhasil ditambahkan!", variant: "success" });
             }
             
-            setTimeout(() => navigate("/dosen/download"), 1200);
+            setTimeout(() => navigate(routePrefix), 1200);
         } catch (error: any) {
             setToast({ 
                 title: error.response?.data?.message || "Gagal menyimpan materi.", 
@@ -137,7 +143,7 @@ export function CreateDownloadDesktop() {
             <div className="w-full md:w-[35%] bg-slate-900 text-white p-12 md:p-16 flex flex-col relative shrink-0">
                 {/* Tombol Batal & Kembali */}
                 <Button 
-                    onClick={() => navigate("/dosen/download")}
+                    onClick={() => navigate(routePrefix)}
                     className="flex items-center gap-3 bg-transparent hover:bg-white/10 text-white border-2 border-white/30 hover:border-white transition-all font-black uppercase tracking-widest text-[12px] w-fit px-10 h-14 rounded-full group shadow-2xl"
                 >
                     <ArrowLeft size={20} className="text-white group-hover:-translate-x-1 transition-transform" strokeWidth={3} /> 

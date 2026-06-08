@@ -8,7 +8,8 @@ import {
   FileText,
   BarChart3,
   MessageSquare,
-  ClipboardList
+  ClipboardList,
+  Download
 } from "lucide-react";
 import { Outlet, useRouteLoaderData } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
@@ -24,7 +25,9 @@ type MenuKey =
   | "users"
   | "monitoring"
   | "acara"
+  | "download"
   | "chat"
+  | "penilaian"
   | "logout";
 
 const pathToKey = (pathname: string): MenuKey | undefined => {
@@ -32,6 +35,8 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/admin/monitoring")) return "monitoring";
   if (pathname.startsWith("/admin/chat")) return "chat";
   if (pathname.startsWith("/admin/acara")) return "acara";
+  if (pathname.startsWith("/admin/download")) return "download";
+  if (pathname.startsWith("/admin/penilaian")) return "penilaian";
   if (pathname === "/admin" || pathname.startsWith("/admin/"))
     return "dashboard";
   return undefined;
@@ -63,10 +68,22 @@ const menuItems = [
     url: "/admin/acara",
   },
   {
+    key: "download" as MenuKey,
+    title: "Download",
+    icon: Download,
+    url: "/admin/download",
+  },
+  {
     key: "chat" as MenuKey,
     title: "Chat",
     icon: MessageSquare,
     url: "/admin/chat",
+  },
+  {
+    key: "penilaian" as MenuKey,
+    title: "Penilaian Evaluasi",
+    icon: FileText,
+    url: "/admin/penilaian",
   },
 ];
 

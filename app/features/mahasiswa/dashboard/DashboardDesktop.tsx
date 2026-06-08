@@ -303,6 +303,27 @@ export function DashboardDesktop() {
                     </button>
                 </div>
             )}
+
+            {/* Notification Banner for Missing Pengajuan */}
+            {(!profile?.pengajuanJudul || profile.pengajuanJudul.length === 0) && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-amber-100 rounded-full text-amber-600 shrink-0">
+                            <AlertCircle className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="text-amber-800 font-bold text-lg">Lengkapi Pengajuan Formulir</h3>
+                            <p className="text-amber-600 text-sm mt-1 mb-0">Silakan lengkapi pengajuan formulir untuk melakukan bimbingan.</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => navigate("/mahasiswa/pengajuan")}
+                        className="w-full sm:w-auto px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-xl transition-colors shadow-sm whitespace-nowrap"
+                    >
+                        Lengkapi Sekarang
+                    </button>
+                </div>
+            )}
  
             {/* Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

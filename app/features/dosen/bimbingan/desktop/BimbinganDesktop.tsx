@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense, useMemo } from "react";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { UPLOADS_URL } from "~/api/client";
-import { Users, FileText, Send, Loader2, BookOpen, AlertCircle, FileStack, X, Upload, Download, Eye, Clock, CalendarIcon, Trophy, Search } from "lucide-react";
+import { Users, FileText, Send, Loader2, BookOpen, AlertCircle, FileStack, X, Upload, Download, Eye, Clock, CalendarIcon, Trophy, Search, Edit, Check } from "lucide-react";
 import { CustomSelect } from "~/components/ui/custom-select";
 import { Toast } from "~/components/ui/toast";
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
@@ -47,6 +47,15 @@ const getTimeRemaining = (deadline?: string) => {
     return { text: `${diffDays} hari lagi`, isLate: false, isWarning: false };
 };
 
+const parseCatatan = (catatan: string) => {
+    if (!catatan) return { nilai: null, text: "" };
+    const match = catatan.match(/^\[NILAI:\s*(\d+)\]\s*(.*)$/s);
+    if (match) {
+        return { nilai: parseInt(match[1]), text: match[2] };
+    }
+    return { nilai: null, text: catatan };
+};
+
 export function BimbinganDesktop() {
     const [students, setStudents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -58,6 +67,10 @@ export function BimbinganDesktop() {
 
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("Semua");
+
+    const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+    const [inputGrades, setInputGrades] = useState<{[key: number]: string}>({});
+    const [savingGradeId, setSavingGradeId] = useState<number | null>(null);
 
     // List Pagination
     const [currentPage, setCurrentPage] = useState(1);
@@ -306,6 +319,32 @@ export function BimbinganDesktop() {
 
     const handleOpenReview = (task: any, isReadOnly: boolean = false) => {
         navigate(`/dosen/bimbingan/${task.mahasiswaId}/review/${task.id}`);
+    };
+
+    const handleSaveGrade = async (task: any) => {
+        const gradeVal = inputGrades[task.id];
+        const parsedGrade = gradeVal === "" || gradeVal === undefined ? null : parseInt(gradeVal);
+        if (parsedGrade !== null && (parsedGrade < 0 || parsedGrade > 100 || isNaN(parsedGrade))) {
+            showToast("Nilai bimbingan harus berada di rentang 0 - 100", "destructive");
+            return;
+        }
+
+        setSavingGradeId(task.id);
+        try {
+            const parsed = parseCatatan(task.catatan);
+            const newCatatan = parsedGrade !== null ? `[NILAI: ${parsedGrade}] ${parsed.text}` : parsed.text;
+            await bimbinganApi.uploadRevisiDosen(task.id, null, 'APPROVED', newCatatan);
+            showToast("Nilai berhasil disimpan!", "success");
+            setEditingTaskId(null);
+            if (selectedStudent) {
+                fetchStudentTasks(selectedStudent.mahasiswa.id);
+            }
+        } catch (error) {
+            console.error(error);
+            showToast("Gagal menyimpan nilai", "destructive");
+        } finally {
+            setSavingGradeId(null);
+        }
     };
 
     if (loading) {
@@ -892,34 +931,109 @@ export function BimbinganDesktop() {
                                         </p>
                                     </div>
                                 ) : (
-                                    completedTasks.map(task => (
-                                        <div key={task.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col min-h-[160px]">
-                                            <div className="h-2 w-full bg-green-500"></div>
-                                            <div className="p-5 flex-1 flex flex-col justify-between">
-                                                <div>
-                                                    <div className="flex justify-between items-start mb-3">
-                                                        <span className="text-[10px] font-bold px-2 py-0.5 bg-green-50 border border-green-200 text-green-700 rounded-md">SELESAI (ACC)</span>
+                                    completedTasks.map(task => {
+                                        const parsed = parseCatatan(task.catatan);
+                                        const isEditing = editingTaskId === task.id;
+                                        
+                                        return (
+                                            <div key={task.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col min-h-[200px]">
+                                                <div className="h-2 w-full bg-green-500"></div>
+                                                <div className="p-5 flex-1 flex flex-col justify-between">
+                                                    <div>
+                                                        <div className="flex justify-between items-center mb-3">
+                                                            <span className="text-[10px] font-bold px-2 py-0.5 bg-green-50 border border-green-200 text-green-700 rounded-md">SELESAI (ACC)</span>
+                                                            
+                                                            {!isEditing && (
+                                                                parsed.nilai !== null ? (
+                                                                    <span className="text-[11px] font-bold px-2.5 py-0.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-full shadow-sm">
+                                                                        Nilai: {parsed.nilai}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-[11px] font-medium px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-full">
+                                                                        Belum Dinilai
+                                                                    </span>
+                                                                )
+                                                            )}
+                                                        </div>
+                                                        <h3 className="text-sm font-bold text-gray-900 mb-1.5 leading-tight">{task.topik}</h3>
+                                                        <p className="text-xs text-gray-500 mb-3">
+                                                            Disetujui: {new Date(task.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                                        </p>
                                                     </div>
-                                                    <h3 className="text-sm font-bold text-gray-900 mb-1.5 leading-tight">{task.topik}</h3>
-                                                    <p className="text-xs text-gray-500 mb-4">
-                                                        Disetujui: {new Date(task.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                                    </p>
-                                                </div>
-                                                <div className="flex gap-2">
-                                                    {task.fileDosen && (
-                                                        <a href={`${UPLOADS_URL}${task.fileDosen}`} target="_blank" rel="noreferrer" className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 rounded-lg text-xs font-bold transition-colors">
-                                                            <Download className="w-3.5 h-3.5" /> Draf Target (ACC)
-                                                        </a>
-                                                    )}
-                                                    {task.fileMahasiswa?.toLowerCase().endsWith('.pdf') && (
-                                                        <button onClick={() => handleOpenReview(task, true)} className="flex items-center justify-center p-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors group" title="Lihat Anotasi">
-                                                            <Eye className="w-4 h-4 text-gray-500 group-hover:text-blue-600 transition-colors" />
-                                                        </button>
-                                                    )}
+
+                                                    {/* Grading Form / Grade Action */}
+                                                    <div className="border-t border-gray-100 pt-3 mt-1 mb-3">
+                                                        {isEditing ? (
+                                                            <div className="space-y-2 animate-in fade-in duration-200">
+                                                                <div className="flex gap-2">
+                                                                    <input
+                                                                        type="number"
+                                                                        min="0"
+                                                                        max="100"
+                                                                        value={inputGrades[task.id] !== undefined ? inputGrades[task.id] : (parsed.nilai !== null ? String(parsed.nilai) : "")}
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value;
+                                                                            setInputGrades(prev => ({ ...prev, [task.id]: val }));
+                                                                        }}
+                                                                        placeholder="Skor 0-100"
+                                                                        className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#119DA4] focus:ring-1 focus:ring-[#119DA4]"
+                                                                    />
+                                                                    <button
+                                                                        onClick={() => handleSaveGrade(task)}
+                                                                        disabled={savingGradeId === task.id}
+                                                                        className="px-3 py-1.5 bg-[#119DA4] hover:bg-[#0d7a7f] disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1"
+                                                                    >
+                                                                        {savingGradeId === task.id ? (
+                                                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                                        ) : (
+                                                                            <Check className="w-3.5 h-3.5" />
+                                                                        )}
+                                                                        Simpan
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => setEditingTaskId(null)}
+                                                                        className="px-2 py-1.5 border border-gray-200 hover:bg-gray-50 text-gray-500 rounded-lg text-xs font-bold transition-all"
+                                                                    >
+                                                                        Batal
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Penilaian</span>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setInputGrades(prev => ({
+                                                                            ...prev,
+                                                                            [task.id]: parsed.nilai !== null ? String(parsed.nilai) : ""
+                                                                        }));
+                                                                        setEditingTaskId(task.id);
+                                                                    }}
+                                                                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#119DA4] hover:text-[#0d7a7f] transition-colors"
+                                                                >
+                                                                    <Edit className="w-3 h-3" />
+                                                                    {parsed.nilai !== null ? "Ubah Nilai" : "Beri Nilai"}
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="flex gap-2">
+                                                        {task.fileDosen && (
+                                                            <a href={`${UPLOADS_URL}${task.fileDosen}`} target="_blank" rel="noreferrer" className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 rounded-lg text-xs font-bold transition-colors">
+                                                                <Download className="w-3.5 h-3.5" /> Draf Target (ACC)
+                                                            </a>
+                                                        )}
+                                                        {task.fileMahasiswa?.toLowerCase().endsWith('.pdf') && (
+                                                            <button onClick={() => handleOpenReview(task, true)} className="flex items-center justify-center p-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors group" title="Lihat Anotasi">
+                                                                <Eye className="w-4 h-4 text-gray-500 group-hover:text-blue-600 transition-colors" />
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))
+                                        );
+                                    })
                                 )}
                             </div>
                         )}

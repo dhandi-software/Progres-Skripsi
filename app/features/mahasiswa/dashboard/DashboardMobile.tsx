@@ -284,13 +284,36 @@ export function DashboardMobile() {
                         <div className="flex-1">
                             <h3 className="text-blue-800 font-bold text-sm">Pengumuman Baru</h3>
                             <p className="text-blue-600 text-[10px] mt-1 pr-2 leading-relaxed">
-                                Ada {unreadAcaraCount} pengumuman atau berita acara baru yang belum Anda baca.
+                                Ada {unreadAcaraCount} pengumuman atau berita acara baru dari dosen pembimbing yang belum Anda baca.
                             </p>
                             <button 
                                 onClick={() => navigate("/mahasiswa/acara")}
                                 className="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 transition-colors text-white text-xs font-bold rounded-lg shadow-sm w-full"
                             >
                                 Lihat Pengumuman
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Notification Banner for Missing Pengajuan Mobile */}
+            {(!profile?.pengajuanJudul || profile.pengajuanJudul.length === 0) && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 shadow-sm relative overflow-hidden animate-in fade-in slide-in-from-top-2 duration-500">
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 bg-amber-100 rounded-full text-amber-600 shrink-0">
+                            <AlertCircle className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-amber-800 font-bold text-sm">Lengkapi Pengajuan Formulir</h3>
+                            <p className="text-amber-600 text-[10px] mt-1 pr-2 leading-relaxed">
+                                Silakan lengkapi pengajuan formulir untuk melakukan bimbingan.
+                            </p>
+                            <button 
+                                onClick={() => navigate("/mahasiswa/pengajuan")}
+                                className="mt-3 px-4 py-2 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 transition-colors text-white text-xs font-bold rounded-lg shadow-sm w-full"
+                            >
+                                Lengkapi Sekarang
                             </button>
                         </div>
                     </div>

@@ -6,7 +6,7 @@ import {
     Download as DownloadIcon, File as FileIcon,
     MoreVertical, ClipboardList, Eye
 } from "lucide-react";
-import { useNavigate } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { useAuth } from "~/hooks/useAuth";
@@ -31,7 +31,13 @@ import {
 export function DownloadDesktop({ title }: { title: string }) {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const isDosen = user?.role === "dosen";
+    const location = useLocation();
+    const routePrefix = location.pathname.startsWith("/admin") 
+        ? "/admin/download" 
+        : location.pathname.startsWith("/staf")
+        ? "/staf/download"
+        : "/dosen/download";
+    const canManage = ["dosen", "dosen_pembimbing", "kaprodi", "staf", "staf_univ", "admin"].includes(user?.role?.toLowerCase() || "");
 
     const [downloads, setDownloads] = useState<Download[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -81,9 +87,9 @@ export function DownloadDesktop({ title }: { title: string }) {
                      <h1 className="text-3xl font-black text-slate-900 tracking-tight">Timeline Materi & Dokumen</h1>
                      <p className="text-slate-500 text-sm mt-2 font-medium">Daftar unduhan materi kuliah dan panduan akademik.</p>
                 </div>
-                {isDosen && (
+                {canManage && (
                     <Button 
-                        onClick={() => navigate("/dosen/download/create")}
+                        onClick={() => navigate(`${routePrefix}/create`)}
                         className="h-14 px-12 bg-brand-primary hover:bg-slate-900 text-white rounded-[24px] font-black text-sm gap-3 shadow-xl shadow-brand-primary/20 transition-all active:scale-95 w-full lg:w-fit"
                     >
                         <Plus size={20} strokeWidth={3} />
@@ -121,7 +127,7 @@ export function DownloadDesktop({ title }: { title: string }) {
                                     </div>
                                     <div className="flex flex-col min-w-0">
                                         <h3 className="text-lg lg:text-xl font-black text-slate-900 truncate tracking-tight mb-1">
-                                            {item.dosen.nama} membagikan: {item.title}
+                                            {(item.user?.mahasiswa?.nama || item.user?.dosen?.nama || item.user?.username || item.dosen?.nama || "Sistem")} membagikan: {item.title}
                                         </h3>
                                         <div className="flex items-center gap-2">
                                             <span className="text-xs font-bold text-slate-400">
@@ -160,12 +166,12 @@ export function DownloadDesktop({ title }: { title: string }) {
                                     >
                                         <DownloadIcon size={20} />
                                     </button>
-                                    {isDosen && (
+                                    {canManage && (
                                         <>
                                             <Button 
                                                 variant="ghost"
                                                 size="icon"
-                                                onClick={() => navigate(`/dosen/download/edit/${item.id}`)}
+                                                onClick={() => navigate(`${routePrefix}/edit/${item.id}`)}
                                                 className="p-3 h-12 w-12 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
                                                 title="Edit Materi"
                                             >

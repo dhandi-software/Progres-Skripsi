@@ -83,3 +83,30 @@ Aplikasi ini dilengkapi dengan Asisten AI (Gemini 1.5 Flash) untuk membantu peng
 - **Konfigurasi**: Memerlukan `GEMINI_API_KEY` di file `.env`.
 - **Fitur**: AI dibatasi hanya untuk menjawab seputar informasi Kerja Praktik guna menjaga relevansi dan keamanan penggunaan kuota.
 
+---
+
+## 📝 Penilaian Evaluasi Kerja Praktik (Grading Rules & Access Boundaries)
+
+Modul ini mengelola penilaian akhir kerja praktik mahasiswa berdasarkan evaluasi dari Dosen Pembimbing (P1) dan Dosen Penguji (P2).
+
+### 👥 Peran & Batasan Akses (Roles & Permissions)
+1. **Dosen Pembimbing (P1)**:
+   - Menginput nilai komponen bimbingan (K1, K2, K3) dengan pembobotan **35%, 30%, 35%**.
+   - Input nilai Dosen Penguji (P2) dikunci (read-only) untuk mencegah manipulasi.
+2. **Dosen Penguji (P2)**:
+   - Menginput nilai komponen ujian (K1, K2, K3) dengan pembobotan **35%, 30%, 35%**.
+   - Input nilai Dosen Pembimbing (P1) dikunci (read-only) untuk mencegah manipulasi.
+3. **Admin / Staf**:
+   - Hanya memiliki wewenang untuk menugaskan Dosen Penguji (bulk examiner assignment).
+   - Seluruh tab penilaian pribadi ("Bimbingan Saya", "Diuji Oleh Saya") disembunyikan untuk Admin.
+   - Form penilaian bersifat **read-only** (tidak dapat mengisi nilai P1 maupun P2).
+
+### 📊 Skala Konversi Huruf Mutu (Grading Scale)
+Rata-rata akhir dihitung dari gabungan total P1 dan P2 dibagi 2, lalu dikonversi dengan skala berikut:
+*   `Nilai >= 80` ➔ **A**
+*   `Nilai >= 70` ➔ **B**
+*   `Nilai >= 60` ➔ **B-**
+*   `Nilai >= 50` ➔ **C**
+*   `Nilai >= 40` ➔ **C-**
+*   `Nilai < 40` ➔ **D**
+

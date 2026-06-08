@@ -3,6 +3,7 @@ import { client } from "./client";
 export interface Download {
     id: number;
     dosenId: number;
+    userId?: number;
     title: string;
     description?: string;
     fileUrl: string;
@@ -12,6 +13,14 @@ export interface Download {
     dosen: {
         nama: string;
     };
+    user?: {
+        username: string;
+        role: string;
+        id: number;
+        photo?: string | null;
+        mahasiswa?: { nama: string };
+        dosen?: { nama: string };
+    } | null;
 }
 
 export interface DownloadResponse {

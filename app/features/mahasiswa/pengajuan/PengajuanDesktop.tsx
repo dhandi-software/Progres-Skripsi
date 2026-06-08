@@ -78,11 +78,13 @@ export function PengajuanDesktop() {
                     const diffYears = currentYear - startYear;
                     const calculatedSemester = (diffYears * 2) + (currentMonth > 6 ? 1 : 0);
                     const calculatedTahunAkademik = currentMonth > 6 ? `${currentYear}/${currentYear + 1}` : `${currentYear - 1}/${currentYear}`;
+                    const calculatedBatasStudi = !isNaN(startYear) ? (startYear + 6).toString() : "";
                     
                     setFormData(prev => ({
                         ...prev,
                         semester: calculatedSemester > 0 ? calculatedSemester.toString() : "1",
-                        tahunAkademik: calculatedTahunAkademik
+                        tahunAkademik: calculatedTahunAkademik,
+                        batasStudi: calculatedBatasStudi
                     }));
                 }
 
@@ -105,6 +107,16 @@ export function PengajuanDesktop() {
         if (name === 'sksNilaiD' && Number(value) > 0) {
             showToast("kamu harus memperbaiki nilai D tersebut", "default");
         }
+
+        // Warning toast for Batas Studi
+        if (name === 'batasStudi' && profile?.tahunMasuk) {
+            const startYear = parseInt(profile.tahunMasuk);
+            const limitYear = startYear + 6;
+            const enteredYear = parseInt(value);
+            if (!isNaN(limitYear) && !isNaN(enteredYear) && enteredYear > limitYear) {
+                showToast(`Batas studi tidak boleh melebihi tahun ${limitYear} (maksimal 6 tahun dari tahun masuk ${startYear})`, "destructive");
+            }
+        }
     };
 
     const handleSelectChange = (name: string, value: string) => {
@@ -118,6 +130,17 @@ export function PengajuanDesktop() {
         if (Number(formData.sksDicapai) < 100) {
             showToast("Jumlah SKS yang dicapai minimal 100 SKS untuk mengajukan KP.", "destructive");
             return;
+        }
+
+        // Validasi Batas Studi
+        if (profile?.tahunMasuk && formData.batasStudi) {
+            const startYear = parseInt(profile.tahunMasuk);
+            const limitYear = startYear + 6;
+            const enteredYear = parseInt(formData.batasStudi);
+            if (!isNaN(limitYear) && !isNaN(enteredYear) && enteredYear > limitYear) {
+                showToast(`Batas studi tidak boleh melebihi tahun ${limitYear} (maksimal 6 tahun dari tahun masuk ${startYear}).`, "destructive");
+                return;
+            }
         }
 
         // BLOCK submission if SKS Grade D > 0

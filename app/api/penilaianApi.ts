@@ -7,6 +7,11 @@ export const penilaianApi = {
         return response.data;
     },
 
+    assignPenguji: async (mahasiswaId: number, pengujiId: number | null) => {
+        const response = await client.post("/penilaian/assign-penguji", { mahasiswaId, pengujiId });
+        return response.data;
+    },
+
     // Create or update penilaian (upsert logic handled by backend)
     createPenilaian: async (data: {
         mahasiswaId: number;
@@ -30,6 +35,11 @@ export const penilaianApi = {
 
     deletePenilaian: async (id: number) => {
         const response = await client.delete(`/penilaian/${id}`);
+        return response.data;
+    },
+
+    assignPembimbing: async (mahasiswaId: number, pembimbingId: number) => {
+        const response = await client.post("/penilaian/assign-pembimbing", { mahasiswaId, pembimbingId });
         return response.data;
     }
 };

@@ -7,6 +7,15 @@ import { Toast } from "~/components/ui/toast";
 
 const SharedPdfViewer = lazy(() => import('../../../components/SharedPdfViewer.client').then(m => ({ default: m.SharedPdfViewer })));
 
+const parseCatatan = (catatan: string) => {
+    if (!catatan) return { nilai: null, text: "" };
+    const match = catatan.match(/^\[NILAI:\s*(\d+)\]\s*(.*)$/s);
+    if (match) {
+        return { nilai: parseInt(match[1]), text: match[2] };
+    }
+    return { nilai: null, text: catatan };
+};
+
 interface BimbinganReviewDesktopProps {
     mahasiswaId: number;
     taskId: number;
@@ -19,6 +28,7 @@ export const BimbinganReviewDesktop: React.FC<BimbinganReviewDesktopProps> = ({ 
     const [studentName, setStudentName] = useState("");
     const [reviewStatus, setReviewStatus] = useState("REVISION");
     const [reviewCatatan, setReviewCatatan] = useState("");
+    const [reviewNilai, setReviewNilai] = useState<number | null>(null);
     const [reviewFile, setReviewFile] = useState<File | null>(null);
     const [annotations, setAnnotations] = useState<any[]>([]);
     const [uploadingReview, setUploadingReview] = useState(false);
@@ -41,9 +51,11 @@ export const BimbinganReviewDesktop: React.FC<BimbinganReviewDesktopProps> = ({ 
             
             if (task) {
                 setReviewingTask(task);
-                if (task.catatan && task.catatan !== "Task Assigned") {
-                    setReviewCatatan(task.catatan);
+                const parsed = parseCatatan(task.catatan);
+                if (parsed.text && parsed.text !== "Task Assigned") {
+                    setReviewCatatan(parsed.text);
                 }
+                setReviewNilai(parsed.nilai);
                 setReviewStatus(task.status === 'APPROVED' ? 'APPROVED' : "REVISION");
 
                 if (task.status === 'SUBMITTED' && !task.isReadDosen) {
@@ -98,9 +110,18 @@ export const BimbinganReviewDesktop: React.FC<BimbinganReviewDesktopProps> = ({ 
 
     const handleReviewSubmit = async () => {
         if (!reviewingTask) return;
+        
+        if (reviewStatus === 'APPROVED' && reviewNilai !== null && (reviewNilai < 0 || reviewNilai > 100)) {
+            showToast("Nilai bimbingan harus berada di rentang 0 - 100", "destructive");
+            return;
+        }
+
         setUploadingReview(true);
         try {
-            await bimbinganApi.uploadRevisiDosen(reviewingTask.id, reviewFile, reviewStatus, reviewCatatan);
+            const finalCatatan = (reviewStatus === 'APPROVED' && reviewNilai !== null && reviewNilai !== undefined)
+                ? `[NILAI: ${reviewNilai}] ${reviewCatatan}`
+                : reviewCatatan;
+            await bimbinganApi.uploadRevisiDosen(reviewingTask.id, reviewFile, reviewStatus, finalCatatan);
             showToast("Hasil reviu berhasil disimpan!", "success");
             setTimeout(() => {
                 navigate("/dosen/bimbingan");
@@ -247,6 +268,25 @@ export const BimbinganReviewDesktop: React.FC<BimbinganReviewDesktopProps> = ({ 
                         </div>
                         
                         <div className="space-y-6 flex-1">
+                            {reviewStatus === 'APPROVED' && (
+                                <div className="space-y-2 p-5 bg-green-50 border border-green-200 rounded-2xl animate-in fade-in duration-300">
+                                    <label className="block text-sm font-bold text-green-900 ml-1">Nilai Bimbingan (Opsional)</label>
+                                    <p className="text-xs text-green-700/80 leading-relaxed ml-1 mb-2">Input nilai pengerjaan bab ini (rentang 0 - 100).</p>
+                                    <input 
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        value={reviewNilai !== null ? reviewNilai : ""}
+                                        onChange={(e) => {
+                                            const val = e.target.value === "" ? null : parseInt(e.target.value);
+                                            setReviewNilai(val);
+                                        }}
+                                        placeholder="Contoh: 85"
+                                        className="w-full px-4 py-2.5 bg-white border border-green-200 rounded-xl text-sm focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all font-semibold text-green-900"
+                                    />
+                                </div>
+                            )}
+
                             <div>
                                 <label className="block text-sm font-bold text-gray-800 mb-3 ml-1">Catatan Keseluruhan (Opsional)</label>
                                 <textarea 
