@@ -386,8 +386,8 @@ export function LogbookDesktop({ mahasiswaId }: LogbookProps) {
                                         <div className="font-bold">Uraian Singkat</div>
                                         <div className="font-normal text-xs">sub pokok bahasan</div>
                                     </th>
-                                    <th className="px-4 py-3 text-center border-r border-gray-800 w-[100px]">
-                                        <div className="font-bold">Mahasiswa</div>
+                                    <th className="px-4 py-3 text-center border-r border-gray-800 w-[120px]">
+                                        <div className="font-bold">Dosen Pembimbing</div>
                                         <div className="text-xs font-normal">Paraf</div>
                                     </th>
                                     <th className="px-4 py-3 text-center border-r border-gray-800" colSpan={2}>
@@ -471,9 +471,9 @@ export function LogbookDesktop({ mahasiswaId }: LogbookProps) {
                                                         <div className="w-16 h-10 border border-gray-200 rounded bg-white p-0.5 relative">
                                                             <img src={entry.mahasiswaParaf} alt="Signature" className="w-full h-full object-contain" />
                                                              <button 
-                                                                disabled={isViewingStudent || (!editingRowIds.has(entry.id) && !!entry.pembimbingParaf)}
+                                                                disabled={!isViewingStudent}
                                                                 onClick={() => setActiveSignature({ id: entry.id, type: 'mahasiswaParaf' })}
-                                                                className={cn("absolute -top-2 -right-2 bg-gray-100 text-gray-500 rounded-full p-1 border border-gray-200 transition-opacity", (!isViewingStudent && (editingRowIds.has(entry.id) || !entry.pembimbingParaf)) ? "opacity-100" : "opacity-0 pointer-events-none")}
+                                                                className={cn("absolute -top-2 -right-2 bg-gray-100 text-gray-500 rounded-full p-1 border border-gray-200 transition-opacity", isViewingStudent ? "opacity-100" : "opacity-0 pointer-events-none")}
                                                                 title="Ubah Tanda Tangan"
                                                             >
                                                                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
@@ -486,14 +486,14 @@ export function LogbookDesktop({ mahasiswaId }: LogbookProps) {
                                                 ) : (
                                                      <button 
                                                         type="button"
-                                                        disabled={!editingRowIds.has(entry.id) && !!entry.pembimbingParaf}
+                                                        disabled={!isViewingStudent}
                                                         onClick={() => setActiveSignature({ id: entry.id, type: 'mahasiswaParaf' })}
-                                                        className={cn("flex flex-col items-center gap-1 cursor-pointer group p-1 transition-opacity", (!editingRowIds.has(entry.id) && entry.pembimbingParaf) && "opacity-50 cursor-not-allowed")}
+                                                        className={cn("flex flex-col items-center gap-1 cursor-pointer group p-1 transition-opacity", !isViewingStudent && "opacity-50 cursor-not-allowed")}
                                                     >
-                                                        <div className={cn("w-8 h-8 rounded-full flex items-center justify-center border-2 bg-gray-50 border-gray-300 text-gray-400 transition-all", (editingRowIds.has(entry.id) || !entry.pembimbingParaf) && "group-hover:border-[#D25026] group-hover:text-[#D25026]")}>
+                                                        <div className={cn("w-8 h-8 rounded-full flex items-center justify-center border-2 bg-gray-50 border-gray-300 text-gray-400 transition-all", isViewingStudent && "group-hover:border-[#D25026] group-hover:text-[#D25026]")}>
                                                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg>
                                                         </div>
-                                                        <span className={cn("text-[10px] text-gray-500", (editingRowIds.has(entry.id) || !entry.pembimbingParaf) && "group-hover:text-[#D25026]")}>Klik TTD</span>
+                                                        <span className={cn("text-[10px] text-gray-500", isViewingStudent && "group-hover:text-[#D25026]")}>{isViewingStudent ? "Klik TTD" : "Belum TTD"}</span>
                                                     </button>
                                                 )}
                                             </div>
@@ -593,36 +593,51 @@ export function LogbookDesktop({ mahasiswaId }: LogbookProps) {
                     </div>
 
                     {/* Actions */}
-                    {!isViewingStudent && (
-                        <div className="flex justify-end pt-4">
-                            <button 
-                                onClick={handleSave}
-                                disabled={saving}
-                                className="flex items-center gap-2 px-8 py-3 bg-[#D25026] text-white font-bold rounded-xl hover:bg-[#B9441F] transition-all active:scale-95 shadow-lg shadow-[#D25026]/20 disabled:opacity-70 disabled:cursor-not-allowed"
-                            >
-                                {saving ? (
-                                    <>
-                                        <Loader2 className="animate-spin" size={20} />
-                                        Menyimpan...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save size={20} />
-                                        Simpan Logbook
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    )}
+                    <div className="flex justify-end pt-4">
+                        <button 
+                            onClick={handleSave}
+                            disabled={saving}
+                            className="flex items-center gap-2 px-8 py-3 bg-[#D25026] text-white font-bold rounded-xl hover:bg-[#B9441F] transition-all active:scale-95 shadow-lg shadow-[#D25026]/20 disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                            {saving ? (
+                                <>
+                                    <Loader2 className="animate-spin" size={20} />
+                                    Menyimpan...
+                                </>
+                            ) : (
+                                <>
+                                    <Save size={20} />
+                                    Simpan Logbook
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </div>
             </div>
 
             <SignatureModal 
                 isOpen={!!activeSignature}
                 onClose={() => setActiveSignature(null)}
-                onSave={(data) => {
+                onSave={async (data) => {
                     if (activeSignature) {
-                        handleEntryChange(activeSignature.id, activeSignature.type, data || null);
+                        const updatedEntries = entries.map(entry => 
+                            entry.id === activeSignature.id ? { ...entry, [activeSignature.type]: data || null } : entry
+                        );
+                        setEntries(updatedEntries);
+                        
+                        try {
+                            setSaving(true);
+                            await logbookApi.syncEntries(updatedEntries, mahasiswaId);
+                            const freshEntries = await logbookApi.getEntries(mahasiswaId);
+                            if (freshEntries && freshEntries.length > 0) {
+                                setEntries(freshEntries);
+                            }
+                            showToast("Paraf berhasil disimpan!", "success");
+                        } catch (error) {
+                            showToast("Gagal menyimpan paraf", "destructive");
+                        } finally {
+                            setSaving(false);
+                        }
                     }
                 }}
             />

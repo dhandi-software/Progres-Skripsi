@@ -33,6 +33,7 @@ export default [
             route("penilaian", "routes/mahasiswa/penilaian.tsx"),
             route("profilemahasiswa", "routes/mahasiswa/profilemahasiswa.tsx"),
             route("logbook", "routes/mahasiswa/logbook.tsx"),
+            route("sanksi", "routes/mahasiswa/sanksi.tsx"),
         ]),
     ]),
 
@@ -61,6 +62,7 @@ export default [
             route("profile", "routes/dosen/profile.tsx"),
             route("logbook", "routes/dosen/logbook.tsx"),
             route("logbook/:id", "routes/dosen/logbook.$id.tsx"),
+            route("sanksi", "routes/dosen/sanksi.tsx"),
         ]),
     ]),
     // Staf

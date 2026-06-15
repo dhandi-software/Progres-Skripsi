@@ -20,6 +20,7 @@ import { chatService } from "~/services/chatService";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { acaraApi } from "~/api/acaraApi";
 import { sidangApi } from "~/api/sidangApi";
+import { sanksiApi } from "~/api/sanksiApi";
 import React from "react";
 import { io } from "socket.io-client";
 import { UPLOADS_URL } from "~/api/client";
@@ -39,6 +40,7 @@ type MenuKey =
   | "profilemahasiswa"
   | "portfolio"
   | "logbook"
+  | "sanksi"
   | "logout";
 
 const pathToKey = (pathname: string): MenuKey | undefined => {
@@ -51,6 +53,7 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/mahasiswa/penilaian")) return "penilaian";
   if (pathname.startsWith("/mahasiswa/profilemahasiswa")) return "profilemahasiswa";
   if (pathname.startsWith("/mahasiswa/logbook")) return "logbook";
+  if (pathname.startsWith("/mahasiswa/sanksi")) return "sanksi";
   if (pathname === "/mahasiswa" || pathname.startsWith("/mahasiswa/"))
     return "dashboard";
   return undefined;
@@ -117,6 +120,12 @@ const menuItems = [
     icon: BookOpen,
     url: "/mahasiswa/logbook",
   },
+  {
+    key: "sanksi" as MenuKey,
+    title: "Sanksi Administrasi",
+    icon: FileText,
+    url: "/mahasiswa/sanksi",
+  },
 ];
 
 export function AppSidebar() {
@@ -132,6 +141,7 @@ export function AppSidebar() {
   const [bimbinganBadgeCount, setBimbinganBadgeCount] = React.useState(0);
   const [acaraBadgeCount, setAcaraBadgeCount] = React.useState(0);
   const [sidangBadgeCount, setSidangBadgeCount] = React.useState(0);
+  const [sanksiBadgeCount, setSanksiBadgeCount] = React.useState(0);
 
   React.useEffect(() => {
     if (!user) return;
@@ -177,6 +187,15 @@ export function AppSidebar() {
             }
         })
         .catch(err => console.error("Sidebar Sidang Error:", err));
+
+      // Fetch Sanksi count
+      sanksiApi.getAllSanksi()
+        .then(data => {
+            if (data && Array.isArray(data)) {
+                setSanksiBadgeCount(data.length);
+            }
+        })
+        .catch(err => console.error("Sidebar Sanksi Error:", err));
     };
     fetchData();
     const intervalId = setInterval(fetchData, 30000);
@@ -252,7 +271,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className="border-r border-[#E5E5E5] bg-white overflow-y-hidden">
+    <Sidebar className="border-r border-[#E5E5E5] bg-white overflow-y-hidden print:hidden">
       <SidebarContent className="bg-[#FAFAFA] flex flex-col py-8 px-6 custom-scrollbar">
         {/* Logo Section */}
         <div className="mb-8 px-2">
@@ -319,6 +338,11 @@ export function AppSidebar() {
                           {sidangBadgeCount}
                         </div>
                       )}
+                      {item.key === "sanksi" && sanksiBadgeCount > 0 && (
+                        <div className="bg-red-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
+                          {sanksiBadgeCount}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -349,21 +373,21 @@ export default function MahasiswaLayout() {
     <ProtectedRoute>
       <RoleGuard allowedRoles={["mahasiswa"]}>
         <SidebarProvider isMobile={isMobile}>
-          <div className="flex w-full h-screen overflow-hidden bg-neutral-50">
-            <AppSidebar />
+          <div className="flex w-full h-screen overflow-hidden bg-neutral-50 print:h-auto print:overflow-visible print:bg-white">
+             <AppSidebar />
             <main className={cn(
-              "flex-1 w-full h-full overflow-y-auto",
+              "flex-1 w-full h-full overflow-y-auto print:h-auto print:overflow-visible print:p-0 print:pb-0",
               location.pathname.includes("/chat") ? "pb-0" : "pb-12"
             )}>
               {/* Mobile Header with Hamburger Menu */}
               {isMobile && !location.pathname.includes("/chat") && (
-                <div className="md:hidden flex items-center p-4 bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
+                <div className="md:hidden flex items-center p-4 bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm print:hidden">
                   <SidebarTrigger className="p-2 -ml-2 text-gray-700" />
                   <span className="ml-2 font-bold text-[#119DA4] text-lg tracking-tight">Kerja Praktik</span>
                 </div>
               )}
               {isMobile && location.pathname.includes("/chat") && (
-                <div className="md:hidden absolute top-4 left-4 z-50">
+                <div className="md:hidden absolute top-4 left-4 z-50 print:hidden">
                    <SidebarTrigger className="p-2 bg-white rounded-full shadow-md text-gray-700" />
                 </div>
               )}

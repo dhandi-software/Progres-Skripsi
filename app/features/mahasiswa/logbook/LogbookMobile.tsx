@@ -407,15 +407,15 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                                         <div className="grid grid-cols-2 gap-3 pt-2 border-t">
                                             {/* Mahasiswa Sign */}
                                             <div className="flex flex-col gap-2">
-                                                <span className="text-[10px] font-bold text-gray-400 uppercase text-center">Paraf {isDosen ? "Dosen" : "Mahasiswa"}</span>
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase text-center">Paraf Dosen</span>
                                                 {entry.mahasiswaParaf ? (
                                                     <div className="relative border border-gray-200 rounded-lg bg-white p-1 h-12 flex justify-center items-center group">
                                                         <img src={entry.mahasiswaParaf} alt="Signature" className="max-w-full max-h-full object-contain" />
-                                                        {!isViewingStudent && (
+                                                        {isViewingStudent && (
                                                             <button 
-                                                                disabled={!editingRowIds.has(entry.id) && !!entry.pembimbingParaf}
+                                                                disabled={!isViewingStudent}
                                                                 onClick={() => setActiveSignature({ id: entry.id, type: 'mahasiswaParaf' })}
-                                                                className={cn("absolute -top-2 -right-2 bg-gray-100 text-gray-500 rounded-full p-1 border border-gray-200 shadow-sm transition-opacity", (editingRowIds.has(entry.id) || !entry.pembimbingParaf) ? "opacity-100" : "opacity-0 pointer-events-none")}
+                                                                className={cn("absolute -top-2 -right-2 bg-gray-100 text-gray-500 rounded-full p-1 border border-gray-200 shadow-sm transition-opacity", isViewingStudent ? "opacity-100" : "opacity-0 pointer-events-none")}
                                                             >
                                                                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                                                             </button>
@@ -423,11 +423,12 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                                                     </div>
                                                 ) : (
                                                     <button 
-                                                        disabled={true}
-                                                        className={cn("h-12 border border-dashed border-gray-300 rounded-lg flex items-center justify-center gap-1 text-gray-400 transition-colors opacity-50 cursor-not-allowed")}
+                                                        disabled={!isViewingStudent}
+                                                        onClick={() => setActiveSignature({ id: entry.id, type: 'mahasiswaParaf' })}
+                                                        className={cn("h-12 border border-dashed border-gray-300 rounded-lg flex items-center justify-center gap-1 text-gray-400 transition-colors", !isViewingStudent ? "opacity-50 cursor-not-allowed" : "hover:border-[#D25026] hover:text-[#D25026]")}
                                                     >
                                                         <Plus size={14} />
-                                                        <span className="text-[10px]">Paraf</span>
+                                                        <span className="text-[10px]">{isViewingStudent ? "Klik TTD" : "Belum TTD"}</span>
                                                     </button>
                                                 )}
                                             </div>
@@ -480,8 +481,8 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
 
             {/* Floating Save Button */}
 
-            {!isViewingStudent && (
-                <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-gray-200 z-[40] flex gap-3 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-gray-200 z-[40] flex gap-3 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+                {!isViewingStudent && (
                     <button 
                         onClick={addEntry}
                         className="flex-1 py-3 px-4 bg-gray-100 text-gray-700 font-bold rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all"
@@ -489,23 +490,43 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                         <Plus size={20} />
                         Tambah
                     </button>
-                    <button 
-                        onClick={handleSave}
-                        disabled={saving}
-                        className="py-3 px-4 bg-[#D25026] text-white font-bold rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-[#D25026]/20 disabled:opacity-70 flex-[2]"
-                    >
-                        {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-                        {saving ? 'Menyimpan...' : 'Simpan Logbook'}
-                    </button>
-                </div>
-            )}
+                )}
+                <button 
+                    onClick={handleSave}
+                    disabled={saving}
+                    className={cn(
+                        "py-3 px-4 bg-[#D25026] text-white font-bold rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-[#D25026]/20 disabled:opacity-70",
+                        isViewingStudent ? "w-full" : "flex-[2]"
+                    )}
+                >
+                    {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+                    {saving ? 'Menyimpan...' : 'Simpan Logbook'}
+                </button>
+            </div>
 
             <SignatureModal 
                 isOpen={!!activeSignature}
                 onClose={() => setActiveSignature(null)}
-                onSave={(data) => {
+                onSave={async (data) => {
                     if (activeSignature) {
-                        handleEntryChange(activeSignature.id, activeSignature.type, data || null);
+                        const updatedEntries = entries.map(entry => 
+                            entry.id === activeSignature.id ? { ...entry, [activeSignature.type]: data || null } : entry
+                        );
+                        setEntries(updatedEntries);
+                        
+                        try {
+                            setSaving(true);
+                            await logbookApi.syncEntries(updatedEntries, mahasiswaId);
+                            const freshEntries = await logbookApi.getEntries(mahasiswaId);
+                            if (freshEntries && freshEntries.length > 0) {
+                                setEntries(freshEntries);
+                            }
+                            showToast("Paraf berhasil disimpan!", "success");
+                        } catch (error) {
+                            showToast("Gagal menyimpan paraf", "destructive");
+                        } finally {
+                            setSaving(false);
+                        }
                     }
                 }}
             />

@@ -90,6 +90,7 @@ export function LaporanMobile({ title }: { title?: string }) {
     const [searchQuery, setSearchQuery] = useState("");
     const [activeTab, setActiveTab] = useState<"bimbingan" | "logbook" | "evaluasi">("bimbingan");
     const [isLowVision, setIsLowVision] = useState(false);
+    const [showDownloadToast, setShowDownloadToast] = useState(false);
 
     useEffect(() => {
         const fetchLaporan = async () => {
@@ -109,146 +110,18 @@ export function LaporanMobile({ title }: { title?: string }) {
     }, [user]);
 
     const handlePrint = () => {
-        const printContent = filteredData.map((item, idx) => {
-            const bimbinganRows = (!item.bimbingans || item.bimbingans.length === 0)
-                ? `<tr><td colspan="5" style="padding:8px;text-align:center;border:1px solid black;color:#666;font-style:italic;">Belum ada riwayat bimbingan.</td></tr>`
-                : item.bimbingans.map((b, bIdx) => {
-                    const parsed = parseBimbinganCatatan(b.catatan);
-                    const tgl = new Date(b.tanggal).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' });
-                    return `<tr>
-                        <td style="padding:4px 6px;text-align:center;border:1px solid black;">${bIdx+1}</td>
-                        <td style="padding:4px 6px;border:1px solid black;">${tgl}</td>
-                        <td style="padding:4px 6px;border:1px solid black;font-weight:600;">${b.topik}</td>
-                        <td style="padding:4px 6px;border:1px solid black;">${parsed.text || '-'}</td>
-                        <td style="padding:4px 6px;text-align:center;border:1px solid black;font-weight:600;">${parsed.grade !== null ? parsed.grade : '-'}</td>
-                    </tr>`;
-                }).join('');
+        setShowDownloadToast(true);
 
-            const logbookRows = (!item.logbooks || item.logbooks.length === 0)
-                ? `<tr><td colspan="5" style="padding:8px;text-align:center;border:1px solid black;color:#666;font-style:italic;">Belum ada catatan logbook.</td></tr>`
-                : item.logbooks.map((l, lIdx) => {
-                    const tgl = new Date(l.tanggalPukul).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' });
-                    const mhsParaf = l.mahasiswaParaf ? `<img src="${l.mahasiswaParaf}" style="max-height:28px;max-width:80px;" />` : '-';
-                    const dospemParaf = l.pembimbingParaf ? `<img src="${l.pembimbingParaf}" style="max-height:28px;max-width:80px;" />` : '-';
-                    return `<tr>
-                        <td style="padding:4px 6px;text-align:center;border:1px solid black;">${lIdx+1}</td>
-                        <td style="padding:4px 6px;border:1px solid black;">${tgl}</td>
-                        <td style="padding:4px 6px;border:1px solid black;">${l.uraian}</td>
-                        <td style="padding:4px 6px;text-align:center;border:1px solid black;">${mhsParaf}</td>
-                        <td style="padding:4px 6px;text-align:center;border:1px solid black;">${dospemParaf}</td>
-                    </tr>`;
-                }).join('');
+        const handleAfterPrint = () => {
+            setShowDownloadToast(false);
+            window.removeEventListener("afterprint", handleAfterPrint);
+        };
 
-            const grade = getGrade(item.nilaiAkhir);
-            const pageBreak = idx > 0 ? 'page-break-before:always;' : '';
+        window.addEventListener("afterprint", handleAfterPrint);
 
-            return `
-            <div style="${pageBreak}width:100%;">
-                <div style="text-align:center;border-bottom:2px solid black;padding-bottom:12px;margin-bottom:16px;">
-                    <h1 style="font-size:16px;font-weight:bold;text-transform:uppercase;margin:0 0 4px;">Laporan Rekapitulasi Kerja Praktik Mahasiswa</h1>
-                    <p style="font-size:12px;font-weight:600;margin:0;">Program Studi Kerja Praktik | Tahun Akademik: ${new Date().getFullYear()}</p>
-                    <p style="font-size:12px;font-weight:600;margin:4px 0 0;">Dosen Pembimbing: ${user?.username || ''}</p>
-                    <p style="font-size:14px;font-weight:bold;margin:8px 0 0;">NAMA: ${item.nama.toUpperCase()} | NIM: ${item.nim}</p>
-                    <p style="font-size:11px;color:#555;font-style:italic;margin:4px 0 0;">Judul KP: &quot;${item.judulSkripsi || '-'}&quot;</p>
-                </div>
-                <div style="margin-bottom:16px;padding:10px;border:1px solid black;border-radius:4px;background:#f8f9fa;">
-                    <h3 style="font-size:10px;font-weight:bold;text-transform:uppercase;border-bottom:1px solid black;padding-bottom:4px;margin:0 0 8px;">Identitas Perusahaan / Instansi Magang</h3>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:10px;">
-                        <div><span style="font-weight:600;">Nama Perusahaan:</span> ${item.logbookInfo?.namaPerusahaan || '-'}</div>
-                        <div><span style="font-weight:600;">Telepon/Fax:</span> ${item.logbookInfo?.tlpFaxPerusahaan || '-'}</div>
-                        <div style="grid-column:span 2;"><span style="font-weight:600;">Alamat Perusahaan:</span> ${item.logbookInfo?.alamatPerusahaan || '-'}</div>
-                    </div>
-                </div>
-                <div style="margin-bottom:16px;">
-                    <h3 style="font-size:10px;font-weight:bold;text-transform:uppercase;border-bottom:1px solid black;padding-bottom:3px;margin:0 0 8px;">I. Uraian Bimbingan Kerja Praktik</h3>
-                    <table style="width:100%;border-collapse:collapse;font-size:10px;">
-                        <thead><tr style="background:#f0f0f0;">
-                            <th style="padding:5px 6px;text-align:center;border:1px solid black;width:40px;">No</th>
-                            <th style="padding:5px 6px;border:1px solid black;width:110px;">Tanggal</th>
-                            <th style="padding:5px 6px;border:1px solid black;width:160px;">Topik/Bab Bimbingan</th>
-                            <th style="padding:5px 6px;border:1px solid black;">Catatan/Revisi Dosen</th>
-                            <th style="padding:5px 6px;text-align:center;border:1px solid black;width:80px;">Nilai</th>
-                        </tr></thead>
-                        <tbody>${bimbinganRows}</tbody>
-                    </table>
-                </div>
-                <div style="margin-bottom:16px;">
-                    <h3 style="font-size:10px;font-weight:bold;text-transform:uppercase;border-bottom:1px solid black;padding-bottom:3px;margin:0 0 8px;">II. Uraian Kegiatan Logbook Kerja Praktik</h3>
-                    <table style="width:100%;border-collapse:collapse;font-size:10px;">
-                        <thead><tr style="background:#f0f0f0;">
-                            <th style="padding:5px 6px;text-align:center;border:1px solid black;width:40px;">No</th>
-                            <th style="padding:5px 6px;border:1px solid black;width:110px;">Tanggal</th>
-                            <th style="padding:5px 6px;border:1px solid black;">Uraian Singkat Kegiatan</th>
-                            <th style="padding:5px 6px;text-align:center;border:1px solid black;width:100px;">Paraf Mhs</th>
-                            <th style="padding:5px 6px;text-align:center;border:1px solid black;width:100px;">Paraf Dospem</th>
-                        </tr></thead>
-                        <tbody>${logbookRows}</tbody>
-                    </table>
-                </div>
-                <div style="margin-bottom:16px;">
-                    <h3 style="font-size:10px;font-weight:bold;text-transform:uppercase;border-bottom:1px solid black;padding-bottom:3px;margin:0 0 8px;">III. Laporan Evaluasi &amp; Penilaian Akhir</h3>
-                    <table style="width:100%;border-collapse:collapse;font-size:10px;">
-                        <thead><tr style="background:#f0f0f0;">
-                            <th style="padding:5px 6px;border:1px solid black;">Nilai Pembimbing (P1)</th>
-                            <th style="padding:5px 6px;border:1px solid black;">Nilai Penguji (P2)</th>
-                            <th style="padding:5px 6px;text-align:center;border:1px solid black;width:90px;">Nilai Akhir</th>
-                            <th style="padding:5px 6px;text-align:center;border:1px solid black;width:70px;">Grade</th>
-                        </tr></thead>
-                        <tbody><tr>
-                            <td style="padding:6px;border:1px solid black;">
-                                <div style="display:flex;gap:6px;font-weight:600;"><span>K1: ${formatNilai(item.p1_k1, 0)}</span><span>K2: ${formatNilai(item.p1_k2, 0)}</span><span>K3: ${formatNilai(item.p1_k3, 0)}</span></div>
-                                <div style="font-size:9px;color:#555;margin-top:3px;">Dospem: ${item.p1_nama || '-'}</div>
-                                <div style="font-weight:bold;margin-top:4px;">Total P1: ${formatNilai(item.p1_total, 1)}</div>
-                            </td>
-                            <td style="padding:6px;border:1px solid black;">
-                                <div style="display:flex;gap:6px;font-weight:600;"><span>K1: ${formatNilai(item.p2_k1, 0)}</span><span>K2: ${formatNilai(item.p2_k2, 0)}</span><span>K3: ${formatNilai(item.p2_k3, 0)}</span></div>
-                                <div style="font-size:9px;color:#555;margin-top:3px;">Penguji: ${item.p2_nama || '-'}</div>
-                                <div style="font-weight:bold;margin-top:4px;">Total P2: ${formatNilai(item.p2_total, 1)}</div>
-                            </td>
-                            <td style="padding:6px;text-align:center;border:1px solid black;font-weight:bold;font-size:13px;">${formatNilai(item.nilaiAkhir, 1)}</td>
-                            <td style="padding:6px;text-align:center;border:1px solid black;font-weight:800;font-size:13px;">${grade.huruf}</td>
-                        </tr></tbody>
-                    </table>
-                    ${item.keteranganPenilaian ? `<div style="margin-top:6px;font-size:10px;font-style:italic;"><span style="font-weight:600;">Catatan Evaluasi:</span> &quot;${item.keteranganPenilaian}&quot;</div>` : ''}
-                </div>
-            </div>`;
-        }).join('');
-
-        const htmlContent = `<!DOCTYPE html>
-        <html lang="id">
-        <head>
-            <meta charset="UTF-8" />
-            <title>Laporan_Akhir_KP_${new Date().toISOString().split('T')[0]}</title>
-            <link rel="icon" type="image/png" href="https://uppress.univpancasila.ac.id/wp-content/uploads/2023/05/UP4.png" />
-            <style>
-                @page { margin: 1.5cm; size: A4 portrait; }
-                * { box-sizing: border-box; }
-                body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: white; color: black; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                img { max-width: 100%; }
-                table { border-collapse: collapse; }
-                @media screen { body { visibility: hidden; } }
-                @media print { body { visibility: visible; } }
-            </style>
-        </head>
-        <body>
-            <div style="width:100%;">
-                <div style="text-align:center;border-bottom:2px solid black;padding-bottom:12px;margin-bottom:20px;">
-                    <h1 style="font-size:18px;font-weight:bold;text-transform:uppercase;margin:0 0 4px;">Daftar Rekapitulasi Akhir Kerja Praktik Mahasiswa</h1>
-                    <p style="font-size:12px;font-weight:600;margin:0;">Program Studi Kerja Praktik | Tahun Akademik: ${new Date().getFullYear()}</p>
-                    <p style="font-size:12px;margin:4px 0 0;">Dosen Pembimbing: ${user?.username || ''}</p>
-                </div>
-                ${printContent}
-            </div>
-            <script>window.onload=function(){setTimeout(function(){window.print();},600);};<\/script>
-        </body>
-        </html>`;
-
-        const printWindow = window.open('', '_blank', 'width=900,height=700');
-        if (printWindow) {
-            printWindow.document.open();
-            printWindow.document.write(htmlContent);
-            printWindow.document.close();
-        }
+        setTimeout(() => {
+            window.print();
+        }, 500);
     };
 
 
@@ -370,12 +243,7 @@ export function LaporanMobile({ title }: { title?: string }) {
                 </div>
             </div>
 
-            {/* Print Header (Visible only when printing) */}
-            <div className="hidden print:flex flex-col items-center justify-center mb-4 border-b-2 border-black pb-4 w-full text-black">
-                <h1 className="text-2xl font-bold uppercase mb-1">Daftar Rekapitulasi Akhir Kerja Praktik Mahasiswa</h1>
-                <p className="text-sm font-semibold">Program Studi Kerja Praktik | Tahun Akademik: {new Date().getFullYear()}</p>
-                <p className="text-sm mt-1 font-medium">Dosen Pembimbing: {user?.username}</p>
-            </div>
+
 
             {/* Tabs Navigation (Screen only) */}
             <div className="flex border-b border-gray-200 mb-4 gap-1 print:hidden overflow-x-auto">
@@ -659,29 +527,30 @@ export function LaporanMobile({ title }: { title?: string }) {
                                         <th className="py-1.5 px-2 w-[40px] text-center border border-black">No</th>
                                         <th className="py-1.5 px-2 w-[120px] border border-black">Tanggal</th>
                                         <th className="py-1.5 px-2 w-[180px] border border-black">Topik/Bab Bimbingan</th>
-                                        <th className="py-1.5 px-2 border border-black">Catatan/Revisi Dosen</th>
                                         <th className="py-1.5 px-2 w-[100px] text-center border border-black">Nilai</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {(!item.bimbingans || item.bimbingans.length === 0) ? (
-                                        <tr>
-                                            <td colSpan={5} className="py-4 text-center border border-black text-gray-500 italic">Belum ada riwayat bimbingan.</td>
-                                        </tr>
-                                    ) : (
-                                        item.bimbingans.map((b, bIdx) => {
-                                            const parsed = parseBimbinganCatatan(b.catatan);
-                                            return (
-                                                <tr key={b.id} className="border-b border-black">
-                                                    <td className="py-1.5 px-2 text-center border border-black">{bIdx + 1}</td>
-                                                    <td className="py-1.5 px-2 border border-black">{new Date(b.tanggal).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                                                    <td className="py-1.5 px-2 border border-black font-semibold">{b.topik}</td>
-                                                    <td className="py-1.5 px-2 border border-black">{parsed.text || "-"}</td>
-                                                    <td className="py-1.5 px-2 text-center border border-black font-semibold">{parsed.grade !== null ? parsed.grade : "-"}</td>
-                                                </tr>
-                                            );
-                                        })
-                                    )}
+                                    {(() => {
+                                        const approvedBimbingans = (item.bimbingans || []).filter(b => b.status === 'APPROVED');
+                                        return (approvedBimbingans.length === 0) ? (
+                                            <tr>
+                                                <td colSpan={4} className="py-4 text-center border border-black text-gray-500 italic">Belum ada riwayat bimbingan.</td>
+                                            </tr>
+                                        ) : (
+                                            approvedBimbingans.map((b, bIdx) => {
+                                                const parsed = parseBimbinganCatatan(b.catatan);
+                                                return (
+                                                    <tr key={b.id} className="border-b border-black">
+                                                        <td className="py-1.5 px-2 text-center border border-black">{bIdx + 1}</td>
+                                                        <td className="py-1.5 px-2 border border-black">{new Date(b.tanggal).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                                                        <td className="py-1.5 px-2 border border-black font-semibold">{b.topik}</td>
+                                                        <td className="py-1.5 px-2 text-center border border-black font-semibold">{parsed.grade !== null ? parsed.grade : "-"}</td>
+                                                    </tr>
+                                                );
+                                            })
+                                        );
+                                    })()}
                                 </tbody>
                             </table>
                         </div>
@@ -695,8 +564,8 @@ export function LaporanMobile({ title }: { title?: string }) {
                                         <th className="py-1.5 px-2 w-[40px] text-center border border-black">No</th>
                                         <th className="py-1.5 px-2 w-[120px] border border-black">Tanggal</th>
                                         <th className="py-1.5 px-2 border border-black">Uraian Singkat Kegiatan</th>
-                                        <th className="py-1.5 px-2 w-[110px] text-center border border-black">Paraf Mhs</th>
-                                        <th className="py-1.5 px-2 w-[110px] text-center border border-black">Paraf Dospem</th>
+                                        <th className="py-1.5 px-2 w-[110px] text-center border border-black">Paraf Dosen</th>
+                                        <th className="py-1.5 px-2 w-[110px] text-center border border-black">Paraf Pembimbing Perusahaan</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -712,14 +581,14 @@ export function LaporanMobile({ title }: { title?: string }) {
                                                 <td className="py-1.5 px-2 border border-black">{l.uraian}</td>
                                                 <td className="py-1 px-2 border border-black text-center">
                                                     {l.mahasiswaParaf ? (
-                                                        <img src={l.mahasiswaParaf} alt="Paraf Mhs" className="max-h-[28px] max-w-[80px] mx-auto object-contain print:block" />
+                                                        <img src={l.mahasiswaParaf} alt="Paraf Dosen" className="max-h-[28px] max-w-[80px] mx-auto object-contain print:block" />
                                                     ) : (
                                                         <span className="text-gray-400">-</span>
                                                     )}
                                                 </td>
                                                 <td className="py-1 px-2 border border-black text-center">
                                                     {l.pembimbingParaf ? (
-                                                        <img src={l.pembimbingParaf} alt="Paraf Dospem" className="max-h-[28px] max-w-[80px] mx-auto object-contain print:block" />
+                                                        <img src={l.pembimbingParaf} alt="Paraf Pembimbing Perusahaan" className="max-h-[28px] max-w-[80px] mx-auto object-contain print:block" />
                                                     ) : (
                                                         <span className="text-gray-400">-</span>
                                                     )}
@@ -801,16 +670,18 @@ export function LaporanMobile({ title }: { title?: string }) {
                         padding: 0 !important;
                     }
 
-                    /* Target common framework layout wrappers to remove height/overflow constraints */
+                    /* Target layout wrappers and reset height/overflow constraints precisely */
                     #root,
                     #root > div,
-                    #__next,
-                    #__next > div {
+                    [data-slot="sidebar-wrapper"],
+                    [data-slot="sidebar-wrapper"] > div,
+                    [data-slot="sidebar-wrapper"] > div > main {
                         height: auto !important;
                         min-height: 0 !important;
                         max-height: none !important;
                         overflow: visible !important;
                         display: block !important;
+                        position: static !important;
                     }
 
                     /* Reset any sidebar/layout wrappers that may cut content */
@@ -825,7 +696,14 @@ export function LaporanMobile({ title }: { title?: string }) {
                     }
 
                     /* Remove sidebar and nav from print */
+                    div[data-slot="sidebar"],
                     aside, nav, header {
+                        display: none !important;
+                    }
+
+                    /* Explicitly hide screen-only elements */
+                    .print\:hidden,
+                    [class*="print:hidden"] {
                         display: none !important;
                     }
 
@@ -870,6 +748,17 @@ export function LaporanMobile({ title }: { title?: string }) {
                     }
                 }
             `}</style>
+
+            {/* Floating Toast Notification for PDF Download */}
+            {showDownloadToast && (
+                <div className="fixed top-4 left-4 right-4 z-50 flex items-center gap-3 bg-slate-900 text-white px-4 py-3.5 rounded-xl shadow-2xl border border-slate-800 transition-all duration-300 animate-in fade-in slide-in-from-top-5 print:hidden">
+                    <div className="w-4.5 h-4.5 rounded-full border-2 border-slate-700 border-t-white animate-spin shrink-0" />
+                    <div className="flex flex-col text-xs">
+                        <span className="font-semibold">Menyiapkan Laporan PDF...</span>
+                        <span className="text-slate-400">Silakan simpan dokumen pada jendela cetak.</span>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -40,6 +40,7 @@ type MenuKey =
   | "prodiSidang"
   | "prodiBimbingan"
   | "profile"
+  | "sanksi"
   | "logout";
 
 const pathToKey = (pathname: string): MenuKey | undefined => {
@@ -55,6 +56,7 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/dosen/prodi/bimbingan")) return "prodiBimbingan";
   if (pathname.startsWith("/dosen/profile")) return "profile";
   if (pathname.startsWith("/dosen/logbook")) return "logbook";
+  if (pathname.startsWith("/dosen/sanksi")) return "sanksi";
   if (pathname === "/dosen" || pathname.startsWith("/dosen/"))
     return "dashboard";
   return undefined;
@@ -134,6 +136,12 @@ const menuItems = [
     icon: Users,
     url: "/dosen/prodi/bimbingan",
     prodiOnly: true
+  },
+  {
+    key: "sanksi" as MenuKey,
+    title: "Sanksi Administrasi",
+    icon: ClipboardList,
+    url: "/dosen/sanksi",
   },
   {
     key: "profile" as MenuKey,
@@ -255,7 +263,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className="border-r border-[#E5E5E5] bg-white overflow-y-hidden">
+    <Sidebar className="border-r border-[#E5E5E5] bg-white overflow-y-hidden print:hidden">
       <SidebarContent className="bg-[#FAFAFA] flex flex-col py-8 px-6 custom-scrollbar">
         {/* Logo Section */}
         <div className="mb-8 px-2">
@@ -287,7 +295,7 @@ export function AppSidebar() {
                                    item.key === "prodiBimbingan";
 
                 // Hide active supervision menus for Dosen Reguler
-                const hiddenForReguler = ["peninjauan", "bimbingan", "chat", "penilaian", "sidang", "logbook", "laporan"];
+                const hiddenForReguler = ["peninjauan", "bimbingan", "chat", "penilaian", "sidang", "logbook", "laporan", "sanksi"];
                 if (isDosenReguler && hiddenForReguler.includes(item.key || "")) return false;
 
                 if (isProdiItem) return isAuthorized;
@@ -380,21 +388,21 @@ export default function DosenLayout() {
     <ProtectedRoute>
       <RoleGuard allowedRoles={["dosen", "dosen_pembimbing", "kaprodi", "staf"]}>
         <SidebarProvider isMobile={isMobile}>
-          <div className="flex w-full h-screen overflow-hidden bg-neutral-50">
+          <div className="flex w-full h-screen overflow-hidden bg-neutral-50 print:h-auto print:overflow-visible print:bg-white">
             <AppSidebar />
             <main className={cn(
-              "flex-1 w-full h-full overflow-y-auto",
+              "flex-1 w-full h-full overflow-y-auto print:h-auto print:overflow-visible print:p-0 print:pb-0",
               location.pathname.includes("/chat") ? "pb-0" : "pb-12"
             )}>
               {/* Mobile Header with Hamburger Menu */}
               {isMobile && !location.pathname.includes("/chat") && (
-                <div className="md:hidden flex items-center p-4 bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
+                <div className="md:hidden flex items-center p-4 bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm print:hidden">
                   <SidebarTrigger className="p-2 -ml-2 text-gray-700" />
                   <span className="ml-2 font-bold text-[#119DA4] text-lg tracking-tight">Dosen Panel</span>
                 </div>
               )}
               {isMobile && location.pathname.includes("/chat") && (
-                <div className="md:hidden absolute top-4 left-4 z-50">
+                <div className="md:hidden absolute top-4 left-4 z-50 print:hidden">
                    <SidebarTrigger className="p-2 bg-white rounded-full shadow-md text-gray-700" />
                 </div>
               )}
