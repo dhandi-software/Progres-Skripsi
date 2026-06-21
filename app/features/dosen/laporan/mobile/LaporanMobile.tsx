@@ -6,10 +6,11 @@ import { Search, Download, Users, ClipboardList, Award } from "lucide-react";
 
 import { cn } from "~/lib/utils";
 
-interface LogbookInfoItem {
+interface TempatKPItem {
     namaPerusahaan: string | null;
     tlpFaxPerusahaan: string | null;
     alamatPerusahaan: string | null;
+    kontakPembimbing: string | null;
 }
 
 interface LogbookItem {
@@ -51,7 +52,7 @@ interface LaporanItem {
     nilaiAkhir: number | null;
     keteranganPenilaian: string | null;
     statusProgress: string;
-    logbookInfo: LogbookInfoItem | null;
+    tempatKP: TempatKPItem | null;
     logbooks: LogbookItem[];
     bimbingans: BimbinganDetailItem[];
 }
@@ -508,13 +509,26 @@ export function LaporanMobile({ title }: { title?: string }) {
                             <p className="text-xs text-gray-700 italic max-w-[500px] mt-1">Judul KP: "{item.judulSkripsi || "-"}"</p>
                         </div>
 
-                        {/* Company Details (LogbookInfo) */}
-                        <div className="mb-6 p-3 border border-black rounded bg-slate-50/50">
-                            <h3 className="text-xs font-bold uppercase border-b border-black pb-1 mb-2">Identitas Perusahaan / Instansi Magang</h3>
-                            <div className="grid grid-cols-2 gap-2 text-xs">
-                                <div><span className="font-semibold">Nama Perusahaan:</span> {item.logbookInfo?.namaPerusahaan || "-"}</div>
-                                <div><span className="font-semibold">Telepon/Fax:</span> {item.logbookInfo?.tlpFaxPerusahaan || "-"}</div>
-                                <div className="col-span-2"><span className="font-semibold">Alamat Perusahaan:</span> {item.logbookInfo?.alamatPerusahaan || "-"}</div>
+                        {/* Company Details */}
+                        <div className="mb-4 bg-gray-50 border border-gray-200 rounded-lg p-3 w-full">
+                            <h3 className="text-xs font-bold text-gray-800 uppercase border-b border-gray-200 pb-2 mb-2 w-full text-center">Identitas Perusahaan / Instansi Magang</h3>
+                            <div className="flex flex-col gap-2 w-full">
+                                <div className="grid grid-cols-[100px_1fr] text-[10px] w-full">
+                                    <span className="font-semibold text-gray-600">Nama Instansi</span>
+                                    <span className="text-gray-900">: {item.tempatKP?.namaPerusahaan || "-"}</span>
+                                </div>
+                                <div className="grid grid-cols-[100px_1fr] text-[10px] w-full">
+                                    <span className="font-semibold text-gray-600">Telepon / Fax</span>
+                                    <span className="text-gray-900">: {item.tempatKP?.tlpFaxPerusahaan || "-"}</span>
+                                </div>
+                                <div className="grid grid-cols-[100px_1fr] text-[10px] w-full">
+                                    <span className="font-semibold text-gray-600">Kontak Pembimbing Lapangan</span>
+                                    <span className="text-gray-900">: {item.tempatKP?.kontakPembimbing || "-"}</span>
+                                </div>
+                                <div className="grid grid-cols-[100px_1fr] text-[10px] w-full">
+                                    <span className="font-semibold text-gray-600">Alamat Instansi</span>
+                                    <span className="text-gray-900 leading-tight">: {item.tempatKP?.alamatPerusahaan || "-"}</span>
+                                </div>
                             </div>
                         </div>
 

@@ -40,7 +40,8 @@ export function LogbookDesktop({ mahasiswaId }: LogbookProps) {
         tahunAkademik: "",
         namaPerusahaan: "",
         tlpFaxPerusahaan: "",
-        alamatPerusahaan: ""
+        alamatPerusahaan: "",
+        kontakPembimbing: ""
     });
 
     const [entries, setEntries] = useState<LogbookEntry[]>([]);
@@ -76,7 +77,8 @@ export function LogbookDesktop({ mahasiswaId }: LogbookProps) {
                     tahunAkademik: profileRes.pengajuanJudul?.[0]?.tahunAkademik || calculatedTahunAkademik,
                     namaPerusahaan: infoRes.namaPerusahaan || "",
                     tlpFaxPerusahaan: infoRes.tlpFaxPerusahaan || "",
-                    alamatPerusahaan: infoRes.alamatPerusahaan || ""
+                    alamatPerusahaan: infoRes.alamatPerusahaan || "",
+                    kontakPembimbing: infoRes.kontakPembimbing || ""
                 }));
 
                 const entriesRes = await logbookApi.getEntries(mahasiswaId);
@@ -188,7 +190,8 @@ export function LogbookDesktop({ mahasiswaId }: LogbookProps) {
             await logbookApi.updateInfo({
                 namaPerusahaan: headerInfo.namaPerusahaan,
                 tlpFaxPerusahaan: headerInfo.tlpFaxPerusahaan,
-                alamatPerusahaan: headerInfo.alamatPerusahaan
+                alamatPerusahaan: headerInfo.alamatPerusahaan,
+                kontakPembimbing: headerInfo.kontakPembimbing
             }, mahasiswaId);
             await logbookApi.syncEntries(entries, mahasiswaId);
             
@@ -321,6 +324,19 @@ export function LogbookDesktop({ mahasiswaId }: LogbookProps) {
                                     readOnly={isViewingStudent}
                                     className="px-2 py-1 border-b border-gray-300 focus:border-[#D25026] outline-none bg-transparent w-full resize-none h-12 disabled:opacity-70"
                                     placeholder="Alamat lengkap..."
+                                />
+                            </div>
+                            <div className="grid grid-cols-[140px_10px_1fr] items-center">
+                                <span className="font-semibold text-gray-700">Kontak Pembimbing Lapangan</span>
+                                <span>:</span>
+                                <input 
+                                    type="text" 
+                                    name="kontakPembimbing"
+                                    value={headerInfo.kontakPembimbing}
+                                    onChange={handleHeaderChange}
+                                    className="px-2 py-1 border-b border-gray-300 focus:border-[#D25026] outline-none bg-transparent w-full disabled:opacity-70"
+                                    placeholder="Kontak Pembimbing Lapangan..."
+                                    readOnly={isViewingStudent}
                                 />
                             </div>
                         </div>

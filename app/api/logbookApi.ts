@@ -1,9 +1,10 @@
 import { client as apiClient } from "./client";
 
-export interface LogbookInfo {
+export interface TempatKP {
     namaPerusahaan: string;
     tlpFaxPerusahaan: string;
     alamatPerusahaan: string;
+    kontakPembimbing: string;
 }
 
 export interface LogbookEntry {
@@ -17,13 +18,13 @@ export interface LogbookEntry {
 
 export const logbookApi = {
     // Info Perusahaan
-    getInfo: async (mahasiswaId?: number): Promise<LogbookInfo> => {
+    getInfo: async (mahasiswaId?: number): Promise<TempatKP> => {
         const url = mahasiswaId ? `/logbook/info?mahasiswaId=${mahasiswaId}` : '/logbook/info';
         const response = await apiClient.get(url);
         return response.data;
     },
     
-    updateInfo: async (data: LogbookInfo, mahasiswaId?: number): Promise<LogbookInfo> => {
+    updateInfo: async (data: TempatKP, mahasiswaId?: number): Promise<TempatKP> => {
         const url = mahasiswaId ? `/logbook/info?mahasiswaId=${mahasiswaId}` : '/logbook/info';
         const response = await apiClient.post(url, data);
         return response.data.data;

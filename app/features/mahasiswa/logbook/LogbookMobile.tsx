@@ -38,7 +38,8 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
         tahunAkademik: "",
         namaPerusahaan: "",
         tlpFaxPerusahaan: "",
-        alamatPerusahaan: ""
+        alamatPerusahaan: "",
+        kontakPembimbing: ""
     });
 
     const [entries, setEntries] = useState<LogbookEntry[]>([]);
@@ -73,7 +74,8 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                     tahunAkademik: profileRes.pengajuanJudul?.[0]?.tahunAkademik || calculatedTahunAkademik,
                     namaPerusahaan: infoRes.namaPerusahaan || "",
                     tlpFaxPerusahaan: infoRes.tlpFaxPerusahaan || "",
-                    alamatPerusahaan: infoRes.alamatPerusahaan || ""
+                    alamatPerusahaan: infoRes.alamatPerusahaan || "",
+                    kontakPembimbing: infoRes.kontakPembimbing || ""
                 }));
 
                 const entriesRes = await logbookApi.getEntries(mahasiswaId);
@@ -185,7 +187,8 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
             await logbookApi.updateInfo({
                 namaPerusahaan: headerInfo.namaPerusahaan,
                 tlpFaxPerusahaan: headerInfo.tlpFaxPerusahaan,
-                alamatPerusahaan: headerInfo.alamatPerusahaan
+                alamatPerusahaan: headerInfo.alamatPerusahaan,
+                kontakPembimbing: headerInfo.kontakPembimbing
             }, mahasiswaId);
             await logbookApi.syncEntries(entries, mahasiswaId);
             
@@ -291,6 +294,14 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                                 name="alamatPerusahaan" value={headerInfo.alamatPerusahaan} onChange={handleHeaderChange}
                                 readOnly={isViewingStudent}
                                 className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-[#D25026] resize-none h-20 disabled:opacity-70"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <label className="text-gray-500 font-medium">Kontak Pembimbing Lapangan</label>
+                            <input 
+                                type="text" name="kontakPembimbing" value={headerInfo.kontakPembimbing} onChange={handleHeaderChange}
+                                readOnly={isViewingStudent}
+                                className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-[#D25026] disabled:opacity-70"
                             />
                         </div>
                     </div>

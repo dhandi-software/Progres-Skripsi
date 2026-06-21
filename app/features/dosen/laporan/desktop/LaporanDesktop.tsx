@@ -5,10 +5,11 @@ import { Search, Download, Users, ClipboardList, Award, Accessibility } from "lu
 import { cn } from "~/lib/utils";
 
 
-interface LogbookInfoItem {
+interface TempatKPItem {
     namaPerusahaan: string | null;
     tlpFaxPerusahaan: string | null;
     alamatPerusahaan: string | null;
+    kontakPembimbing: string | null;
 }
 
 interface LogbookItem {
@@ -50,7 +51,7 @@ interface LaporanItem {
     nilaiAkhir: number | null;
     keteranganPenilaian: string | null;
     statusProgress: string;
-    logbookInfo: LogbookInfoItem | null;
+    tempatKP: TempatKPItem | null;
     logbooks: LogbookItem[];
     bimbingans: BimbinganDetailItem[];
 }
@@ -657,13 +658,14 @@ export function LaporanDesktop({ title }: { title?: string }) {
                             <p className="text-xs text-gray-700 italic max-w-[500px] mt-1">Judul KP: "{item.judulSkripsi || "-"}"</p>
                         </div>
 
-                        {/* Company Details (LogbookInfo) */}
+                        {/* Company Details (TempatKP) */}
                         <div className="mb-6 p-3 border border-black rounded bg-slate-50/50">
                             <h3 className="text-xs font-bold uppercase border-b border-black pb-1 mb-2">Identitas Perusahaan / Instansi Magang</h3>
                             <div className="grid grid-cols-2 gap-2 text-xs">
-                                <div><span className="font-semibold">Nama Perusahaan:</span> {item.logbookInfo?.namaPerusahaan || "-"}</div>
-                                <div><span className="font-semibold">Telepon/Fax:</span> {item.logbookInfo?.tlpFaxPerusahaan || "-"}</div>
-                                <div className="col-span-2"><span className="font-semibold">Alamat Perusahaan:</span> {item.logbookInfo?.alamatPerusahaan || "-"}</div>
+                                <div><span className="font-semibold">Nama Perusahaan:</span> {item.tempatKP?.namaPerusahaan || "-"}</div>
+                                <div><span className="font-semibold">Telepon/Fax:</span> {item.tempatKP?.tlpFaxPerusahaan || "-"}</div>
+                                <div><span className="font-semibold">Alamat Perusahaan:</span> {item.tempatKP?.alamatPerusahaan || "-"}</div>
+                                <div><span className="font-semibold">Kontak Pembimbing Lapangan:</span> {item.tempatKP?.kontakPembimbing || "-"}</div>
                             </div>
                         </div>
 
