@@ -14,6 +14,7 @@ import {
   ClipboardList,
   User,
   BookOpen,
+  Contact,
 } from "lucide-react";
 import { Outlet, useRouteLoaderData } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
@@ -40,6 +41,7 @@ type MenuKey =
   | "prodiSidang"
   | "prodiBimbingan"
   | "profile"
+  | "direktori"
   | "sanksi"
   | "logout";
 
@@ -55,6 +57,7 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/dosen/prodi/sidang")) return "prodiSidang";
   if (pathname.startsWith("/dosen/prodi/bimbingan")) return "prodiBimbingan";
   if (pathname.startsWith("/dosen/profile")) return "profile";
+  if (pathname.startsWith("/dosen/direktori")) return "direktori";
   if (pathname.startsWith("/dosen/logbook")) return "logbook";
   if (pathname.startsWith("/dosen/sanksi")) return "sanksi";
   if (pathname === "/dosen" || pathname.startsWith("/dosen/"))
@@ -104,6 +107,12 @@ const menuItems = [
     title: "Pengumuman",
     icon: Calendar,
     url: "/dosen/acara",
+  },
+  {
+    key: "direktori" as MenuKey,
+    title: "Direktori",
+    icon: Contact,
+    url: "/dosen/direktori",
   },
   {
     key: "sidang" as MenuKey,

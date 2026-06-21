@@ -11,6 +11,7 @@ import { Link, useNavigate } from "react-router";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ProgressStats } from "../../../mahasiswa/profilemahasiswa/components/progress-stats";
 import { BadgeWall } from "../../../mahasiswa/profilemahasiswa/components/badge-wall";
+import { PublicProfileModal } from "~/components/profile/PublicProfileModal";
 
 const getStatusPengajuan = (status: string) => {
     switch (status) {
@@ -71,6 +72,8 @@ export function BimbinganMobile() {
     const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
     const [inputGrades, setInputGrades] = useState<{[key: number]: string}>({});
     const [savingGradeId, setSavingGradeId] = useState<number | null>(null);
+
+    const [profileModalOpen, setProfileModalOpen] = useState(false);
 
     // List Pagination
     const [currentPage, setCurrentPage] = useState(1);
@@ -368,6 +371,15 @@ export function BimbinganMobile() {
                     <ChevronLeft size={24} />
                  </button>
                  <h1 className="text-lg font-bold text-gray-900 line-clamp-1">{selectedStudent ? `Bimbingan: ${selectedStudent.mahasiswa.nama}` : "Daftar Bimbingan"}</h1>
+                 {selectedStudent && (
+                      <button 
+                          onClick={() => setProfileModalOpen(true)}
+                          className="ml-auto p-1.5 bg-blue-50 text-blue-600 rounded-lg shrink-0 border border-blue-100"
+                          title="Lihat Profil"
+                      >
+                          <Users className="w-5 h-5" />
+                      </button>
+                  )}
             </div>
 
             {!selectedStudent ? (
@@ -979,7 +991,13 @@ export function BimbinganMobile() {
                 </div>
             )}
 
-
+            {selectedStudent && (
+                <PublicProfileModal
+                    userId={selectedStudent.mahasiswa.userId}
+                    open={profileModalOpen}
+                    onOpenChange={setProfileModalOpen}
+                />
+            )}
         </div>
     );
 }

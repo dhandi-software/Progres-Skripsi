@@ -3,6 +3,7 @@ import { useAuth } from "~/hooks/useAuth";
 import { pengajuanApi } from "~/api/pengajuan";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { ProfileHeader } from "./components/profile-header";
+import { ProfileDetails } from "./components/profile-details";
 import { BadgeWall } from "./components/badge-wall";
 import { ProgressStats } from "./components/progress-stats";
 
@@ -34,6 +35,7 @@ export function ProfileMahasiswaMobile() {
         <div className="space-y-6 pb-20 font-geist animate-in slide-in-from-bottom-4 duration-700">
             <ProfileHeader profile={profile} onUpdate={fetchData} />
             <div className="px-5 space-y-6">
+                <ProfileDetails profile={profile} onUpdate={fetchData} />
                 <ProgressStats bimbinganTasks={bimbinganTasks} />
                 <BadgeWall bimbinganTasks={bimbinganTasks} />
             </div>

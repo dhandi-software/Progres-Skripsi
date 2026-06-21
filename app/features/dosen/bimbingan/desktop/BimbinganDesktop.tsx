@@ -10,6 +10,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { ProgressStats } from "../../../mahasiswa/profilemahasiswa/components/progress-stats";
 import { BadgeWall } from "../../../mahasiswa/profilemahasiswa/components/badge-wall";
+import { PublicProfileModal } from "~/components/profile/PublicProfileModal";
 import { useNavigate } from "react-router";
 
 const getStatusPengajuan = (status: string) => {
@@ -71,6 +72,8 @@ export function BimbinganDesktop() {
     const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
     const [inputGrades, setInputGrades] = useState<{[key: number]: string}>({});
     const [savingGradeId, setSavingGradeId] = useState<number | null>(null);
+    
+    const [profileModalOpen, setProfileModalOpen] = useState(false);
 
     // List Pagination
     const [currentPage, setCurrentPage] = useState(1);
@@ -560,7 +563,16 @@ export function BimbinganDesktop() {
                         </button>
                         <div className="h-8 w-px bg-gray-200 hidden sm:block"></div>
                         <div>
-                            <h2 className="text-xl font-bold text-gray-900 leading-tight">Detail Bimbingan: {selectedStudent.mahasiswa.nama}</h2>
+                            <div className="flex items-center gap-3">
+                                <h2 className="text-xl font-bold text-gray-900 leading-tight">Detail Bimbingan: {selectedStudent.mahasiswa.nama}</h2>
+                                <button 
+                                    onClick={() => setProfileModalOpen(true)}
+                                    className="px-2 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-bold border border-blue-100 transition-colors flex items-center gap-1"
+                                    title="Lihat Profil"
+                                >
+                                    <Users className="w-3.5 h-3.5" /> Profil
+                                </button>
+                            </div>
                             <p className="text-sm text-gray-500 mt-1">{selectedStudent.mahasiswa.nim} — {selectedStudent.judul}</p>
                         </div>
                     </div>
@@ -1040,9 +1052,14 @@ export function BimbinganDesktop() {
                     </div>
                 </div>
             )}
-
-
-
+            
+            {selectedStudent && (
+                <PublicProfileModal
+                    userId={selectedStudent.mahasiswa.userId}
+                    open={profileModalOpen}
+                    onOpenChange={setProfileModalOpen}
+                />
+            )}
         </div>
     );
 }

@@ -31,6 +31,18 @@ export const profileApi = {
         }
     },
 
+    async getPublicProfile(userId: number) {
+        try {
+            const response = await client.get(`/pengajuan/profile/public/${userId}`);
+            return response.data.data;
+        } catch (error: any) {
+            if (error.response && error.response.status === 404 && !error.response.data?.message) {
+                 throw new Error("Endpoint API belum tersedia. Harap restart server backend (Express).");
+            }
+            throw new Error(error.response?.data?.message || "Failed to fetch public profile");
+        }
+    },
+
     async updateProfile(
         userId: string,
         data: ProfileUpdateRequest,

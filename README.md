@@ -110,3 +110,167 @@ Rata-rata akhir dihitung dari gabungan total P1 dan P2 dibagi 2, lalu dikonversi
 *   `Nilai >= 40` ➔ **C-**
 *   `Nilai < 40` ➔ **D**
 
+---
+
+## ⚠️ Sanksi Administrasi (Administrative Sanctions & Fine Rules)
+
+Modul ini mengelola penerbitan, peninjauan, dan pencetakan dokumen formal **Surat Pernyataan Sanksi Administrasi** bagi mahasiswa yang terlambat mengumpulkan berkas Kerja Praktik dalam bentuk hardcover setelah Sidang Evaluasi KP.
+
+### 👥 Peran & Batasan Akses (Roles & Permissions)
+1. **Dosen Pembimbing, Kaprodi, Staff, & Admin**:
+   - Memiliki hak akses penuh untuk membuat (*create*), mengedit (*update*), menghapus (*delete*), dan melihat (*read*) sanksi administrasi.
+   - Dapat mencetak pratinjau Surat Pernyataan dari mahasiswa terkait.
+   - Admin, Staff, dan Kaprodi memiliki akses koordinasi penuh untuk menerbitkan sanksi kepada semua mahasiswa yang telah disetujui judulnya.
+2. **Mahasiswa**:
+   - Hanya memiliki hak akses baca (*read-only*) untuk melihat sanksi administrasi yang diterbitkan untuk dirinya.
+   - Dilengkapi dengan **notifikasi badge merah** di sidebar menu jika ada sanksi aktif.
+   - Dapat mencetak langsung Surat Pernyataan resmi untuk ditempeli meterai Rp 10.000.
+
+### 💸 Aturan Akumulasi Denda Keterlambatan (Fine Rules)
+Berdasarkan ketentuan formal Kerja Praktik:
+*   Keterlambatan 1 (satu) minggu pertama setelah tanggal Sidang KP: denda sebesar **Rp. 50.000,- (Lima Puluh Ribu Rupiah)**.
+*   Keterlambatan setiap minggu berikutnya: denda tambahan sebesar **Rp. 50.000,-** per minggu.
+*   Maksimal akumulasi denda denda: **Rp. 200.000,- (Dua Ratus Ribu Rupiah)**.
+
+### 🖨️ Desain & Pencetakan Dokumen
+- Surat Pernyataan dirancang dengan format dokumen hukum formal (kop surat tengah, grid identitas mahasiswa, list poin ketentuan, kolom tanggal, stamp kotak meterai, dan kolom tanda tangan).
+- Fitur cetak diimplementasikan menggunakan **Pure Tailwind CSS print modifiers** (`print:w-full`, `print:hidden`, `print:shadow-none`, `print:border-none`, dll) untuk menjamin hasil cetak bersih (tanpa header web/sidebar) dan bebas dari pemotongan kertas (*page cut-off*).
+
+### 🔌 API Endpoints Documentation
+Seluruh endpoint di bawah ini memerlukan header autentikasi: `Authorization: Bearer <token_jwt>`.
+
+#### 1. Get All Sanksi
+Mendapatkan daftar sanksi administrasi.
+- **Endpoint**: `/api/sanksi`
+- **Method**: `GET`
+- **Akses & Logika**:
+  - `MAHASISWA`: Mengembalikan daftar sanksi milik mahasiswa yang bersangkutan.
+  - `DOSEN`: Mengembalikan daftar sanksi yang diterbitkan oleh dosen tersebut.
+  - `ADMIN`, `STAF`, `KAPRODI`: Mengembalikan seluruh sanksi administrasi di sistem.
+- **Response (200 OK)**:
+  ```json
+  [
+    {
+      "id": 1,
+      "mahasiswaId": 5,
+      "dosenId": 2,
+      "nama": "Dhandi",
+      "nim": "4520210001",
+      "hariSidang": "Senin",
+      "tanggalSidang": "15 Juni 2026",
+      "hariTenggat": "Senin",
+      "tanggalSurat": "15 Juni 2026",
+      "createdAt": "2026-06-15T12:00:00.000Z",
+      "updatedAt": "2026-06-15T12:00:00.000Z",
+      "mahasiswa": {
+        "id": 5,
+        "nama": "Dhandi",
+        "nim": "4520210001",
+        "jurusan": "Teknik Informatika"
+      },
+      "dosen": {
+        "id": 2,
+        "nama": "Dr. Dosen",
+        "nidn": "0412345678"
+      }
+    }
+  ]
+  ```
+
+#### 2. Get Supervised Students
+Mendapatkan daftar mahasiswa bimbingan yang telah disetujui Kerja Praktik-nya untuk pilihan penerbitan sanksi.
+- **Endpoint**: `/api/sanksi/students`
+- **Method**: `GET`
+- **Akses & Logika**:
+  - `DOSEN`: Mengembalikan mahasiswa bimbingan dari dosen yang sedang login.
+  - `ADMIN`, `STAF`, `KAPRODI`: Mengembalikan seluruh mahasiswa yang memiliki status pengajuan KP disetujui (`APPROVED`).
+- **Response (200 OK)**:
+  ```json
+  [
+    {
+      "id": 5,
+      "nama": "Dhandi",
+      "nim": "4520210001",
+      "jurusan": "Teknik Informatika"
+    }
+  ]
+  ```
+
+#### 3. Create Sanksi
+Menerbitkan sanksi administrasi baru untuk mahasiswa.
+- **Endpoint**: `/api/sanksi`
+- **Method**: `POST`
+- **Request Body (JSON)**:
+  ```json
+  {
+    "mahasiswaId": 5,
+    "nama": "Dhandi",
+    "nim": "4520210001",
+    "hariSidang": "Senin",
+    "tanggalSidang": "15 Juni 2026",
+    "hariTenggat": "Senin",
+    "tanggalSurat": "15 Juni 2026"
+  }
+  ```
+- **Response (201 Created)**:
+  ```json
+  {
+    "id": 1,
+    "mahasiswaId": 5,
+    "dosenId": 2,
+    "nama": "Dhandi",
+    "nim": "4520210001",
+    "hariSidang": "Senin",
+    "tanggalSidang": "15 Juni 2026",
+    "hariTenggat": "Senin",
+    "tanggalSurat": "15 Juni 2026",
+    "createdAt": "2026-06-15T12:00:00.000Z",
+    "updatedAt": "2026-06-15T12:00:00.000Z"
+  }
+  ```
+
+#### 4. Update Sanksi
+Mengubah data sanksi administrasi yang telah diterbitkan.
+- **Endpoint**: `/api/sanksi/:id`
+- **Method**: `PUT`
+- **Request Body (JSON)**:
+  ```json
+  {
+    "nama": "Dhandi (Updated)",
+    "nim": "4520210001",
+    "hariSidang": "Selasa",
+    "tanggalSidang": "16 Juni 2026",
+    "hariTenggat": "Selasa",
+    "tanggalSurat": "16 Juni 2026"
+  }
+  ```
+- **Response (200 OK)**:
+  ```json
+  {
+    "id": 1,
+    "mahasiswaId": 5,
+    "dosenId": 2,
+    "nama": "Dhandi (Updated)",
+    "nim": "4520210001",
+    "hariSidang": "Selasa",
+    "tanggalSidang": "16 Juni 2026",
+    "hariTenggat": "Selasa",
+    "tanggalSurat": "16 Juni 2026",
+    "createdAt": "2026-06-15T12:00:00.000Z",
+    "updatedAt": "2026-06-15T12:30:00.000Z"
+  }
+  ```
+
+#### 5. Delete Sanksi
+Menghapus sanksi administrasi dari sistem.
+- **Endpoint**: `/api/sanksi/:id`
+- **Method**: `DELETE`
+- **Response (200 OK)**:
+  ```json
+  {
+    "message": "Sanksi Administrasi deleted successfully"
+  }
+  ```
+
+
+

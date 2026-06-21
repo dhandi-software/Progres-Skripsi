@@ -6,12 +6,13 @@ import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
 import type { Message, ChatContact } from "~/types/chat";
 import { cn } from "~/lib/utils";
-import { Paperclip, Send, FileText, ArrowLeft, X, Check, CheckCheck, Trash2, UserPlus } from "lucide-react";
+import { Paperclip, Send, FileText, ArrowLeft, X, Check, CheckCheck, Trash2, UserPlus, User } from "lucide-react";
 import { MessageActionMenu } from "./message-action-menu";
 import { DeleteMessageDialog } from "./delete-message-dialog";
 import { RemoveMemberDialog } from "./remove-member-dialog";
 import { DeleteGroupDialog } from "./delete-group-dialog";
 import { profileApi } from "~/api/profileApi";
+import { PublicProfileModal } from "~/components/profile/PublicProfileModal";
 
 interface ChatWindowProps {
     activeContact: ChatContact | null;
@@ -60,6 +61,9 @@ export function ChatWindow({
     const [isGroupInfoOpen, setIsGroupInfoOpen] = useState(false);
     const [memberToRemove, setMemberToRemove] = useState<{ id: number; name: string } | null>(null);
     const [isDeleteGroupOpen, setIsDeleteGroupOpen] = useState(false);
+    
+    // For Public Profile viewing
+    const [selectedPublicUserId, setSelectedPublicUserId] = useState<number | null>(null);
     
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -187,8 +191,14 @@ export function ChatWindow({
 
             {/* Header */}
             <div 
-                className={cn("flex items-center p-3 bg-[#f0f2f5] border-b border-[#d1d7db] z-10 shrink-0 h-[60px]", (activeContact.isGroup || Number(activeContact.id) === 0) && "cursor-pointer hover:bg-[#e9edef] transition-colors")}
-                onClick={() => (activeContact.isGroup || Number(activeContact.id) === 0) && setIsGroupInfoOpen(true)}
+                className={cn("flex items-center p-3 pl-16 md:pl-3 bg-[#f0f2f5] border-b border-[#d1d7db] z-10 shrink-0 h-[60px] cursor-pointer hover:bg-[#e9edef] transition-colors")}
+                onClick={() => {
+                    if (activeContact.isGroup || Number(activeContact.id) === 0) {
+                        setIsGroupInfoOpen(true);
+                    } else {
+                        setSelectedPublicUserId(Number(activeContact.id));
+                    }
+                }}
             >
                 <div className="flex items-center flex-1">
                     <Button variant="ghost" size="icon" className="md:hidden mr-2 text-[#54656f]" onClick={(e) => { e.stopPropagation(); onBack?.(); }}>
@@ -293,6 +303,12 @@ export function ChatWindow({
                                             <div 
                                                 className="text-xs font-bold mb-1 cursor-pointer hover:underline"
                                                 style={{ color: senderColor }}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (msg.senderId) {
+                                                        setSelectedPublicUserId(msg.senderId);
+                                                    }
+                                                }}
                                             >
                                                 {msg.sender?.username || 'Unknown'}
                                             </div>
@@ -532,6 +548,19 @@ export function ChatWindow({
                                                 {Number(activeContact.id) === 0 ? (member.role || 'Admin') : 'Admin'}
                                             </div>
                                         )}
+                                        {/* View Profile Button */}
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedPublicUserId(member.id);
+                                            }}
+                                            className="ml-auto text-[#00a884] hover:text-[#008f6f] hover:bg-[#d9fdd3] h-8 w-8 p-0 rounded-full flex-shrink-0"
+                                            title="Lihat profil"
+                                        >
+                                            <User className="w-4 h-4" />
+                                        </Button>
                                         {/* Group Kick (Non-Public) */}
                                         {Number(activeContact.id) !== 0 && activeContact.adminId === currentUser?.id && member.id !== currentUser?.id && onRemoveMember && (
                                             <Button 
@@ -627,6 +656,14 @@ export function ChatWindow({
                         }
                     }
                 }}
+            />
+
+            <PublicProfileModal 
+                userId={selectedPublicUserId} 
+                open={selectedPublicUserId !== null} 
+                onOpenChange={(open) => {
+                    if (!open) setSelectedPublicUserId(null);
+                }} 
             />
         </div>
     );

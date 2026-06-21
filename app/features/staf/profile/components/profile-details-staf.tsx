@@ -14,17 +14,35 @@ export function ProfileDetailsStaf({ profile, onUpdate }: ProfileDetailsProps) {
     const [isEditing, setIsEditing] = useState(false);
     const [nama, setNama] = useState(profile?.nama || "");
     const [email, setEmail] = useState(profile?.email || "");
+    const [nomorTelepon, setNomorTelepon] = useState(profile?.nomorTelepon || "");
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        if (profile?.nama) setNama(profile.nama);
-        if (profile?.email) setEmail(profile.email);
+        if (profile) {
+            setNama(profile.nama || "");
+            setEmail(profile.email || "");
+            setNomorTelepon(profile.nomorTelepon || "");
+            if (!profile.nomorTelepon) {
+                setIsEditing(true);
+            }
+        }
     }, [profile]);
 
     const handleSave = async () => {
+        if (!nomorTelepon) {
+            setToastProps({ title: "Nomor telepon wajib diisi", variant: "destructive" });
+            return;
+        }
+        
+        // Validasi nomor telepon Indonesia (mulai dengan 08, 628, atau +628 dan panjang 10-14 digit angka)
+        const phoneRegex = /^(08|628|\+628)[0-9]{7,11}$/;
+        if (!phoneRegex.test(nomorTelepon)) {
+            setToastProps({ title: "Format nomor telepon tidak valid. Gunakan format Indonesia (contoh: 0812... atau 62812... dengan panjang 10-14 digit).", variant: "destructive" });
+            return;
+        }
         setSaving(true);
         try {
-            await pengajuanApi.updateStafProfile({ nama, email });
+            await pengajuanApi.updateStafProfile({ nama, email, nomorTelepon });
             setToastProps({ title: "Profil berhasil diperbarui", variant: "success" });
             setIsEditing(false);
             onUpdate();
@@ -119,6 +137,24 @@ export function ProfileDetailsStaf({ profile, onUpdate }: ProfileDetailsProps) {
                             ) : (
                                 <div className="px-5 py-4 bg-gray-50/50 rounded-2xl border border-gray-50 font-bold text-gray-800 text-lg">
                                     {profile?.email || "-"}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="space-y-3">
+                            <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest pl-1">Nomor Telepon <span className="text-red-500">*</span></label>
+                            {isEditing ? (
+                                <input 
+                                    type="tel"
+                                    value={nomorTelepon}
+                                    onChange={(e) => setNomorTelepon(e.target.value.replace(/[^0-9+]/g, ''))}
+                                    className="w-full px-5 py-4 bg-white rounded-2xl border border-gray-200 font-bold text-gray-800 text-lg focus:outline-none focus:ring-2 focus:ring-[#D25026]/20 focus:border-[#D25026]"
+                                    placeholder="Contoh: 081234567890 (Wajib)"
+                                    required
+                                />
+                            ) : (
+                                <div className="px-5 py-4 bg-gray-50/50 rounded-2xl border border-gray-50 font-bold text-gray-800 text-lg">
+                                    {profile?.nomorTelepon || <span className="text-red-400 italic font-normal text-sm">Belum diisi (Wajib)</span>}
                                 </div>
                             )}
                         </div>

@@ -1,7 +1,7 @@
 import Avatar, { AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import type { ChatContact } from "~/types/chat";
 import { cn } from "~/lib/utils";
-import { Search, MessageSquarePlus, Users } from "lucide-react";
+import { Search, MessageSquarePlus, Users, ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { profileApi } from "~/api/profileApi";
 import {
@@ -10,6 +10,7 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
 } from "~/components/ui/dropdown-menu";
+import { useNavigate } from "react-router";
 
 interface ChatSidebarProps {
     contacts: ChatContact[];
@@ -67,6 +68,7 @@ export function ChatSidebar({ contacts, activeContact, onSelectContact, unreadCo
     };
 
     const [searchQuery, setSearchQuery] = useState("");
+    const navigate = useNavigate();
 
     const filteredContacts = contacts.filter(c => {
         if (!searchQuery) return true;
@@ -99,9 +101,15 @@ export function ChatSidebar({ contacts, activeContact, onSelectContact, unreadCo
     });
 
     return (
-        <div className="w-80 border-r border-[#d1d7db] bg-white flex flex-col h-full">
-            <div className="px-4 py-3 bg-[#f0f2f5] border-b border-[#d1d7db] flex justify-between items-center h-[59px]">
+        <div className="w-80 border-r border-[#d1d7db] bg-white flex flex-col h-full md:w-80 w-full">
+            <div className="px-4 pl-16 md:pl-4 py-3 bg-[#f0f2f5] border-b border-[#d1d7db] flex justify-between items-center h-[59px]">
                  <div className="flex items-center gap-3">
+                     <button 
+                         onClick={() => navigate(-1)} 
+                         className="md:hidden p-2 -ml-2 text-[#54656f] hover:bg-[#dfe3e5] rounded-full transition-colors"
+                     >
+                         <ArrowLeft className="w-5 h-5" />
+                     </button>
                      <Avatar className="h-10 w-10" src={currentUser?.photo ? profileApi.getProfilePhotoUrl(currentUser.photo) : ""}>
                         <AvatarImage src={currentUser?.photo ? profileApi.getProfilePhotoUrl(currentUser.photo) : ""} />
                         <AvatarFallback className="bg-[#00a884] text-white">

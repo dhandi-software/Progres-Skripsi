@@ -9,7 +9,8 @@ import {
   BarChart3,
   MessageSquare,
   ClipboardList,
-  Download
+  Download,
+  Contact,
 } from "lucide-react";
 import { Outlet, useRouteLoaderData } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
@@ -28,6 +29,8 @@ type MenuKey =
   | "download"
   | "chat"
   | "penilaian"
+  | "sanksi"
+  | "direktori"
   | "logout";
 
 const pathToKey = (pathname: string): MenuKey | undefined => {
@@ -37,6 +40,8 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/admin/acara")) return "acara";
   if (pathname.startsWith("/admin/download")) return "download";
   if (pathname.startsWith("/admin/penilaian")) return "penilaian";
+  if (pathname.startsWith("/admin/sanksi")) return "sanksi";
+  if (pathname.startsWith("/admin/direktori")) return "direktori";
   if (pathname === "/admin" || pathname.startsWith("/admin/"))
     return "dashboard";
   return undefined;
@@ -68,6 +73,12 @@ const menuItems = [
     url: "/admin/acara",
   },
   {
+    key: "direktori" as MenuKey,
+    title: "Direktori",
+    icon: Contact,
+    url: "/admin/direktori",
+  },
+  {
     key: "download" as MenuKey,
     title: "Download",
     icon: Download,
@@ -84,6 +95,12 @@ const menuItems = [
     title: "Penilaian Evaluasi",
     icon: FileText,
     url: "/admin/penilaian",
+  },
+  {
+    key: "sanksi" as MenuKey,
+    title: "Sanksi Administrasi",
+    icon: ClipboardList,
+    url: "/admin/sanksi",
   },
 ];
 
@@ -109,7 +126,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className="border-r border-[#E5E5E5] bg-white overflow-y-hidden">
+    <Sidebar className="border-r border-[#E5E5E5] bg-white overflow-y-hidden print:hidden">
       <SidebarContent className="bg-[#FAFAFA] flex flex-col py-8 px-6 custom-scrollbar">
         {/* Logo Section */}
         <div className="mb-8 px-2">
@@ -186,15 +203,15 @@ export default function AdminLayout() {
     <ProtectedRoute>
       <RoleGuard allowedRoles={["admin"]}>
         <SidebarProvider isMobile={isMobile}>
-          <div className="flex w-full h-screen overflow-hidden bg-neutral-50">
+          <div className="flex w-full h-screen overflow-hidden bg-neutral-50 print:h-auto print:overflow-visible print:bg-white">
             <AppSidebar />
             <main className={cn(
-              "flex-1 w-full h-full overflow-y-auto",
+              "flex-1 w-full h-full overflow-y-auto print:h-auto print:overflow-visible print:p-0 print:pb-0",
               "pb-12" // simplified
             )}>
               {/* Mobile Header with Hamburger Menu */}
               {isMobile && (
-                <div className="md:hidden flex items-center p-4 bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
+                <div className="md:hidden flex items-center p-4 bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm print:hidden">
                   <SidebarTrigger className="p-2 -ml-2" />
                   <span className="ml-2 font-bold text-[#119DA4] text-lg tracking-tight">Admin Panel</span>
                 </div>

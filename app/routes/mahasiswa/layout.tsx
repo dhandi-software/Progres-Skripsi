@@ -10,7 +10,8 @@ import {
   Calendar,
   Award,
   Trophy,
-  BookOpen
+  BookOpen,
+  Contact
 } from "lucide-react";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
 import { RoleGuard } from "~/routes/RoleGuard";
@@ -35,8 +36,8 @@ type MenuKey =
   | "bimbingan"
   | "chat"
   | "acara"
+  | "direktori"
   | "sidang"
-  | "penilaian"
   | "profilemahasiswa"
   | "portfolio"
   | "logbook"
@@ -50,7 +51,6 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/mahasiswa/chat")) return "chat";
   if (pathname.startsWith("/mahasiswa/acara")) return "acara";
   if (pathname.startsWith("/mahasiswa/sidang")) return "sidang";
-  if (pathname.startsWith("/mahasiswa/penilaian")) return "penilaian";
   if (pathname.startsWith("/mahasiswa/profilemahasiswa")) return "profilemahasiswa";
   if (pathname.startsWith("/mahasiswa/logbook")) return "logbook";
   if (pathname.startsWith("/mahasiswa/sanksi")) return "sanksi";
@@ -97,22 +97,16 @@ const menuItems = [
     url: "/mahasiswa/acara",
   },
   {
+    key: "direktori" as MenuKey,
+    title: "Direktori",
+    icon: Contact,
+    url: "/mahasiswa/direktori",
+  },
+  {
     key: "sidang" as MenuKey,
     title: "Jadwal Sidang",
     icon: Calendar,
     url: "/mahasiswa/sidang",
-  },
-  {
-    key: "penilaian" as MenuKey,
-    title: "Penilaian",
-    icon: Award,
-    url: "/mahasiswa/penilaian",
-  },
-  {
-    key: "profilemahasiswa" as MenuKey,
-    title: "Profil Mahasiswa",
-    icon: Trophy,
-    url: "/mahasiswa/profilemahasiswa",
   },
   {
     key: "logbook" as MenuKey,
@@ -125,6 +119,12 @@ const menuItems = [
     title: "Sanksi Administrasi",
     icon: FileText,
     url: "/mahasiswa/sanksi",
+  },
+  {
+    key: "profilemahasiswa" as MenuKey,
+    title: "Profil Mahasiswa",
+    icon: Trophy,
+    url: "/mahasiswa/profilemahasiswa",
   },
 ];
 
@@ -154,46 +154,46 @@ export function AppSidebar() {
       // Fetch Bimbingan Tasks
       bimbinganApi.getMahasiswaAllTasks()
         .then(tasks => {
-            if (tasks && Array.isArray(tasks)) {
-                const grouped = tasks.reduce((acc: any, task: any) => {
-                    if (!acc[task.topik] || task.versi > acc[task.topik].versi) acc[task.topik] = task;
-                    return acc;
-                }, {});
-                const uniqueTasks: any[] = Object.values(grouped);
-                const active = uniqueTasks.find((t: any) => t.status !== 'APPROVED');
-                setBimbinganBadgeCount(active && (active.status === 'ASSIGNED' || active.status === 'REVISION') ? 1 : 0);
-            }
+          if (tasks && Array.isArray(tasks)) {
+            const grouped = tasks.reduce((acc: any, task: any) => {
+              if (!acc[task.topik] || task.versi > acc[task.topik].versi) acc[task.topik] = task;
+              return acc;
+            }, {});
+            const uniqueTasks: any[] = Object.values(grouped);
+            const active = uniqueTasks.find((t: any) => t.status !== 'APPROVED');
+            setBimbinganBadgeCount(active && (active.status === 'ASSIGNED' || active.status === 'REVISION') ? 1 : 0);
+          }
         })
         .catch(err => console.error("Sidebar Bimbingan Error:", err));
 
       // Fetch Acara Unread Count
       acaraApi.getUnreadCount()
         .then(data => {
-            setAcaraBadgeCount(data.count || 0);
+          setAcaraBadgeCount(data.count || 0);
         })
         .catch(err => console.error("Sidebar Acara Error:", err));
 
       // Fetch Sidang Notification
       sidangApi.getSidangMahasiswa()
         .then(data => {
-            if (data && Array.isArray(data) && data.length > 0) {
-                const latest = data[0];
-                // Show badge if not seen by student
-                if (!latest.mahasiswaSeen) {
-                    setSidangBadgeCount(1);
-                } else {
-                    setSidangBadgeCount(0);
-                }
+          if (data && Array.isArray(data) && data.length > 0) {
+            const latest = data[0];
+            // Show badge if not seen by student
+            if (!latest.mahasiswaSeen) {
+              setSidangBadgeCount(1);
+            } else {
+              setSidangBadgeCount(0);
             }
+          }
         })
         .catch(err => console.error("Sidebar Sidang Error:", err));
 
       // Fetch Sanksi count
       sanksiApi.getAllSanksi()
         .then(data => {
-            if (data && Array.isArray(data)) {
-                setSanksiBadgeCount(data.length);
-            }
+          if (data && Array.isArray(data)) {
+            setSanksiBadgeCount(data.length);
+          }
         })
         .catch(err => console.error("Sidebar Sanksi Error:", err));
     };
@@ -205,42 +205,42 @@ export function AppSidebar() {
   // Real-time socket notifications
   React.useEffect(() => {
     if (!user) return;
-    
+
     // Connect to the socket server
     const socket = io(UPLOADS_URL);
-    
+
     // Join user-specific room for private notifications
     socket.emit('join', user.id);
 
     const refetchCount = () => {
-        acaraApi.getUnreadCount().then(data => {
-            setAcaraBadgeCount(data.count || 0);
-        });
+      acaraApi.getUnreadCount().then(data => {
+        setAcaraBadgeCount(data.count || 0);
+      });
     };
-    
+
     // Handle local sync from the timeline component
     const handleLocalRead = () => {
-        // Optimistically decrement for immediate feedback
-        setAcaraBadgeCount(prev => Math.max(0, prev - 1));
-        // Verify with server after a small delay
-        setTimeout(refetchCount, 1000);
+      // Optimistically decrement for immediate feedback
+      setAcaraBadgeCount(prev => Math.max(0, prev - 1));
+      // Verify with server after a small delay
+      setTimeout(refetchCount, 1000);
     };
 
     socket.on('new_acara', () => {
-        refetchCount();
-        
-        // Native browser notification
-        if ("Notification" in window && Notification.permission === "granted") {
-            new Notification("Pengumuman Baru", {
-                body: "Ada instruksi atau pengumuman baru dari dosen di timeline.",
-                icon: "/favicon.ico"
-            });
-        }
+      refetchCount();
+
+      // Native browser notification
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("Pengumuman Baru", {
+          body: "Ada instruksi atau pengumuman baru dari dosen di timeline.",
+          icon: "/favicon.ico"
+        });
+      }
     });
 
     // Handle sync when an item is read (from other devices)
     socket.on('acara_read', () => {
-        refetchCount();
+      refetchCount();
     });
 
     // Handle local sync from the timeline component
@@ -248,12 +248,12 @@ export function AppSidebar() {
 
     // Request permission on mount
     if ("Notification" in window && Notification.permission === "default") {
-        Notification.requestPermission();
+      Notification.requestPermission();
     }
 
     return () => {
-        socket.disconnect();
-        window.removeEventListener('update-unread-count', handleLocalRead);
+      socket.disconnect();
+      window.removeEventListener('update-unread-count', handleLocalRead);
     };
   }, [user]);
 
@@ -266,7 +266,7 @@ export function AppSidebar() {
     }
 
     if (key === "logout") {
-        logout();
+      logout();
     }
   };
 
@@ -374,7 +374,7 @@ export default function MahasiswaLayout() {
       <RoleGuard allowedRoles={["mahasiswa"]}>
         <SidebarProvider isMobile={isMobile}>
           <div className="flex w-full h-screen overflow-hidden bg-neutral-50 print:h-auto print:overflow-visible print:bg-white">
-             <AppSidebar />
+            <AppSidebar />
             <main className={cn(
               "flex-1 w-full h-full overflow-y-auto print:h-auto print:overflow-visible print:p-0 print:pb-0",
               location.pathname.includes("/chat") ? "pb-0" : "pb-12"
@@ -388,7 +388,7 @@ export default function MahasiswaLayout() {
               )}
               {isMobile && location.pathname.includes("/chat") && (
                 <div className="md:hidden absolute top-4 left-4 z-50 print:hidden">
-                   <SidebarTrigger className="p-2 bg-white rounded-full shadow-md text-gray-700" />
+                  <SidebarTrigger className="p-2 bg-white rounded-full shadow-md text-gray-700" />
                 </div>
               )}
               <Outlet context={{ isMobile }} />
