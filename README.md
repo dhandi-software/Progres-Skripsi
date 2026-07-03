@@ -85,6 +85,27 @@ Aplikasi ini dilengkapi dengan Asisten AI (Gemini 1.5 Flash) untuk membantu peng
 
 ---
 
+## 📅 Manajemen Jadwal & Sidang (Schedule Management)
+
+Modul terpusat bagi Staf / Prodi untuk mengelola seluruh jadwal penting terkait alur Kerja Praktik dan Sidang. Sistem ini dipecah menjadi 3 sub-modul (Tabbing) untuk memisahkan konteks pengelolaan namun tetap berada dalam satu halaman dashboard yang praktis.
+
+### 📑 3 Kategori Jadwal Utama
+1. **Pengarahan KP**
+   - Menampilkan agenda sosialisasi dan pengarahan umum Kerja Praktik.
+   - Digunakan sebagai portal informasi satu arah dari prodi ke seluruh mahasiswa.
+2. **Pengumpulan Sidang**
+   - Mendefinisikan periode (timeline) pendaftaran sidang.
+   - Digunakan untuk mengingatkan mahasiswa batas waktu (*deadline*) pengumpulan berkas dan pendaftaran sidang.
+3. **Jadwal Sidang (Plotting)**
+   - Manajemen plotting spesifik bagi mahasiswa yang telah di-ACC untuk maju sidang.
+   - Admin/Staf menentukan lokasi ruangan, tanggal, waktu, serta menugaskan dosen penguji (*Examiner Assignment*).
+
+### ⚙️ Alur Kerja (Workflow)
+- Form pembuatan dan pembaruan (*Create/Update*) telah dipisahkan menjadi rute halaman mandiri (`jadwal.create.tsx` dan `jadwal.edit.$id.tsx`) guna menghindari konflik render pada antarmuka *modal* (*Popup bug prevention*).
+- Komponen menggunakan *pure Tailwind CSS* untuk tata letak modern dan *Shadcn UI* (komponen `<Button>`, `<Input>`) untuk konsistensi desain sistem.
+
+---
+
 ## 📝 Penilaian Evaluasi Kerja Praktik (Grading Rules & Access Boundaries)
 
 Modul ini mengelola penilaian akhir kerja praktik mahasiswa berdasarkan evaluasi dari Dosen Pembimbing (P1) dan Dosen Penguji (P2).

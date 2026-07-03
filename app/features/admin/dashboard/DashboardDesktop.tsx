@@ -1,12 +1,20 @@
-import { Users, UserPlus, UserCheck, Shield, ChevronDown, ChevronUp } from "lucide-react";
+import { Users, UserPlus, UserCheck, Shield, ChevronDown, ChevronUp, Search, Filter } from "lucide-react";
 import { useState, useEffect } from "react";
 import { adminApi } from "~/api/admin";
 import { StatisticCard } from "~/features/admin/dashboard/components";
 import { Toast } from "~/components/ui/toast";
 import { cn } from "~/lib/utils";
+import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationNext,
+    PaginationPrevious,
+} from "~/components/ui/pagination";
 
 export function DashboardDesktop() {
     const [loading, setLoading] = useState(true);
+    const [loadingMonitoring, setLoadingMonitoring] = useState(false);
     const [showWelcomeToast, setShowWelcomeToast] = useState(false);
     const [statsData, setStatsData] = useState({
         totalMahasiswa: 0,
@@ -14,6 +22,19 @@ export function DashboardDesktop() {
         totalAdmin: 0,
     });
     const [monitoringData, setMonitoringData] = useState<any[]>([]);
+    const [search, setSearch] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState("ALL");
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearch(search);
+            setPage(1); // Reset page on new search
+        }, 500);
+        return () => clearTimeout(handler);
+    }, [search]);
 
     useEffect(() => {
         const justLoggedIn = sessionStorage.getItem("justLoggedIn");
@@ -24,39 +45,48 @@ export function DashboardDesktop() {
     }, []);
 
     useEffect(() => {
-        const fetchDashboardData = async () => {
+        const fetchStats = async () => {
             try {
-                // Fetch Counts
                 const statsRes = await adminApi.getDashboardStats();
-                // Fetch admin count separately or include in backend? 
-                // Backend implementation didn't include admin count. 
-                // I'll keep admin count separate or assume 0 for now as user didn't request it explicitly in "new" requirements, 
-                // but component expects it. I'll Fetch admin separately or leave it. 
-                // Let's fetch admin separately for now to be safe, or just 0 if not key.
-                // Actually, let's just keep the existing admin fetch if we want, or ignore.
-                // The user asked for "active student, total dosen". 
-                // I'll just use the new endpoint for mhs and dosen.
                 const adminRes = await adminApi.getUserCountByRole("admin");
-
                 setStatsData({
-                    totalMahasiswa: Number(statsRes.activeStudent || 0),
-                    totalDosen: Number(statsRes.totalDosen || 0),
-                    totalAdmin: Number(adminRes.data?.count || 0),
+                    totalMahasiswa: Number((statsRes as any).activeStudent || 0),
+                    totalDosen: Number((statsRes as any).totalDosen || 0),
+                    totalAdmin: Number(adminRes.data?.count ?? (adminRes as any).count ?? 0),
                 });
-
-                // Fetch Monitoring Data
-                const monRes = await adminApi.getMonitoringData();
-                setMonitoringData(monRes.data || []);
-
             } catch (error) {
-                console.error("Error fetching dashboard data:", error);
+                console.error("Error fetching stats:", error);
+            }
+        };
+        fetchStats();
+    }, []);
+
+    useEffect(() => {
+        const fetchMonitoring = async () => {
+            setLoadingMonitoring(true);
+            try {
+                const filterParam = statusFilter === 'ALL' ? '' : statusFilter;
+                const monRes = await adminApi.getMonitoringData(debouncedSearch, filterParam, page, 10);
+                
+                // monRes is already the parsed JSON object: { data: [...], meta: {...} }
+                const responseData = monRes as any;
+                if (responseData && responseData.data) {
+                    setMonitoringData(responseData.data);
+                    setTotalPages(responseData.meta?.totalPages || 1);
+                } else {
+                    // Fallback if backend hasn't updated format yet
+                    setMonitoringData(responseData || []);
+                    setTotalPages(1);
+                }
+            } catch (error) {
+                console.error("Error fetching monitoring data:", error);
             } finally {
+                setLoadingMonitoring(false);
                 setLoading(false);
             }
         };
-
-        fetchDashboardData();
-    }, []);
+        fetchMonitoring();
+    }, [debouncedSearch, statusFilter, page]);
 
     const statistics = [
         { title: "Total Mahasiswa", value: statsData.totalMahasiswa, icon: Users, trend: { value: "Active Students", isPositive: true } },
@@ -84,9 +114,47 @@ export function DashboardDesktop() {
 
             {/* Monitoring Section */}
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-200">
-                    <h2 className="text-lg font-bold text-gray-900">Monitoring Bimbingan Dosen</h2>
-                    <p className="text-sm text-gray-500">List of Lecturers and their supervised Students.</p>
+                <div className="px-6 py-4 border-b border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h2 className="text-lg font-bold text-gray-900">Monitoring Bimbingan Dosen</h2>
+                        <p className="text-sm text-gray-500">List of Lecturers and their supervised Students.</p>
+                    </div>
+                    <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+                        {/* Search Input */}
+                        <div className="relative w-full md:w-64">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Search className="h-4 w-4 text-gray-400" />
+                            </div>
+                            <input
+                                type="text"
+                                className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="Cari Dosen atau Mahasiswa..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                            />
+                        </div>
+                        {/* Status Filter */}
+                        <div className="relative w-full md:w-auto">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Filter className="h-4 w-4 text-gray-400" />
+                            </div>
+                            <select
+                                className="block w-full pl-10 pr-8 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none"
+                                value={statusFilter}
+                                onChange={(e) => {
+                                    setStatusFilter(e.target.value);
+                                    setPage(1);
+                                }}
+                            >
+                                <option value="ALL">Semua</option>
+                                <option value="SUDAH">Sudah Bimbingan</option>
+                                <option value="BELUM">Belum Bimbingan</option>
+                            </select>
+                            <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                                <ChevronDown className="h-4 w-4 text-gray-400" />
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
@@ -100,7 +168,13 @@ export function DashboardDesktop() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 text-sm">
-                            {monitoringData.length === 0 ? (
+                            {loadingMonitoring ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
+                                        Loading monitoring data...
+                                    </td>
+                                </tr>
+                            ) : monitoringData.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
                                         No data available or failed to load.
@@ -114,6 +188,40 @@ export function DashboardDesktop() {
                         </tbody>
                     </table>
                 </div>
+                {/* Pagination */}
+                {totalPages >= 1 && (
+                    <div className="px-6 py-4 border-t border-gray-200">
+                        <Pagination>
+                            <PaginationContent>
+                                <PaginationItem>
+                                    <PaginationPrevious
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            if (page > 1) setPage(page - 1);
+                                        }}
+                                        className={page === 1 ? "pointer-events-none opacity-50" : ""}
+                                    />
+                                </PaginationItem>
+                                <PaginationItem>
+                                    <span className="text-sm text-gray-600 px-4">
+                                        Page {page} of {totalPages}
+                                    </span>
+                                </PaginationItem>
+                                <PaginationItem>
+                                    <PaginationNext
+                                        href="#"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            if (page < totalPages) setPage(page + 1);
+                                        }}
+                                        className={page === totalPages ? "pointer-events-none opacity-50" : ""}
+                                    />
+                                </PaginationItem>
+                            </PaginationContent>
+                        </Pagination>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -154,8 +262,13 @@ function DosenRow({ dosen }: { dosen: any }) {
                                                 <p className="font-medium text-gray-900 text-sm">{mhs.nama}</p>
                                                 <p className="text-xs text-gray-500 font-mono">{mhs.nim}</p>
                                             </div>
-                                            <div className="text-right">
+                                            <div className="text-right flex flex-col items-end gap-1">
                                                 <p className="text-xs text-gray-700 font-medium truncate max-w-[200px]" title={mhs.judulSkripsi}>{mhs.judulSkripsi}</p>
+                                                {mhs.pengujiNama && (
+                                                    <span className="text-[10px] text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded font-medium border border-purple-100">
+                                                        Penguji: {mhs.pengujiNama}
+                                                    </span>
+                                                )}
                                                 <span className={cn(
                                                     "text-[10px] px-1.5 py-0.5 rounded font-medium uppercase",
                                                     mhs.status === "APPROVED" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"

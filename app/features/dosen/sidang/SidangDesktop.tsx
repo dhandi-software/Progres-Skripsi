@@ -5,8 +5,9 @@ import { bimbinganApi } from "~/api/bimbinganApi";
 import { 
     Calendar, Clock, MapPin, CheckCircle, AlertCircle, 
     MoreVertical, Edit3, Trash2, Search, User, Filter,
-    Check, CheckCircle2, XCircle, MapPinned, Users, ArrowRight
+    Check, CheckCircle2, XCircle, MapPinned, Users, ArrowRight, FileText
 } from "lucide-react";
+import { Toast } from "~/components/ui/toast";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -35,7 +36,6 @@ interface SidangItem {
     lokasi: string | null;
     status: string;
     pembimbingApproved: boolean;
-    prodiApproved: boolean;
     catatan: string | null;
 }
 
@@ -47,6 +47,7 @@ export function SidangDesktop() {
     const [activeTab, setActiveTab] = useState<"sidang" | "pengajuan">("sidang");
     const [isScheduling, setIsScheduling] = useState<SidangItem | null>(null);
     const [isApplying, setIsApplying] = useState<any | null>(null);
+    const [toast, setToast] = useState<{title: string, variant: "success" | "destructive"} | null>(null);
 
     const eligibleStudents = bimbinganStudents
         .filter(m => !sidangs.some(s => s.mahasiswaId === m.mahasiswa.id))
@@ -98,15 +99,19 @@ export function SidangDesktop() {
     const handleApply = async (formData: { tanggalSidang: string; waktuSidang: string; lokasi: string }) => {
         if (!isApplying) return;
         try {
-            await sidangApi.applyForSidang({
-                mahasiswaId: isApplying.mahasiswa.id,
-                judul: isApplying.judul || "Skripsi",
-                ...formData
-            });
+            const formDataData = new FormData();
+            formDataData.append("mahasiswaId", isApplying.mahasiswa.nim);
+            formDataData.append("judul", isApplying.judul || "Skripsi");
+            formDataData.append("tanggalSidang", formData.tanggalSidang);
+            formDataData.append("waktuSidang", formData.waktuSidang);
+            formDataData.append("lokasi", formData.lokasi);
+
+            await sidangApi.applyForSidang(formDataData);
             setIsApplying(null);
             fetchData();
+            setToast({ title: "Berhasil mengajukan sidang!", variant: "success" });
         } catch (error) {
-            alert("Gagal mengajukan sidang.");
+            setToast({ title: "Gagal mengajukan sidang.", variant: "destructive" });
         }
     };
 
@@ -114,8 +119,9 @@ export function SidangDesktop() {
         try {
             await sidangApi.pembimbingApprove(id);
             fetchData();
+            setToast({ title: "Berhasil menyetujui sidang.", variant: "success" });
         } catch (error) {
-            alert("Gagal menyetujui.");
+            setToast({ title: "Gagal menyetujui.", variant: "destructive" });
         }
     };
 
@@ -131,8 +137,9 @@ export function SidangDesktop() {
             });
             setIsScheduling(null);
             fetchData();
+            setToast({ title: "Berhasil menjadwalkan sidang.", variant: "success" });
         } catch (error) {
-            alert("Gagal menjadwalkan.");
+            setToast({ title: "Gagal menjadwalkan.", variant: "destructive" });
         }
     };
 
@@ -493,6 +500,15 @@ export function SidangDesktop() {
                             />
                         </div>
                     </div>
+                </div>
+            )}
+            {toast && (
+                <div className="fixed top-10 right-10 z-[300]">
+                    <Toast 
+                        title={toast.title} 
+                        variant={toast.variant} 
+                        onClose={() => setToast(null)} 
+                    />
                 </div>
             )}
         </div>

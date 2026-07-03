@@ -22,6 +22,7 @@ import { bimbinganApi } from "~/api/bimbinganApi";
 import { acaraApi } from "~/api/acaraApi";
 import { sidangApi } from "~/api/sidangApi";
 import { sanksiApi } from "~/api/sanksiApi";
+import { jadwalKpApi } from "~/api/jadwalKpApi";
 import React from "react";
 import { io } from "socket.io-client";
 import { UPLOADS_URL } from "~/api/client";
@@ -54,6 +55,7 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/mahasiswa/profilemahasiswa")) return "profilemahasiswa";
   if (pathname.startsWith("/mahasiswa/logbook")) return "logbook";
   if (pathname.startsWith("/mahasiswa/sanksi")) return "sanksi";
+  if (pathname.startsWith("/mahasiswa/direktori")) return "direktori";
   if (pathname === "/mahasiswa" || pathname.startsWith("/mahasiswa/"))
     return "dashboard";
   return undefined;
@@ -142,6 +144,7 @@ export function AppSidebar() {
   const [acaraBadgeCount, setAcaraBadgeCount] = React.useState(0);
   const [sidangBadgeCount, setSidangBadgeCount] = React.useState(0);
   const [sanksiBadgeCount, setSanksiBadgeCount] = React.useState(0);
+  const [dashboardBadgeCount, setDashboardBadgeCount] = React.useState(0);
 
   React.useEffect(() => {
     if (!user) return;
@@ -196,6 +199,18 @@ export function AppSidebar() {
           }
         })
         .catch(err => console.error("Sidebar Sanksi Error:", err));
+
+      // Fetch Jadwal KP & Sidang for notifications
+      jadwalKpApi.getAllJadwalKp()
+        .then((data: any) => {
+          if (data && Array.isArray(data)) {
+            const now = new Date();
+            const activePengarahanKp = data.some((j: any) => j.tipe === 'PENGARAHAN_KP' && now <= new Date(j.tanggalSelesai));
+            const activePengarahanSidang = data.some((j: any) => j.tipe === 'PENGARAHAN_SIDANG' && now <= new Date(j.tanggalSelesai));
+            setDashboardBadgeCount((activePengarahanKp ? 1 : 0) + (activePengarahanSidang ? 1 : 0));
+          }
+        })
+        .catch((err: any) => console.error("Sidebar Jadwal Error:", err));
     };
     fetchData();
     const intervalId = setInterval(fetchData, 30000);
@@ -318,6 +333,11 @@ export function AppSidebar() {
                       >
                         {item.title}
                       </span>
+                      {item.key === "dashboard" && dashboardBadgeCount > 0 && (
+                        <div className="bg-[#D25026] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px] shadow-sm shadow-red-200">
+                          {dashboardBadgeCount}
+                        </div>
+                      )}
                       {item.key === "bimbingan" && bimbinganBadgeCount > 0 && (
                         <div className="bg-[#D25026] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
                           {bimbinganBadgeCount}

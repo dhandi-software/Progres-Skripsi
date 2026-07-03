@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { pengajuanApi } from "~/api/pengajuan";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { chatService } from "~/services/chatService";
+import { jadwalKpApi } from "~/api/jadwalKpApi";
+import type { JadwalKp } from "~/api/jadwalKpApi";
 import { useAuth } from "~/hooks/useAuth";
 import { useNavigate } from "react-router";
 import { 
@@ -22,6 +24,7 @@ export function DashboardDesktop({ title }: { title: string }) {
     const [activities, setActivities] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showAllActivities, setShowAllActivities] = useState(false);
+    const [upcomingJadwal, setUpcomingJadwal] = useState<JadwalKp[]>([]);
 
     const [activeBimbinganCount, setActiveBimbinganCount] = useState(0);
     const [thisWeekScheduleCount, setThisWeekScheduleCount] = useState(0);
@@ -98,6 +101,14 @@ export function DashboardDesktop({ title }: { title: string }) {
                 }
                 const sortedActs = allActs.sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
                 setActivities(sortedActs);
+
+                // Jadwal KP
+                const jadwalData = await jadwalKpApi.getAllJadwalKp();
+                if (jadwalData && Array.isArray(jadwalData)) {
+                    const now = new Date();
+                    const upcoming = jadwalData.filter(j => new Date(j.tanggalSelesai) >= now && j.tipe === 'PENGARAHAN_KP').sort((a, b) => new Date(a.tanggalSelesai).getTime() - new Date(b.tanggalSelesai).getTime());
+                    setUpcomingJadwal(upcoming);
+                }
 
             } catch (err) {
                 console.error(err);
@@ -213,6 +224,25 @@ export function DashboardDesktop({ title }: { title: string }) {
                 <div className="absolute right-0 top-0 h-full w-1/3 bg-white/10 skew-x-12 translate-x-12" />
                 <div className="absolute right-20 bottom-0 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
             </div>
+
+            {/* Notification Banner for Upcoming Jadwal */}
+            {upcomingJadwal.map((jadwal, index) => (
+                <div key={`jadwal-${index}`} className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-emerald-100 rounded-full text-emerald-600 shrink-0">
+                            <Calendar className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="text-emerald-800 font-bold text-lg">{jadwal.judul}</h3>
+                            <p className="text-emerald-600 text-sm mt-1 mb-0">
+                                Jadwal {jadwal.tipe === 'PENGARAHAN_KP' ? 'Pengarahan KP' : 'Pengumpulan Sidang'}: {new Date(jadwal.tanggalSelesai).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                            {jadwal.deskripsi && <p className="text-emerald-700 text-xs mt-2 italic">"{jadwal.deskripsi}"</p>}
+                        </div>
+                    </div>
+                </div>
+            ))}
+
 
             {/* Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

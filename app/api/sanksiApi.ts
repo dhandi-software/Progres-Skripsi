@@ -16,7 +16,6 @@ export interface SanksiAdministrasi {
         id: number;
         nama: string;
         nim: string;
-        jurusan: string;
     };
     dosen?: {
         id: number;
@@ -29,7 +28,6 @@ export interface SupervisedStudent {
     id: number;
     nama: string;
     nim: string;
-    jurusan: string;
 }
 
 export const sanksiApi = {

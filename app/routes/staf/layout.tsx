@@ -25,6 +25,7 @@ import { cn } from "~/lib/utils";
 type MenuKey =
   | "dashboard"
   | "sidang"
+  | "jadwal"
   | "acara"
   | "download"
   | "chat"
@@ -37,6 +38,7 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/staf/profile")) return "profile";
   if (pathname.startsWith("/staf/chat")) return "chat";
   if (pathname.startsWith("/staf/sidang")) return "sidang";
+  if (pathname.startsWith("/staf/jadwal")) return "jadwal";
   if (pathname.startsWith("/staf/acara")) return "acara";
   if (pathname.startsWith("/staf/download")) return "download";
   if (pathname.startsWith("/staf/direktori")) return "direktori";
@@ -54,10 +56,10 @@ const menuItems = [
     url: "/staf",
   },
   {
-    key: "sidang" as MenuKey,
-    title: "Penjadwalan Sidang",
+    key: "jadwal" as MenuKey,
+    title: "Manajemen Jadwal",
     icon: Calendar,
-    url: "/staf/sidang",
+    url: "/staf/jadwal",
   },
   {
     key: "acara" as MenuKey,
@@ -122,9 +124,9 @@ export function AppSidebar() {
       try {
         const data = await sidangApi.getAllSidang();
         if (data && Array.isArray(data)) {
-            // Staff badge: status MENUNGGU_PENJADWALAN_PRODI
+            // Staff badge: status MENUNGGU_PENJADWALAN_KOORDINATOR
             const count = data.filter((item: any) => 
-                item.status === 'MENUNGGU_PENJADWALAN_PRODI'
+                item.status === 'MENUNGGU_PENJADWALAN_KOORDINATOR'
             ).length;
             setSidangBadgeCount(count);
         }

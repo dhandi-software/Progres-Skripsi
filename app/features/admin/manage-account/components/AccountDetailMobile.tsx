@@ -195,7 +195,7 @@ export const AccountDetailMobile = () => {
 
           {[
             { label: "Name", value: user.name },
-            { label: "Email", value: user.email },
+            { label: "Email", value: user.email || user.mahasiswa?.email || user.dosen?.email || user.staf?.email },
             { label: "Username", value: user.username },
             { label: "Password", value: user.password },
           ].map((field) => (

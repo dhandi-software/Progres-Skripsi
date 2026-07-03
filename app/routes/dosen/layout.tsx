@@ -230,8 +230,8 @@ export function AppSidebar() {
             ).length;
             setSidangBadgeCount(advisorCount);
 
-            // Prodi badge: status MENUNGGU_PENJADWALAN_PRODI, MENUNGGU_VERIFIKASI_KAPRODI, MENUNGGU_KONFIRMASI_JADWAL_KAPRODI
-            const prodiStatuses = ['MENUNGGU_PENJADWALAN_PRODI', 'MENUNGGU_VERIFIKASI_KAPRODI', 'MENUNGGU_KONFIRMASI_JADWAL_KAPRODI'];
+            // Prodi badge: status MENUNGGU_PENJADWALAN_KOORDINATOR, MENUNGGU_VERIFIKASI_KAPRODI, MENUNGGU_KONFIRMASI_JADWAL_KAPRODI
+            const prodiStatuses = ['MENUNGGU_PENJADWALAN_KOORDINATOR', 'MENUNGGU_VERIFIKASI_KAPRODI', 'MENUNGGU_KONFIRMASI_JADWAL_KAPRODI'];
             const prodiCount = data.filter((item: any) => 
                 prodiStatuses.includes(item.status)
             ).length;

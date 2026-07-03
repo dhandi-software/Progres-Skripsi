@@ -137,7 +137,6 @@ export interface Pengajuan {
     mahasiswa: {
         nama: string;
         nim: string;
-        jurusan: string;
     };
     judul: string;
     peminatan: string;
@@ -146,9 +145,11 @@ export interface Pengajuan {
     ipk?: number;
     sksDicapai?: number;
     sksNilaiD?: number;
-    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVISION';
     dosenId: string;
     batasStudi?: string;
+    remarks?: string;
+    deadlineRevisi?: string;
     createdAt?: string;
     updatedAt?: string;
 }

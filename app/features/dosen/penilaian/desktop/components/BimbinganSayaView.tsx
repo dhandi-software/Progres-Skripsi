@@ -8,13 +8,9 @@ import { cn } from "~/lib/utils";
 
 interface BimbinganSayaViewProps {
     data: PenilaianItem[];
-    dosenList: { id: number; nama: string }[];
+    dosenList: { id: string; nama: string }[];
     isLowVision: boolean;
     user: any;
-    assigningId: number | null;
-    openDropdownId: number | null;
-    setOpenDropdownId: (val: number | null) => void;
-    setConfirmAssignPenguji: (val: { pembimbingId: number; pengujiId: number | null; pengujiNama: string | null } | null) => void;
     onOpenForm: (item: PenilaianItem) => void;
     onDeleteConfirm: (item: PenilaianItem) => void;
 }
@@ -24,10 +20,6 @@ export function BimbinganSayaView({
     dosenList,
     isLowVision,
     user,
-    assigningId,
-    openDropdownId,
-    setOpenDropdownId,
-    setConfirmAssignPenguji,
     onOpenForm,
     onDeleteConfirm
 }: BimbinganSayaViewProps) {
@@ -81,138 +73,13 @@ export function BimbinganSayaView({
                         </span>
                     </div>
 
-                    {/* Separator Line */}
                     <div className="hidden md:block w-[1px] h-10 bg-slate-200 shrink-0" />
-
-                    {/* Dosen Penguji Selector */}
-                    <div className="flex flex-col gap-2 w-full md:w-[280px]">
-                        <label className={cn("text-xs font-black uppercase tracking-wider text-slate-500", isLowVision && "text-sm text-black font-black")}>
-                            Dosen Penguji (Tugaskan Khusus Mahasiswa yang Dibimbing)
-                        </label>
-                        {activePenguji && !isEditingPenguji ? (
-                            <div className={cn(
-                                "flex items-center justify-between gap-3 h-11 border px-3 rounded-xl bg-slate-50 border-slate-200/80 shadow-sm",
-                                isLowVision && "border-2 border-black bg-white h-12"
-                            )}>
-                                <span className={cn("text-sm font-bold text-slate-700 truncate flex items-center gap-1.5", isLowVision && "text-black font-black text-sm")}>
-                                    🔒 {activePenguji.nama}
-                                </span>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setIsEditingPenguji(true)}
-                                    className={cn(
-                                        "h-8 text-[11px] font-black text-[#119DA4] bg-[#119DA4]/5 border border-[#119DA4]/20 hover:bg-[#119DA4]/10 rounded-lg px-2 flex items-center gap-1 shrink-0 transition-all",
-                                        isLowVision && "border-2 border-black text-black font-black text-xs hover:bg-slate-200 h-9"
-                                    )}
-                                >
-                                    Ubah Penguji
-                                </Button>
-                            </div>
-                        ) : (
-                            <div className="relative custom-dropdown-container">
-                                <div className="flex gap-1.5">
-                                    <Button
-                                        variant="outline"
-                                        type="button"
-                                        onClick={() => {
-                                            setOpenDropdownId(openDropdownId === -20 ? null : -20);
-                                            setDropdownSearch("");
-                                        }}
-                                        disabled={assigningId !== null || !myDosenId}
-                                        className={cn(
-                                            "text-sm bg-white border rounded-xl px-3.5 py-2.5 font-bold text-slate-700 flex items-center justify-between flex-1 h-11 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#119DA4] hover:bg-slate-50 hover:text-slate-800",
-                                            openDropdownId === -20 ? "border-[#119DA4]" : "border-slate-200",
-                                            isLowVision && "border-2 border-black font-black text-base text-black h-12"
-                                        )}
-                                    >
-                                        <span className="truncate">
-                                            {activePenguji?.nama || "Belum Ditugaskan"}
-                                        </span>
-                                        <span>▼</span>
-                                    </Button>
-                                    {activePenguji && (
-                                        <Button
-                                            variant="outline"
-                                            onClick={() => {
-                                                setIsEditingPenguji(false);
-                                                setOpenDropdownId(null);
-                                            }}
-                                            className={cn("h-11 px-3 border border-slate-200 hover:bg-slate-50 rounded-xl text-slate-500 text-xs font-bold", isLowVision && "border-2 border-black text-black h-12 font-black")}
-                                            title="Batalkan Pengeditan"
-                                        >
-                                            Batal
-                                        </Button>
-                                    )}
-                                </div>
-                                {openDropdownId === -20 && myDosenId && (
-                                    <div className={cn(
-                                        "absolute left-0 mt-1.5 w-full min-w-[260px] bg-white border rounded-xl shadow-xl z-50 p-2 animate-in fade-in slide-in-from-top-1 duration-150 origin-top-left",
-                                        isLowVision ? "border-3 border-black text-black" : "border-slate-200"
-                                    )}>
-                                        <div className="relative mb-2">
-                                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                                            <input
-                                                type="text"
-                                                placeholder="Cari Penguji..."
-                                                value={dropdownSearch}
-                                                onChange={(e) => setDropdownSearch(e.target.value)}
-                                                className={cn(
-                                                    "w-full pl-8 pr-2 py-1.5 text-sm border rounded-lg focus:outline-none focus:border-[#119DA4]",
-                                                    isLowVision ? "border-2 border-black text-black font-bold" : "border-slate-200"
-                                                )}
-                                            />
-                                        </div>
-                                        <div className="max-h-[200px] overflow-y-auto flex flex-col gap-0.5">
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setConfirmAssignPenguji({
-                                                        pembimbingId: myDosenId,
-                                                        pengujiId: null,
-                                                        pengujiNama: null
-                                                    });
-                                                    setOpenDropdownId(null);
-                                                    setIsEditingPenguji(false);
-                                                }}
-                                                className={cn(
-                                                    "w-full text-left px-2.5 py-2 text-sm rounded-md font-bold text-red-600 hover:bg-red-50 transition-colors flex items-center gap-1.5",
-                                                    isLowVision && "text-sm border-b border-black"
-                                                )}
-                                            >
-                                                ✕ Kosongkan Penguji
-                                            </button>
-                                            {dosenList
-                                                .filter(d => d.id !== myDosenId && d.nama.toLowerCase().includes(dropdownSearch.toLowerCase()))
-                                                .map(d => (
-                                                    <button
-                                                        key={d.id}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setConfirmAssignPenguji({
-                                                                pembimbingId: myDosenId,
-                                                                pengujiId: d.id,
-                                                                pengujiNama: d.nama
-                                                            });
-                                                            setOpenDropdownId(null);
-                                                            setIsEditingPenguji(false);
-                                                        }}
-                                                        className={cn(
-                                                            "w-full text-left px-2.5 py-2 text-sm rounded-md transition-colors flex items-center justify-between",
-                                                            d.id === activePengujiId ? "bg-slate-100 text-[#119DA4] font-extrabold" : "text-slate-700 hover:bg-slate-50",
-                                                            isLowVision && "text-sm text-black font-black hover:bg-slate-200 border-b border-black"
-                                                        )}
-                                                    >
-                                                        <span className="truncate">{d.nama}</span>
-                                                        {d.id === activePengujiId && <span>✓</span>}
-                                                    </button>
-                                                ))
-                                            }
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                    
+                    <div className="flex flex-col gap-1.5">
+                        <span className="text-xs font-black uppercase tracking-wider text-slate-400">Status Penugasan Penguji</span>
+                        <span className={cn("text-base font-black text-slate-800", isLowVision && "text-lg text-black font-black")}>
+                            {activePenguji ? activePenguji.nama : "Belum Ditugaskan"}
+                        </span>
                     </div>
                 </div>
 
@@ -289,7 +156,7 @@ export function BimbinganSayaView({
                                     <td className={cn("px-6 py-4 whitespace-nowrap", isLowVision ? "border-r border-black" : "")}>
                                         <div className="flex flex-col">
                                             <span className={cn("font-bold text-slate-900", isLowVision ? "text-lg font-black text-black" : "text-sm")}>{item.nama}</span>
-                                            <span className={cn("text-[10px] text-slate-400 uppercase tracking-tight", isLowVision ? "text-xs text-slate-600 font-extrabold" : "")}>{item.jurusan}</span>
+
                                         </div>
                                     </td>
                                     <td className={cn("px-2 py-4 text-center text-xs border-l", isLowVision ? "text-sm border-black font-black text-black" : "bg-blue-50/5")}>{item.p1_k1 || "-"}</td>

@@ -24,10 +24,11 @@ export const useCreateAccount = () => {
     role: "mahasiswa", 
     // Specific fields
     nim: "",
-    jurusan: "Teknik Informatika",
     tahunMasuk: "",
     nidn: "",
+    nip: "",
     jabatan: "",
+    peminatan: [] as string[],
   });
 
   // Sync role with URL param on mount
@@ -36,7 +37,6 @@ export const useCreateAccount = () => {
         setFormData(prev => ({ 
             ...prev, 
             role: roleParam,
-            jurusan: roleParam === 'mahasiswa' ? "Teknik Informatika" : prev.jurusan,
             jabatan: roleParam === 'dosen' ? "Dosen Reguler" : prev.jabatan
         }));
     }
@@ -59,8 +59,13 @@ export const useCreateAccount = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
-    // Numeric validation for NIM and NIDN
-    if ((name === "nim" || name === "nidn") && value && !/^\d*$/.test(value)) {
+    // Numeric validation for NIM, NIDN, and NIP
+    if ((name === "nim" || name === "nidn" || name === "nip") && value && !/^\d*$/.test(value)) {
+        return;
+    }
+
+    // Prevent spaces in email
+    if (name === "email" && value.includes(" ")) {
         return;
     }
 
@@ -73,7 +78,6 @@ export const useCreateAccount = () => {
     setFormData((prev) => ({ 
         ...prev, 
         role,
-        jurusan: role === 'mahasiswa' ? "TEKNIK INFORMATIKA" : prev.jurusan,
         jabatan: role === 'dosen' ? "Dosen Reguler" : prev.jabatan
     }));
     // User requested to reset the excel file when switching roles
@@ -170,7 +174,7 @@ export const useCreateAccount = () => {
                  jabatan = String(row[jabatanColIdx] || '').trim() || "Dosen";
              }
 
-             // Tahun Masuk & Jurusan for Mahasiswa
+             // Tahun Masuk for Mahasiswa
              let tahunMasuk = "";
              if (isMahasiswa) {
                  const yearDigits = idVal.length >= 4 ? idVal.substring(2, 4) : "";
@@ -193,7 +197,6 @@ export const useCreateAccount = () => {
              };
 
              if (isMahasiswa) {
-                 item.jurusan = "TEKNIK INFORMATIKA";
                  item.tahunMasuk = tahunMasuk;
              } else {
                  item.jabatan = jabatan;
@@ -256,6 +259,14 @@ export const useCreateAccount = () => {
       showToast("Email is required", "destructive");
       return false;
     }
+
+    const allowedDomains = ["@student.univ.ac.id", "@univ.ac.id", "@gmail.com"];
+    const isValidDomain = allowedDomains.some(domain => formData.email.toLowerCase().endsWith(domain));
+    if (!isValidDomain) {
+      showToast("Email harus berakhiran @student.univ.ac.id, @univ.ac.id, atau @gmail.com", "destructive");
+      return false;
+    }
+
     if (!formData.name) {
       showToast("Name is required", "destructive");
       return false;
@@ -267,13 +278,16 @@ export const useCreateAccount = () => {
     
     if (formData.role.toLowerCase() === 'mahasiswa') {
         if (!formData.nim) { showToast("NIM is required", "destructive"); return false; }
-        if (!formData.jurusan) { showToast("Jurusan is required", "destructive"); return false; }
         if (!formData.tahunMasuk) { showToast("Tahun Masuk is required", "destructive"); return false; }
     }
 
     if (formData.role.toLowerCase() === 'dosen') {
-        if (!formData.nidn) { showToast("NIDN is required", "destructive"); return false; }
+        if (!formData.nidn) { showToast("NIDN / NIP is required", "destructive"); return false; }
         if (!formData.jabatan) { showToast("Jabatan is required", "destructive"); return false; }
+    }
+
+    if (formData.role.toLowerCase() === 'staf') {
+        if (!formData.nip) { showToast("NIP is required", "destructive"); return false; }
     }
 
     // if (!passwordValidation.length || !passwordValidation.pattern || !passwordValidation.number || !passwordValidation.symbol) {
@@ -316,7 +330,6 @@ export const useCreateAccount = () => {
                   password: formData.password,
                   nama: formData.name,
                   nim: formData.nim,
-                  jurusan: formData.jurusan,
                   tahunMasuk: formData.tahunMasuk
               });
           } else if (formData.role.toLowerCase() === 'dosen') {
@@ -325,25 +338,28 @@ export const useCreateAccount = () => {
                   password: formData.password,
                   nama: formData.name,
                   nidn: formData.nidn,
-                  jabatan: formData.jabatan
+                  nip: formData.nip || undefined,
+                  jabatan: formData.jabatan,
+                  peminatan: formData.peminatan
               });
           } else if (formData.role.toLowerCase() === 'staf') {
               await userApi.createStaf({
                   email: formData.email,
                   password: formData.password,
                   nama: formData.name,
+                  nip: formData.nip
               });
           } else {
             throw new Error("Invalid role selected");
           }
       }
 
-      showToast("Account created successfully", "success");
-
-      // Wait for toast to be visible before redirecting
-      setTimeout(() => {
-          navigate(`/admin/users?tab=${formData.role}`);
-      }, 1500);
+      // Pass toast in state so it shows up on the next page immediately
+      navigate(`/admin/users?tab=${formData.role}`, {
+          state: {
+              toast: { title: "Account created successfully", variant: "success" }
+          }
+      });
 
     } catch (error: any) {
       const message = error.response?.data?.message || error.message || "Failed to create account";
@@ -367,8 +383,7 @@ export const useCreateAccount = () => {
                 Nama: user.nama,
                 Email: user.email,
                 Password: user.password,
-                "Tahun Masuk": user.tahunMasuk,
-                Jurusan: user.jurusan
+                "Tahun Masuk": user.tahunMasuk
             };
         } else {
             return {

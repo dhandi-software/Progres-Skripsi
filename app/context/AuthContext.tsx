@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // If the backend expects 'username' but the form uses 'email', we might need to adjust.
         // Let's assume the user enters 'username' in the email field for now, or we map it.
         const payload = {
-            username: data.email, // using email field as username for now as per backend mock
+            username: data.email || data.username, // using email field as username for now as per backend mock
             password: data.password
         };
 

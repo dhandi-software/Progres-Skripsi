@@ -4,6 +4,8 @@ import { useAuth } from "~/hooks/useAuth";
 import { pengajuanApi } from "~/api/pengajuan";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { acaraApi } from "~/api/acaraApi";
+import { jadwalKpApi } from "~/api/jadwalKpApi";
+import type { JadwalKp } from "~/api/jadwalKpApi";
 import {
     BookOpen,
     Calendar,
@@ -25,6 +27,7 @@ export function DashboardDesktop() {
     const [bimbinganTasks, setBimbinganTasks] = useState<any[]>([]);
     const [acaras, setAcaras] = useState<any[]>([]);
     const [unreadAcaraCount, setUnreadAcaraCount] = useState(0);
+    const [upcomingJadwal, setUpcomingJadwal] = useState<JadwalKp[]>([]);
     const [showAllActivities, setShowAllActivities] = useState(false);
 
     const fetchAcaraData = () => {
@@ -53,6 +56,13 @@ export function DashboardDesktop() {
                 .catch(console.error);
             
             fetchAcaraData();
+            jadwalKpApi.getAllJadwalKp()
+                .then((data: JadwalKp[]) => {
+                    const now = new Date();
+                    const upcoming = data.filter(j => new Date(j.tanggalSelesai) >= now && j.tipe !== 'JADWAL_SIDANG').sort((a, b) => new Date(a.tanggalSelesai).getTime() - new Date(b.tanggalSelesai).getTime());
+                    setUpcomingJadwal(upcoming);
+                })
+                .catch(console.error);
         }
     }, [user?.id]);
 
@@ -198,6 +208,43 @@ export function DashboardDesktop() {
                 <div className="absolute right-20 bottom-0 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
             </div>
 
+            {/* Notification Banner for Upcoming Jadwal */}
+            {upcomingJadwal.map((jadwal, index) => (
+                <div key={`jadwal-${index}`} className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-emerald-100 rounded-full text-emerald-600 shrink-0">
+                            <Calendar className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${jadwal.tipe === 'PENGARAHAN_KP' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                                    {jadwal.tipe === 'PENGARAHAN_KP' ? 'Pengarahan KP' : 'Pengumpulan Laporan Sidang'}
+                                </span>
+                            </div>
+                            <h3 className="text-emerald-800 font-bold text-lg">{jadwal.judul}</h3>
+                            <div className="mt-3 flex items-center gap-2">
+                                <span className="bg-emerald-600 text-white font-black text-lg px-4 py-1.5 rounded-xl shadow-md">
+                                    {new Date(jadwal.tanggalSelesai).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                </span>
+                                <span className="bg-emerald-100 text-emerald-800 font-black text-lg px-4 py-1.5 rounded-xl border border-emerald-200">
+                                    {new Date(jadwal.tanggalSelesai).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                            </div>
+                            {jadwal.deskripsi && <p className="text-emerald-700 text-xs mt-3 italic">"{jadwal.deskripsi}"</p>}
+                        </div>
+                    </div>
+                    {jadwal.tipe === 'PENGARAHAN_SIDANG' && (
+                        <button 
+                            onClick={() => navigate("/mahasiswa/sidang")}
+                            className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition-colors shadow-sm whitespace-nowrap"
+                        >
+                            Kumpul Laporan
+                        </button>
+                    )}
+                </div>
+            ))}
+
+
             {/* Notification Banner for Rejected Applications */}
             {profile?.pengajuanJudul && profile.pengajuanJudul.length > 0 && profile.pengajuanJudul[0].status === 'REJECTED' && (
                 <div className="bg-red-50 border border-red-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
@@ -337,14 +384,14 @@ export function DashboardDesktop() {
                     },
                     {
                         title: "SKS Tempuh",
-                        value: "110 SKS",
+                        value: `${profile?.pengajuanJudul && profile.pengajuanJudul.length > 0 ? profile.pengajuanJudul[0].sksDicapai || 0 : 0} SKS`,
                         icon: BookOpen,
                         color: "text-blue-600",
                         bg: "bg-blue-50",
                     },
                     {
                         title: "Bimbingan",
-                        value: "3 Kali",
+                        value: `${bimbinganTasks.filter(t => t.status === 'APPROVED').length} Kali`,
                         icon: UsersIcon,
                         color: "text-orange-600",
                         bg: "bg-orange-50",
@@ -417,7 +464,7 @@ export function DashboardDesktop() {
                                     <h4 className="font-semibold text-gray-900 flex items-center gap-2">
                                         {item.title}
                                         {item.isRead === false && (
-                                            <span className="w-2 h-2 rounded-full bg-orange-500 shadow-sm animate-pulse" />
+                                            <span className="w-2 h-2 rounded-full bg-orange-500 shadow-sm" />
                                         )}
                                     </h4>
                                     <p className="text-sm text-gray-500 mt-1">

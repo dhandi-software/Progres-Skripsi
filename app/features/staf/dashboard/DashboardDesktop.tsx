@@ -114,7 +114,7 @@ export function DashboardDesktop() {
                                 <th className="px-6 py-4">Nama Mahasiswa</th>
                                 <th className="px-6 py-4">NIM</th>
                                 <th className="px-6 py-4">Email</th>
-                                <th className="px-6 py-4">Jurusan</th>
+
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 text-sm">
@@ -124,7 +124,7 @@ export function DashboardDesktop() {
                                     <td className="px-6 py-4 font-bold text-gray-800">{student.nama}</td>
                                     <td className="px-6 py-4 font-mono text-gray-600">{student.nim}</td>
                                     <td className="px-6 py-4 text-gray-500">{student.user?.email}</td>
-                                    <td className="px-6 py-4 text-gray-600">{student.jurusan}</td>
+
                                 </tr>
                             ))}
                         </tbody>

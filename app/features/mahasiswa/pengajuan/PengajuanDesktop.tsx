@@ -2,12 +2,14 @@ import { useState, useEffect } from "react";
 import { pengajuanApi } from "~/api/pengajuan";
 import { CustomSelect } from "~/components/ui/custom-select";
 import { useNavigate } from "react-router";
-import { Loader2, Send, MessageSquare, RotateCcw, AlertTriangle } from "lucide-react";
+import { Loader2, Send, MessageSquare, RotateCcw, AlertTriangle, Calendar } from "lucide-react";
 import { Toast } from "~/components/ui/toast";
 import { DeleteConfirmationModal } from "~/components/ui/delete-confirmation-modal";
+import { useAuth } from "~/hooks/useAuth";
 
 export function PengajuanDesktop() {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [profile, setProfile] = useState<any>(null);
     const [dosenList, setDosenList] = useState<any[]>([]);
     const [formData, setFormData] = useState({
@@ -25,7 +27,7 @@ export function PengajuanDesktop() {
     const [submitting, setSubmitting] = useState(false);
     const [cancelling, setCancelling] = useState(false);
     const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
-    const [isReadOnly, setIsReadOnly] = useState(false);
+    const isReadOnly = profile?.pengajuanJudul?.[0]?.status === 'PENDING' || profile?.pengajuanJudul?.[0]?.status === 'APPROVED';
     const [toastProps, setToastProps] = useState<{title: string, variant?: "success" | "destructive" | "default"} | null>(null);
 
     const showToast = (title: string, variant: "success" | "destructive" | "default" = "success") => {
@@ -41,51 +43,43 @@ export function PengajuanDesktop() {
                 ]);
                 
                 // Block duplicate active applications, but allow resubmission for REJECTED and REVISION
+                const tahunMasuk = profileRes.tahunMasuk || user?.tahunMasuk;
+                let calculatedBatasStudi = "";
+                if (tahunMasuk) {
+                    const startYear = parseInt(tahunMasuk);
+                    calculatedBatasStudi = !isNaN(startYear) ? (startYear + 6).toString() : "";
+                }
+
                 if (profileRes.pengajuanJudul && profileRes.pengajuanJudul.length > 0) {
                     const latestPengajuan = profileRes.pengajuanJudul[0];
-                    if (latestPengajuan.status === 'PENDING' || latestPengajuan.status === 'APPROVED') {
-                        setIsReadOnly(true);
-                        setFormData({
-                            peminatan: (latestPengajuan.peminatan || "").trim(),
-                            semester: latestPengajuan.semester || "",
-                            tahunAkademik: latestPengajuan.tahunAkademik || "",
-                            judul: latestPengajuan.judul || "",
-                            dosenId: latestPengajuan.dosenId?.toString() || "",
-                            sksDicapai: latestPengajuan.sksDicapai?.toString() || "",
-                            sksNilaiD: latestPengajuan.sksNilaiD?.toString() || "",
-                            ipk: latestPengajuan.ipk?.toString() || "",
-                            batasStudi: latestPengajuan.batasStudi || ""
-                        });
-                    } else {
-                        // REJECTED or REVISION: Pre-fill with previous data so they can easily edit and resubmit
-                        setFormData({
-                            peminatan: latestPengajuan.peminatan || "",
-                            semester: latestPengajuan.semester || "",
-                            tahunAkademik: latestPengajuan.tahunAkademik || "",
-                            judul: latestPengajuan.judul || "",
-                            dosenId: latestPengajuan.dosenId?.toString() || "",
-                            sksDicapai: latestPengajuan.sksDicapai?.toString() || "",
-                            sksNilaiD: latestPengajuan.sksNilaiD?.toString() || "",
-                            ipk: latestPengajuan.ipk?.toString() || "",
-                            batasStudi: latestPengajuan.batasStudi || ""
-                        });
-                    }
-                } else if (profileRes.tahunMasuk) {
-                    // Smart Defaults for new applications
-                    const currentYear = new Date().getFullYear();
-                    const currentMonth = new Date().getMonth(); // 0-based
-                    const startYear = parseInt(profileRes.tahunMasuk);
-                    const diffYears = currentYear - startYear;
-                    const calculatedSemester = (diffYears * 2) + (currentMonth > 6 ? 1 : 0);
-                    const calculatedTahunAkademik = currentMonth > 6 ? `${currentYear}/${currentYear + 1}` : `${currentYear - 1}/${currentYear}`;
-                    const calculatedBatasStudi = !isNaN(startYear) ? (startYear + 6).toString() : "";
-                    
-                    setFormData(prev => ({
-                        ...prev,
-                        semester: calculatedSemester > 0 ? calculatedSemester.toString() : "1",
-                        tahunAkademik: calculatedTahunAkademik,
+                    setFormData({
+                        peminatan: latestPengajuan.peminatan || "",
+                        semester: latestPengajuan.semester || "",
+                        tahunAkademik: latestPengajuan.tahunAkademik || "",
+                        judul: latestPengajuan.judul || "",
+                        dosenId: latestPengajuan.dosenNidn?.toString() || latestPengajuan.dosenId?.toString() || "",
+                        sksDicapai: latestPengajuan.sksDicapai?.toString() || "",
+                        sksNilaiD: latestPengajuan.sksNilaiD?.toString() || "",
+                        ipk: latestPengajuan.ipk?.toString() || "",
                         batasStudi: calculatedBatasStudi
-                    }));
+                    });
+                } else {
+                    if (tahunMasuk) {
+                        // Smart Defaults for new applications
+                        const currentYear = new Date().getFullYear();
+                        const currentMonth = new Date().getMonth(); // 0-based
+                        const startYear = parseInt(tahunMasuk);
+                        const diffYears = currentYear - startYear;
+                        const calculatedSemester = (diffYears * 2) + (currentMonth > 6 ? 1 : 0);
+                        const calculatedTahunAkademik = currentMonth > 6 ? `${currentYear}/${currentYear + 1}` : `${currentYear - 1}/${currentYear}`;
+                    
+                        setFormData(prev => ({
+                            ...prev,
+                            semester: calculatedSemester > 0 ? calculatedSemester.toString() : "1",
+                            tahunAkademik: calculatedTahunAkademik,
+                            batasStudi: calculatedBatasStudi
+                        }));
+                    }
                 }
 
                 setProfile(profileRes);
@@ -108,19 +102,17 @@ export function PengajuanDesktop() {
             showToast("kamu harus memperbaiki nilai D tersebut", "default");
         }
 
-        // Warning toast for Batas Studi
-        if (name === 'batasStudi' && profile?.tahunMasuk) {
-            const startYear = parseInt(profile.tahunMasuk);
-            const limitYear = startYear + 6;
-            const enteredYear = parseInt(value);
-            if (!isNaN(limitYear) && !isNaN(enteredYear) && enteredYear > limitYear) {
-                showToast(`Batas studi tidak boleh melebihi tahun ${limitYear} (maksimal 6 tahun dari tahun masuk ${startYear})`, "destructive");
-            }
-        }
+        // Batas Studi is now read-only, no warning needed
     };
 
     const handleSelectChange = (name: string, value: string) => {
-        setFormData(prev => ({ ...prev, [name]: value }));
+        setFormData(prev => {
+            const newData = { ...prev, [name]: value };
+            if (name === "peminatan") {
+                newData.dosenId = ""; // Reset pembimbing when peminatan changes
+            }
+            return newData;
+        });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -132,16 +124,7 @@ export function PengajuanDesktop() {
             return;
         }
 
-        // Validasi Batas Studi
-        if (profile?.tahunMasuk && formData.batasStudi) {
-            const startYear = parseInt(profile.tahunMasuk);
-            const limitYear = startYear + 6;
-            const enteredYear = parseInt(formData.batasStudi);
-            if (!isNaN(limitYear) && !isNaN(enteredYear) && enteredYear > limitYear) {
-                showToast(`Batas studi tidak boleh melebihi tahun ${limitYear} (maksimal 6 tahun dari tahun masuk ${startYear}).`, "destructive");
-                return;
-            }
-        }
+        // Validasi Batas Studi is handled by the disabled input
 
         // BLOCK submission if SKS Grade D > 0
         if (Number(formData.sksNilaiD) > 0) {
@@ -167,9 +150,9 @@ export function PengajuanDesktop() {
             setTimeout(() => {
                 navigate("/mahasiswa"); 
             }, 3000);
-        } catch (error) {
-            console.error("Submission error", error);
-            showToast("Gagal mengirim pengajuan. Silakan coba lagi.", "destructive");
+        } catch (error: any) {
+            console.error("Submit error:", error);
+            showToast(error.response?.data?.message || "Gagal mengirim pengajuan. Silakan coba lagi.", "destructive");
             setSubmitting(false);
         }
     };
@@ -187,7 +170,6 @@ export function PengajuanDesktop() {
             showToast("Pengajuan berhasil dibatalkan. Silakan edit dan kirim ulang jika perlu.", "success");
             
             // Allow editing with current data instead of reloading
-            setIsReadOnly(false);
             setProfile((prev: any) => ({
                 ...prev,
                 pengajuanJudul: []
@@ -246,6 +228,21 @@ export function PengajuanDesktop() {
                                     <p className="text-sm text-yellow-900 italic">"{profile.pengajuanJudul[0].remarks}"</p>
                                 </div>
                             )}
+                            {profile.pengajuanJudul[0].deadlineRevisi && (
+                                <div className="mt-2 p-3 bg-white border border-yellow-200 rounded-lg">
+                                    <p className="text-xs font-bold text-yellow-700 mb-1 flex items-center gap-1">
+                                        <Calendar className="w-3.5 h-3.5" /> Batas Waktu Pengumpulan Revisi:
+                                    </p>
+                                    <p className="text-sm text-yellow-900 font-semibold">
+                                        {new Date(profile.pengajuanJudul[0].deadlineRevisi).toLocaleDateString('id-ID', {
+                                            weekday: 'long',
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric'
+                                        })}
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -281,15 +278,7 @@ export function PengajuanDesktop() {
                     {/* Section 1: Academic Info */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-4">
-                            <div className="flex flex-col gap-1.5">
-                                <label className="text-sm font-semibold text-gray-700">Program Studi</label>
-                                <input 
-                                    type="text" 
-                                    value={profile?.jurusan || "-"} 
-                                    disabled 
-                                    className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 font-medium"
-                                />
-                            </div>
+
                             <div className="flex flex-col gap-1.5">
                                 <label className="text-sm font-semibold text-gray-700">Semester</label>
                                 <input 
@@ -328,7 +317,7 @@ export function PengajuanDesktop() {
                                     <label className="text-sm font-semibold text-gray-700">Nama</label>
                                     <input 
                                         type="text" 
-                                        value={profile?.nama || "-"} 
+                                        value={user?.name || profile?.nama || "-"} 
                                         disabled 
                                         className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 font-medium"
                                     />
@@ -337,7 +326,7 @@ export function PengajuanDesktop() {
                                     <label className="text-sm font-semibold text-gray-700">No. Pokok / NIM</label>
                                     <input 
                                         type="text" 
-                                        value={profile?.nim || "-"} 
+                                        value={user?.mahasiswaNim || profile?.nim || "-"} 
                                         disabled 
                                         className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 font-medium bg-white"
                                     />
@@ -349,7 +338,7 @@ export function PengajuanDesktop() {
                                 <CustomSelect
                                     options={[
                                         { label: "Data Science", value: "Data Science" },
-                                        { label: "Artificial Intelligent", value: "Artificial Intelligent" },
+                                        { label: "Artificial Intelligence", value: "Artificial Intelligence" },
                                         { label: "Software Engineering", value: "Software Engineering" },
                                         { label: "Network and Cyber Security", value: "Network and Cyber Security" }
                                     ]}
@@ -393,11 +382,33 @@ export function PengajuanDesktop() {
                         <div className="flex flex-col gap-4">
                             <label className="text-lg font-bold text-gray-900">Usulan Pembimbing :</label>
                             <CustomSelect
-                                options={dosenList.map(d => ({ label: `${d.nama} (${d.appointment || d.jabatan})`, value: d.id.toString() }))}
+                                options={[...dosenList]
+                                    .filter(d => {
+                                        if (!formData.peminatan) return true;
+                                        return d.peminatan && Array.isArray(d.peminatan) && d.peminatan.includes(formData.peminatan);
+                                    })
+                                    .sort((a, b) => {
+                                        const aSelectable = (a.jabatan || '').toLowerCase().includes('pembimbing') || (a.jabatan || '').toLowerCase().includes('koordinator');
+                                        const bSelectable = (b.jabatan || '').toLowerCase().includes('pembimbing') || (b.jabatan || '').toLowerCase().includes('koordinator');
+                                        if (aSelectable && !bSelectable) return -1;
+                                        if (!aSelectable && bSelectable) return 1;
+                                        return a.nama.localeCompare(b.nama);
+                                    })
+                                    .map(d => {
+                                        const isSelectable = (d.jabatan || '').toLowerCase().includes('pembimbing') || (d.jabatan || '').toLowerCase().includes('koordinator');
+                                        const peminatanText = d.peminatan && Array.isArray(d.peminatan) && d.peminatan.length > 0 
+                                            ? ` - [${d.peminatan.join(', ')}]` 
+                                            : '';
+                                        return { 
+                                            label: isSelectable ? `${d.nama} (${d.appointment || d.jabatan})${peminatanText}` : `${d.nama} (Viewer)`, 
+                                            value: d.nidn.toString(),
+                                            disabled: !isSelectable
+                                        };
+                                    })}
                                 value={formData.dosenId}
                                 onChange={(val) => handleSelectChange("dosenId", val)}
                                 disabled={isReadOnly}
-                                placeholder="Pilih Dosen Pembimbing"
+                                placeholder={formData.peminatan ? "Pilih Dosen Pembimbing" : "Pilih Peminatan Dahulu"}
                                 className="w-full"
                             />
                         </div>
@@ -459,10 +470,9 @@ export function PengajuanDesktop() {
                                     type="text" 
                                     name="batasStudi"
                                     value={formData.batasStudi}
-                                    onChange={handleInputChange}
-                                    disabled={isReadOnly}
-                                    placeholder="Sisa masa studi e.g. 2030"
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all"
+                                    disabled={true}
+                                    placeholder="Otomatis (Tahun Masuk + 6)"
+                                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 font-medium"
                                     required
                                 />
                             </div>

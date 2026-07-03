@@ -3,21 +3,24 @@ import { getGrade } from "~/features/dosen/penilaian/desktop/PenilaianDesktop";
 import type { PenilaianItem } from "~/features/dosen/penilaian/desktop/PenilaianDesktop";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { Search, Edit3, Trash2, AlertCircle } from "lucide-react";
+import { Search, Edit3, Trash2, AlertCircle, Printer } from "lucide-react";
 import { cn } from "~/lib/utils";
 
 interface PenugasanPengujiViewProps {
     data: PenilaianItem[];
-    dosenList: { id: number; nama: string }[];
+    dosenList: { id: string; nama: string }[];
     isLowVision: boolean;
     user: any;
-    assigningId: number | null;
-    openDropdownId: number | null;
-    setOpenDropdownId: (val: number | null) => void;
-    setConfirmAssignPenguji: (val: { pembimbingId: number; pengujiId: number | null; pengujiNama: string | null } | null) => void;
+    assigningId: string | null;
+    openDropdownId: string | null;
+    setOpenDropdownId: (val: string | null) => void;
+    onAssignPenguji: (mahasiswaId: string, pengujiId: string) => Promise<void>;
+    onCancelPenguji: (mahasiswaId: string) => Promise<void>;
     onOpenForm: (item: PenilaianItem) => void;
     onDeleteConfirm: (item: PenilaianItem) => void;
+    setConfirmModal: (modal: any) => void;
     onRefresh?: () => Promise<void> | void;
+    onCancelPengujiBulk: (pembimbingId: string) => Promise<void>;
 }
 
 export function PenugasanPengujiView({
@@ -28,15 +31,18 @@ export function PenugasanPengujiView({
     assigningId,
     openDropdownId,
     setOpenDropdownId,
-    setConfirmAssignPenguji,
+    onAssignPenguji,
+    onCancelPenguji,
     onOpenForm,
     onDeleteConfirm,
-    onRefresh
+    setConfirmModal,
+    onRefresh,
+    onCancelPengujiBulk
 }: PenugasanPengujiViewProps) {
-    const [selectedPembimbingId, setSelectedPembimbingId] = useState<number | "all" | null>("all");
+    const [selectedPembimbingId, setSelectedPembimbingId] = useState<string | "all" | null>("all");
     const [dropdownSearch, setDropdownSearch] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
-    const [isEditingPenguji, setIsEditingPenguji] = useState(false);
+    const [isEditingBulk, setIsEditingBulk] = useState(false);
 
     const currentDosen = dosenList.find(d => d.nama === user?.name);
     const activePembimbingId = selectedPembimbingId === "all" ? null : (selectedPembimbingId || currentDosen?.id || (dosenList.length > 0 ? dosenList[0].id : null));
@@ -45,14 +51,27 @@ export function PenugasanPengujiView({
     const activePembimbingStudents = selectedPembimbingId === "all"
         ? data
         : data.filter(item => item.pembimbingId === activePembimbingId || item.pembimbingNama === activePembimbing?.nama);
-    const activePengujiId = selectedPembimbingId === "all" ? null : (activePembimbingStudents[0]?.pengujiId || null);
-    const activePenguji = selectedPembimbingId === "all" ? null : dosenList.find(d => d.id === activePengujiId);
 
     const filteredData = activePembimbingStudents.filter(item =>
         item.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.nim.includes(searchQuery) ||
         (item.judulSkripsi && item.judulSkripsi.toLowerCase().includes(searchQuery.toLowerCase()))
     );
+
+    const activePengujiNama = activePembimbingStudents.find(item => item.pengujiNama)?.pengujiNama;
+
+    const handlePrintSuratTugasBulk = (students: PenilaianItem[]) => {
+        const firstStudent = students.find(s => s.suratTugasUrl);
+        if (firstStudent && firstStudent.suratTugasUrl) {
+            import("~/api/client").then(({ UPLOADS_URL }) => {
+                window.open(`${UPLOADS_URL}${firstStudent.suratTugasUrl}`, '_blank');
+            });
+        } else {
+            // Note: In PenugasanPengujiView, showToast is not directly available in props.
+            // We can alert if it's not found or import a toast hook if available.
+            alert("Surat tugas belum diunggah atau tidak ditemukan.");
+        }
+    };
 
     return (
         <div className="flex flex-col gap-6">
@@ -90,12 +109,12 @@ export function PenugasanPengujiView({
                                 variant="outline"
                                 type="button"
                                 onClick={() => {
-                                    setOpenDropdownId(openDropdownId === -10 ? null : -10);
+                                    setOpenDropdownId(openDropdownId === "-10" ? null : "-10");
                                     setDropdownSearch("");
                                 }}
                                 className={cn(
                                     "text-sm bg-white border rounded-xl px-3.5 py-2.5 font-bold text-slate-700 flex items-center justify-between w-full h-11 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#119DA4] hover:bg-slate-50 hover:text-slate-800",
-                                    openDropdownId === -10 ? "border-[#119DA4]" : "border-slate-200",
+                                    openDropdownId === "-10" ? "border-[#119DA4]" : "border-slate-200",
                                     isLowVision && "border-2 border-black font-black text-base text-black h-12"
                                 )}
                             >
@@ -104,7 +123,7 @@ export function PenugasanPengujiView({
                                 </span>
                                 <span>▼</span>
                             </Button>
-                            {openDropdownId === -10 && (
+                            {openDropdownId === "-10" && (
                                 <div className={cn(
                                     "absolute left-0 mt-1.5 w-full min-w-[280px] bg-white border rounded-xl shadow-xl z-50 p-2 animate-in fade-in slide-in-from-top-1 duration-150 origin-top-left",
                                     isLowVision ? "border-3 border-black text-black" : "border-slate-200"
@@ -128,7 +147,6 @@ export function PenugasanPengujiView({
                                             onClick={() => {
                                                 setSelectedPembimbingId("all");
                                                 setOpenDropdownId(null);
-                                                setIsEditingPenguji(false);
                                             }}
                                             className={cn(
                                                 "w-full text-left px-2.5 py-2.5 text-sm rounded-md transition-colors flex items-center justify-between gap-4 border-b border-slate-50",
@@ -157,7 +175,6 @@ export function PenugasanPengujiView({
                                                         onClick={() => {
                                                             setSelectedPembimbingId(d.id);
                                                             setOpenDropdownId(null);
-                                                            setIsEditingPenguji(false);
                                                         }}
                                                         className={cn(
                                                             "w-full text-left px-2.5 py-2.5 text-sm rounded-md transition-colors flex items-center justify-between gap-4 border-b border-slate-50",
@@ -195,141 +212,121 @@ export function PenugasanPengujiView({
                     </div>
 
                     {/* Separator Line */}
-                    {selectedPembimbingId !== "all" && (
-                        <div className="hidden md:block w-[1px] h-10 bg-slate-200 shrink-0" />
-                    )}
+                    <div className="hidden md:block w-[1px] h-10 bg-slate-200 shrink-0" />
 
-                    {/* 2. Bulk Dosen Penguji Selector */}
-                    {selectedPembimbingId !== "all" && (
-                        <div className="flex flex-col gap-2 w-full md:w-[280px]">
+                    {/* 2. Penguji Bulk Assignment Dropdown */}
+                    <div className="flex flex-col gap-2 w-full md:w-auto md:min-w-[280px]">
                         <label className={cn("text-xs font-black uppercase tracking-wider text-slate-500", isLowVision && "text-sm text-black font-black")}>
-                            Dosen Penguji (Tugaskan Khusus Mahasiswa yang Dibimbing)
+                            Tugaskan Dosen Penguji
                         </label>
-                        {activePenguji && !isEditingPenguji ? (
-                            <div className={cn(
-                                "flex items-center justify-between gap-3 h-11 border px-3 rounded-xl bg-slate-50 border-slate-200/80 shadow-sm",
-                                isLowVision && "border-2 border-black bg-white h-12"
-                            )}>
-                                <span className={cn("text-sm font-bold text-slate-700 truncate flex items-center gap-1.5", isLowVision && "text-black font-black text-sm")}>
-                                    🔒 {activePenguji.nama}
-                                </span>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setIsEditingPenguji(true)}
-                                    className={cn(
-                                        "h-8 text-[11px] font-black text-[#119DA4] bg-[#119DA4]/5 border border-[#119DA4]/20 hover:bg-[#119DA4]/10 rounded-lg px-2 flex items-center gap-1 shrink-0 transition-all",
-                                        isLowVision && "border-2 border-black text-black font-black text-xs hover:bg-slate-200 h-9"
-                                    )}
-                                >
-                                    Ubah Penguji
-                                </Button>
+                        {activePengujiNama && !isEditingBulk && selectedPembimbingId !== "all" ? (
+                            <div className="flex flex-col gap-2">
+                                <div className={cn("flex items-center gap-2 px-3.5 py-2.5 rounded-xl border", isLowVision ? "border-2 border-black bg-white" : "border-orange-200 bg-orange-50")}>
+                                    <span className={cn("font-bold text-sm truncate", isLowVision ? "text-black" : "text-orange-700")}>🔒 {activePengujiNama}</span>
+                                </div>
+                                <div className="flex flex-row gap-1.5">
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        onClick={() => handlePrintSuratTugasBulk(activePembimbingStudents)}
+                                        className={cn("h-8 flex-1 text-[10px] font-bold text-blue-600 border-blue-200 hover:bg-blue-50 px-1", isLowVision && "border-2 border-black text-black")}
+                                    >
+                                        <Printer size={12} className="mr-1 hidden sm:inline" /> Cetak
+                                    </Button>
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        onClick={() => setIsEditingBulk(true)}
+                                        className={cn("h-8 flex-1 text-[10px] font-bold text-orange-600 border-orange-200 hover:bg-orange-50 px-1", isLowVision && "border-2 border-black text-black")}
+                                    >
+                                        <Edit3 size={12} className="mr-1 hidden sm:inline" /> Ubah
+                                    </Button>
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        onClick={() => setConfirmModal({
+                                            type: 'cancel_bulk',
+                                            pembimbingId: activePembimbingId!,
+                                            pembimbingName: activePembimbing?.nama
+                                        })}
+                                        className={cn("h-8 flex-1 text-[10px] font-bold text-red-600 border-red-200 hover:bg-red-50 px-1", isLowVision && "border-2 border-black text-black")}
+                                    >
+                                        <Trash2 size={12} className="mr-1 hidden sm:inline" /> Batal
+                                    </Button>
+                                </div>
                             </div>
                         ) : (
                             <div className="relative custom-dropdown-container">
-                                <div className="flex gap-1.5">
-                                    <Button
-                                        variant="outline"
-                                        type="button"
-                                        onClick={() => {
-                                            setOpenDropdownId(openDropdownId === -20 ? null : -20);
-                                            setDropdownSearch("");
-                                        }}
-                                        className={cn(
-                                            "text-sm bg-white border rounded-xl px-3.5 py-2.5 font-bold text-slate-700 flex items-center justify-between flex-1 h-11 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#119DA4] hover:bg-slate-50 hover:text-slate-800",
-                                            openDropdownId === -20 ? "border-[#119DA4]" : "border-slate-200",
-                                            isLowVision && "border-2 border-black font-black text-base text-black h-12"
-                                        )}
-                                    >
-                                        <span className="truncate">
-                                            {activePenguji?.nama || "Belum Ditugaskan"}
-                                        </span>
-                                        <span>▼</span>
-                                    </Button>
-                                    {activePenguji && (
-                                        <Button
-                                            variant="outline"
-                                            onClick={() => {
-                                                setIsEditingPenguji(false);
-                                                setOpenDropdownId(null);
-                                            }}
-                                            className={cn("h-11 px-3 border border-slate-200 hover:bg-slate-50 rounded-xl text-slate-500 text-xs font-bold", isLowVision && "border-2 border-black text-black h-12 font-black")}
-                                            title="Batalkan Pengeditan"
-                                        >
-                                            Batal
-                                        </Button>
-                                    )}
-                                </div>
-                                {openDropdownId === -20 && (
-                                    <div className={cn(
-                                        "absolute left-0 mt-1.5 w-full min-w-[260px] bg-white border rounded-xl shadow-xl z-50 p-2 animate-in fade-in slide-in-from-top-1 duration-150 origin-top-left",
-                                        isLowVision ? "border-3 border-black text-black" : "border-slate-200"
-                                    )}>
-                                        <div className="relative mb-2">
-                                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                                            <input
-                                                type="text"
-                                                placeholder="Cari Penguji..."
-                                                value={dropdownSearch}
-                                                onChange={(e) => setDropdownSearch(e.target.value)}
-                                                className={cn(
-                                                    "w-full pl-8 pr-2 py-1.5 text-sm border rounded-lg focus:outline-none focus:border-[#119DA4]",
-                                                    isLowVision ? "border-2 border-black text-black font-bold" : "border-slate-200"
-                                                )}
-                                            />
-                                        </div>
-                                        <div className="max-h-[200px] overflow-y-auto flex flex-col gap-0.5">
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setConfirmAssignPenguji({
-                                                        pembimbingId: activePembimbingId!,
-                                                        pengujiId: null,
-                                                        pengujiNama: null
-                                                    });
-                                                    setOpenDropdownId(null);
-                                                    setIsEditingPenguji(false);
-                                                }}
-                                                className={cn(
-                                                    "w-full text-left px-2.5 py-2 text-sm rounded-md font-bold text-red-600 hover:bg-red-50 transition-colors flex items-center gap-1.5",
-                                                    isLowVision && "text-sm border-b border-black"
-                                                )}
-                                            >
-                                                ✕ Kosongkan Penguji
-                                            </button>
-                                            {dosenList
-                                                .filter(d => d.id !== activePembimbingId && d.nama.toLowerCase().includes(dropdownSearch.toLowerCase()))
-                                                .map(d => (
-                                                    <button
-                                                        key={d.id}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setConfirmAssignPenguji({
-                                                                pembimbingId: activePembimbingId!,
-                                                                pengujiId: d.id,
-                                                                pengujiNama: d.nama
-                                                            });
-                                                            setOpenDropdownId(null);
-                                                            setIsEditingPenguji(false);
-                                                        }}
-                                                        className={cn(
-                                                            "w-full text-left px-2.5 py-2 text-sm rounded-md transition-colors flex items-center justify-between",
-                                                            d.id === activePengujiId ? "bg-slate-100 text-[#119DA4] font-extrabold" : "text-slate-700 hover:bg-slate-50",
-                                                            isLowVision && "text-sm text-black font-black hover:bg-slate-200 border-b border-black"
-                                                        )}
-                                                    >
-                                                        <span className="truncate">{d.nama}</span>
-                                                        {d.id === activePengujiId && <span>✓</span>}
-                                                    </button>
-                                                ))
-                                            }
-                                        </div>
-                                    </div>
+                                <Button
+                                    variant="outline"
+                                    type="button"
+                                    disabled={selectedPembimbingId === "all" || !activePembimbingId}
+                                    onClick={() => {
+                                        setOpenDropdownId(openDropdownId === "-20" ? null : "-20");
+                                        setDropdownSearch("");
+                                    }}
+                                className={cn(
+                                    "text-sm bg-white border rounded-xl px-3.5 py-2.5 font-bold text-slate-700 flex items-center justify-between w-full h-11 shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 hover:bg-slate-50 hover:text-slate-800 disabled:opacity-50 disabled:cursor-not-allowed",
+                                    openDropdownId === "-20" ? "border-orange-500" : "border-slate-200",
+                                    isLowVision && "border-2 border-black font-black text-base text-black h-12"
                                 )}
-                            </div>
+                            >
+                                <span className="truncate">
+                                    {selectedPembimbingId === "all" ? "Pilih satu pembimbing dulu" : (activePengujiNama || "Pilih Penguji")}
+                                </span>
+                                <span>▼</span>
+                            </Button>
+                            {openDropdownId === "-20" && (
+                                <div className={cn(
+                                    "absolute left-0 mt-1.5 w-full min-w-[280px] bg-white border rounded-xl shadow-xl z-50 p-2 animate-in fade-in slide-in-from-top-1 duration-150 origin-top-left",
+                                    isLowVision ? "border-3 border-black text-black" : "border-slate-200"
+                                )}>
+                                    <div className="relative mb-2">
+                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                        <input
+                                            type="text"
+                                            placeholder="Cari Penguji..."
+                                            value={dropdownSearch}
+                                            onChange={(e) => setDropdownSearch(e.target.value)}
+                                            className={cn(
+                                                "w-full pl-8 pr-2.5 py-1.5 text-sm border rounded-lg focus:outline-none focus:border-orange-500",
+                                                isLowVision ? "border-2 border-black text-black font-bold" : "border-slate-200"
+                                            )}
+                                        />
+                                    </div>
+                                    <div className="max-h-[300px] overflow-y-auto flex flex-col gap-0.5">
+                                        {dosenList
+                                            .filter(d => d.nama.toLowerCase().includes(dropdownSearch.toLowerCase()) && d.id !== activePembimbingId)
+                                            .map(d => (
+                                                <button
+                                                    key={d.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setOpenDropdownId(null);
+                                                        setDropdownSearch("");
+                                                        setConfirmModal({
+                                                            type: 'bulk',
+                                                            pembimbingId: activePembimbingId!,
+                                                            pengujiId: d.id,
+                                                            pembimbingName: activePembimbing?.nama,
+                                                            pengujiName: d.nama
+                                                        });
+                                                    }}
+                                                    className={cn(
+                                                        "w-full text-left px-3 py-2 text-sm rounded-md transition-colors border-b border-slate-50 font-bold",
+                                                        "text-slate-700 hover:bg-orange-50 hover:text-orange-700",
+                                                        isLowVision && "text-sm text-black font-black hover:bg-slate-200 border-b border-black"
+                                                    )}
+                                                >
+                                                    {d.nama}
+                                                </button>
+                                            ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                         )}
                     </div>
-                    )}
                 </div>
 
                 <div className="flex flex-col items-end gap-1">
@@ -354,7 +351,7 @@ export function PenugasanPengujiView({
                                 "border-b",
                                 isLowVision ? "bg-black border-black text-white" : "bg-slate-50/50 border-slate-100"
                             )}>
-                                <th colSpan={12} className="px-6 py-3 text-center">
+                                <th colSpan={13} className="px-6 py-3 text-center">
                                     <span className={cn(
                                         "text-[10px] font-bold uppercase tracking-[0.2em]",
                                         isLowVision ? "text-white text-xs font-black" : "text-slate-400"
@@ -369,6 +366,7 @@ export function PenugasanPengujiView({
                                 <th rowSpan={2} className={cn("px-6 py-4 text-[11px] font-bold uppercase tracking-wider w-32", isLowVision ? "text-black border-r border-black font-black text-xs" : "text-slate-400")}>NPM</th>
                                 <th rowSpan={2} className={cn("px-6 py-4 text-[11px] font-bold uppercase tracking-wider w-64", isLowVision ? "text-black border-r border-black font-black text-xs" : "text-slate-400")}>Nama Mahasiswa</th>
                                 <th rowSpan={2} className={cn("px-6 py-4 text-[11px] font-bold uppercase tracking-wider w-56 border-l", isLowVision ? "text-black border-black border-r font-black text-xs" : "text-slate-400")}>Dosen Pembimbing</th>
+                                <th rowSpan={2} className={cn("px-6 py-4 text-[11px] font-bold uppercase tracking-wider w-56 border-l", isLowVision ? "text-black border-black border-r font-black text-xs" : "text-slate-400")}>Dosen Penguji</th>
                                 <th colSpan={3} className={cn("px-6 py-2 text-[11px] font-bold uppercase tracking-wider text-center border-l", isLowVision ? "text-black border-black border-r font-black text-xs" : "text-slate-400 bg-blue-50/30")}>Dosen Pembimbing (35%, 30%, 35%)</th>
                                 <th rowSpan={2} className={cn("px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-center border-l", isLowVision ? "text-black border-black border-r font-black text-xs bg-slate-100" : "text-blue-600 bg-blue-50/50")}>Nilai Pembimbing</th>
                                 <th colSpan={3} className={cn("px-6 py-2 text-[11px] font-bold uppercase tracking-wider text-center border-l", isLowVision ? "text-black border-black border-r font-black text-xs" : "text-slate-400 bg-orange-50/30")}>Dosen Penguji (35%, 30%, 35%)</th>
@@ -391,7 +389,7 @@ export function PenugasanPengujiView({
                         <tbody className="divide-y divide-slate-100">
                              {filteredData.length === 0 ? (
                                  <tr>
-                                     <td colSpan={11} className={cn("py-20 text-center text-sm", isLowVision ? "text-lg font-black text-black" : "text-slate-400")}>Belum ada data mahasiswa bimbingan dosen ini.</td>
+                                     <td colSpan={12} className={cn("py-20 text-center text-sm", isLowVision ? "text-lg font-black text-black" : "text-slate-400")}>Belum ada data mahasiswa bimbingan dosen ini.</td>
                                  </tr>
                             ) : filteredData.map((item, idx) => (
                                 <tr key={item.mahasiswaId} className={cn(
@@ -403,11 +401,24 @@ export function PenugasanPengujiView({
                                     <td className={cn("px-6 py-4 whitespace-nowrap", isLowVision ? "border-r border-black" : "")}>
                                         <div className="flex flex-col">
                                             <span className={cn("font-bold text-slate-900", isLowVision ? "text-lg font-black text-black" : "text-sm")}>{item.nama}</span>
-                                            <span className={cn("text-[10px] text-slate-400 uppercase tracking-tight", isLowVision ? "text-xs text-slate-600 font-extrabold" : "")}>{item.jurusan}</span>
+
                                         </div>
                                     </td>
                                     <td className={cn("px-6 py-4 border-l font-bold text-slate-700", isLowVision ? "border-black border-r text-base font-black text-black" : "border-slate-100 text-sm")}>
                                         {item.pembimbingNama || "-"}
+                                    </td>
+                                    <td className={cn("px-4 py-4 border-l align-top", isLowVision ? "border-black border-r" : "border-slate-100")}>
+                                        {item.pengujiNama ? (
+                                            <div className="flex flex-col gap-2">
+                                                <div className={cn("flex items-center gap-2 p-2 rounded-lg bg-slate-50 border border-slate-200", isLowVision && "border-2 border-black bg-white")}>
+                                                    <span className={cn("text-xs font-bold text-slate-700 truncate", isLowVision && "text-black font-black")}>
+                                                        🔒 {item.pengujiNama}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <span className="text-xs text-slate-400 italic font-medium px-2 block">Belum ada penguji</span>
+                                        )}
                                     </td>
                                     <td className={cn("px-2 py-4 text-center text-xs border-l", isLowVision ? "text-sm border-black font-black text-black" : "bg-blue-50/5")}>{item.p1_k1 || "-"}</td>
                                     <td className={cn("px-2 py-4 text-center text-xs", isLowVision ? "text-sm border-l border-black font-black text-black" : "bg-blue-50/5")}>{item.p1_k2 || "-"}</td>

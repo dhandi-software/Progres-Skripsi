@@ -64,28 +64,28 @@ export function PeninjauanDesktop({
             <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-4 rounded-xl shadow-sm border border-gray-100 font-['Noto_Sans']">
                 <div className="flex gap-3 w-full md:w-auto">
                     {/* Status Filter */}
-                    <div className="w-[140px]">
-                                <CustomSelect 
-                                    value={filterStatus}
-                                    onChange={(val) => setFilterStatus(val)}
-                                    options={[
-                                        { value: "ALL", label: "Semua" },
-                                        { value: "PENDING", label: "Pending" },
-                                        { value: "APPROVED", label: "Disetujui" }
-                                    ]}
-                                    placeholder="Status"
-                                />
+                    <div className="w-[150px]">
+                        <CustomSelect
+                            options={[
+                                { label: "Semua Status", value: "ALL" },
+                                { label: "Pending", value: "PENDING" },
+                                { label: "Disetujui", value: "APPROVED" },
+                            ]}
+                            value={filterStatus}
+                            onChange={(val) => setFilterStatus(val || "ALL")}
+                            placeholder="Pilih Status"
+                        />
                     </div>
 
                     {/* Sort */}
-                    <div className="w-[130px]">
-                        <CustomSelect 
-                            value={sortOrder}
-                            onChange={(val) => setSortOrder(val as any)}
+                    <div className="w-[140px]">
+                        <CustomSelect
                             options={[
-                                { value: "TERBARU", label: "Terbaru" },
-                                { value: "TERLAMA", label: "Terlama" }
+                                { label: "Terbaru", value: "TERBARU" },
+                                { label: "Terlama", value: "TERLAMA" },
                             ]}
+                            value={sortOrder}
+                            onChange={(val) => setSortOrder(val as any || "TERBARU")}
                             placeholder="Urutkan"
                         />
                     </div>
@@ -151,7 +151,7 @@ export function PeninjauanDesktop({
                                                     )}
                                                 </div>
                                                 <span className="text-xs font-normal font-['Noto_Sans'] text-gray-400 mt-1">NIM: {item.mahasiswa.nim}</span>
-                                                <span className="text-[11px] font-normal font-['Noto_Sans'] text-gray-400" title={item.mahasiswa.jurusan}>{item.mahasiswa.jurusan}</span>
+
                                             </div>
                                         </div>
                                     </td>
@@ -171,6 +171,10 @@ export function PeninjauanDesktop({
                                         ) : item.status === 'REJECTED' ? (
                                             <div className="inline-flex px-3 py-1.5 bg-white rounded-md border border-gray-200 items-center justify-center" title="Ditolak">
                                                 <span className="text-gray-800 text-[10px] font-bold uppercase tracking-wider font-['Noto_Sans']">REJECTED</span>
+                                            </div>
+                                        ) : item.status === 'REVISION' ? (
+                                            <div className="inline-flex px-3 py-1.5 bg-white rounded-md border border-gray-200 items-center justify-center" title="Revisi">
+                                                <span className="text-gray-800 text-[10px] font-bold uppercase tracking-wider font-['Noto_Sans']">REVISION</span>
                                             </div>
                                         ) : (
                                             <div className="inline-flex px-3 py-1.5 bg-white rounded-md border border-gray-200 items-center justify-center" title="Menunggu Tinjauan">

@@ -14,17 +14,17 @@ export function ProfileDetails({ profile, onUpdate }: ProfileDetailsProps) {
     const [isEditing, setIsEditing] = useState(false);
     const [nama, setNama] = useState(profile?.nama || "");
     const [jabatan, setJabatan] = useState(profile?.jabatan || "");
-    const [email, setEmail] = useState(profile?.user?.email || "");
-    const [nomorTelepon, setNomorTelepon] = useState(profile?.user?.nomorTelepon || "");
+    const [email, setEmail] = useState(profile?.email || "");
+    const [nomorTelepon, setNomorTelepon] = useState(profile?.nomorTelepon || "");
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         if (profile) {
             setNama(profile.nama || "");
             setJabatan(profile.jabatan || "");
-            setEmail(profile.user?.email || "");
-            setNomorTelepon(profile.user?.nomorTelepon || "");
-            if (!profile.user?.nomorTelepon) {
+            setEmail(profile?.email || "");
+            setNomorTelepon(profile?.nomorTelepon || "");
+            if (!profile?.nomorTelepon) {
                 setIsEditing(true);
             }
         }
@@ -148,7 +148,7 @@ export function ProfileDetails({ profile, onUpdate }: ProfileDetailsProps) {
                                 />
                             ) : (
                                 <div className="px-5 py-4 bg-gray-50/50 rounded-2xl border border-gray-50 font-bold text-gray-800 text-lg">
-                                    {profile?.user?.email || "-"}
+                                    {profile?.email || "-"}
                                 </div>
                             )}
                         </div>
@@ -166,7 +166,7 @@ export function ProfileDetails({ profile, onUpdate }: ProfileDetailsProps) {
                                 />
                             ) : (
                                 <div className="px-5 py-4 bg-gray-50/50 rounded-2xl border border-gray-50 font-bold text-gray-800 text-lg">
-                                    {profile?.user?.nomorTelepon || <span className="text-red-400 italic font-normal text-sm">Belum diisi (Wajib)</span>}
+                                    {profile?.nomorTelepon || <span className="text-red-400 italic font-normal text-sm">Belum diisi (Wajib)</span>}
                                 </div>
                             )}
                         </div>
@@ -213,7 +213,7 @@ export function ProfileDetails({ profile, onUpdate }: ProfileDetailsProps) {
                                 <Mail className="w-5 h-5 text-white" />
                             </div>
                             <div className="min-w-0 flex-1">
-                                <p className="text-sm font-black leading-none truncate break-all">{profile?.user?.email || "Email N/A"}</p>
+                                <p className="text-sm font-black leading-none truncate break-all">{profile?.email || "Email N/A"}</p>
                                 <p className="text-[10px] opacity-70 mt-1 uppercase font-bold tracking-wider">Official University Mail</p>
                             </div>
                         </div>

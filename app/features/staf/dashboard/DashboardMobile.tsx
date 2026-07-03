@@ -86,7 +86,7 @@ export function DashboardMobile() {
                             <div className="flex flex-col gap-0.5">
                                 <span className="font-bold text-gray-800 text-sm leading-tight">{student.nama}</span>
                                 <span className="text-[10px] font-mono text-gray-400 uppercase tracking-tighter">
-                                    {student.nim} • {student.jurusan}
+                                    {student.nim}
                                 </span>
                             </div>
                             <ChevronRight size={14} className="text-gray-300" />

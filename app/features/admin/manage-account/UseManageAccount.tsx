@@ -50,7 +50,7 @@ export const useManageAccount = () => {
     const filtered = users.filter(
       (user) =>
         user.name.toLowerCase().includes(lowerQuery) ||
-        user.email.toLowerCase().includes(lowerQuery) ||
+        (user.email || user.mahasiswa?.email || user.dosen?.email || user.staf?.email || "").toLowerCase().includes(lowerQuery) ||
         (user.username && user.username.toLowerCase().includes(lowerQuery))
     );
     setFilteredUsers(filtered);

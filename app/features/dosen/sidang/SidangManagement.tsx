@@ -12,6 +12,7 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
+import { Toast } from "~/components/ui/toast";
 
 interface SidangItem {
     id: number;
@@ -32,7 +33,6 @@ interface SidangItem {
     lokasi: string | null;
     status: string;
     pembimbingApproved: boolean;
-    prodiApproved: boolean;
     catatan: string | null;
 }
 
@@ -44,6 +44,7 @@ export default function SidangManagement() {
     const [activeTab, setActiveTab] = useState<"sidang" | "pengajuan">("sidang");
     const [isScheduling, setIsScheduling] = useState<SidangItem | null>(null);
     const [isApplying, setIsApplying] = useState<any | null>(null);
+    const [toast, setToast] = useState<{title: string, variant: "success" | "destructive"} | null>(null);
     
     // Scheduling Form
     const [schedData, setSchedData] = useState({
@@ -78,14 +79,16 @@ export default function SidangManagement() {
     const handleApply = async () => {
         if (!isApplying) return;
         try {
-            await sidangApi.applyForSidang({
-                mahasiswaId: isApplying.mahasiswa.id,
-                judul: isApplying.judul || "Skripsi"
-            });
+            const formData = new FormData();
+            formData.append("mahasiswaId", isApplying.mahasiswa.id.toString());
+            formData.append("judul", isApplying.judul || "Skripsi");
+            
+            await sidangApi.applyForSidang(formData);
             setIsApplying(null);
             fetchData();
+            setToast({ title: "Berhasil mengajukan sidang!", variant: "success" });
         } catch (error) {
-            alert("Gagal mengajukan sidang.");
+            setToast({ title: "Gagal mengajukan sidang.", variant: "destructive" });
         }
     };
 
@@ -93,8 +96,9 @@ export default function SidangManagement() {
         try {
             await sidangApi.pembimbingApprove(id);
             fetchData();
+            setToast({ title: "Berhasil menyetujui sidang!", variant: "success" });
         } catch (error) {
-            alert("Gagal menyetujui.");
+            setToast({ title: "Gagal menyetujui.", variant: "destructive" });
         }
     };
 
@@ -107,8 +111,9 @@ export default function SidangManagement() {
             });
             setIsScheduling(null);
             fetchData();
+            setToast({ title: "Berhasil menyimpan jadwal!", variant: "success" });
         } catch (error) {
-            alert("Gagal menjadwalkan.");
+            setToast({ title: "Gagal menjadwalkan.", variant: "destructive" });
         }
     };
 
@@ -337,6 +342,16 @@ export default function SidangManagement() {
                              <Button onClick={handleApply} className="flex-[2] bg-emerald-600 text-white rounded-2xl font-black shadow-lg shadow-emerald-600/20">Ya, Ajukan</Button>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {toast && (
+                <div className="fixed top-10 right-10 z-[300]">
+                    <Toast 
+                        title={toast.title} 
+                        variant={toast.variant} 
+                        onClose={() => setToast(null)} 
+                    />
                 </div>
             )}
         </div>

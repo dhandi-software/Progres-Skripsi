@@ -98,17 +98,7 @@ export function EditAccountMobile() {
                                 className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500/10 focus:border-pink-500 transition-all text-sm"
                              />
                         </div>
-                        <div className="flex flex-col gap-2">
-                            <label className="text-sm font-medium text-gray-700">Jurusan</label>
-                             <input 
-                                type="text"
-                                name="jurusan"
-                                value={formData.jurusan}
-                                onChange={handleInputChange}
-                                placeholder="Department"
-                                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500/10 focus:border-pink-500 transition-all text-sm"
-                             />
-                        </div>
+
                         <div className="flex flex-col gap-2">
                             <label className="text-sm font-medium text-gray-700">Tahun Masuk</label>
                              <input 

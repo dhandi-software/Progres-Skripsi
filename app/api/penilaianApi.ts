@@ -7,14 +7,30 @@ export const penilaianApi = {
         return response.data;
     },
 
-    assignPenguji: async (mahasiswaId: number, pengujiId: number | null) => {
-        const response = await client.post("/penilaian/assign-penguji", { mahasiswaId, pengujiId });
+    assignPenguji: async (data: { mahasiswaId: string; pengujiId: string; surat_tugas?: File | null }) => {
+        const formData = new FormData();
+        formData.append("mahasiswaId", data.mahasiswaId);
+        formData.append("pengujiId", data.pengujiId);
+        if (data.surat_tugas) {
+            formData.append("surat_tugas", data.surat_tugas);
+        }
+        
+        const response = await client.post("/penilaian/assign-penguji", formData, {
+            headers: {
+                "Content-Type": "multipart/form-data"
+            }
+        });
+        return response.data;
+    },
+
+    cancelPenguji: async (data: { mahasiswaId: string }) => {
+        const response = await client.post("/penilaian/cancel-penguji", data);
         return response.data;
     },
 
     // Create or update penilaian (upsert logic handled by backend)
     createPenilaian: async (data: {
-        mahasiswaId: number;
+        mahasiswaId: string;
         p1_k1: number; p1_k2: number; p1_k3: number; p1_nama: string;
         p2_k1: number; p2_k2: number; p2_k3: number; p2_nama: string;
         keterangan: string;

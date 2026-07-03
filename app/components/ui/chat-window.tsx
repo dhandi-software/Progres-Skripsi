@@ -84,7 +84,7 @@ export function ChatWindow({
         if (role.includes("mahasiswa") || username.includes("mahasiswa")) {
             image = "https://img.freepik.com/free-vector/smiling-young-man-illustration_1308-174669.jpg?semt=ais_hybrid&w=740&q=80";
         } else if (role.includes("dosen") || username.includes("dosen")) {
-            image = "https://rmik.poltekkes-smg.ac.id/wp-content/uploads/2023/10/Doen.png";
+            image = "https://cdn-icons-png.flaticon.com/512/2784/2784488.png";
         } else if (role.includes("kaprodi") || username.includes("kaprodi")) {
             initials = "Ka";
             color = "bg-[#fdffb6]"; 

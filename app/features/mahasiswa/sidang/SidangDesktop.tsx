@@ -29,13 +29,13 @@ interface SidangItem {
     lokasi: string | null;
     status: string;
     pembimbingApproved: boolean;
-    prodiApproved: boolean;
     mahasiswaSeen: boolean;
     catatan: string | null;
     createdAt: string;
 }
 
 import { useNavigate } from "react-router";
+import { ApplySidangForm } from "./ApplySidangForm";
 
 export function SidangDesktop({ title }: { title: string }) {
     const { user } = useAuth();
@@ -148,20 +148,16 @@ export function SidangDesktop({ title }: { title: string }) {
 
     if (sidangs.length === 0) {
         return (
-            <div className="flex flex-col min-h-screen bg-slate-50/50 p-12 lg:p-20">
-                <div className="mb-12">
-                     <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-tight">{title}</h1>
-                     <p className="text-slate-500 text-lg mt-2 font-medium">Informasi jadwal dan status pengajuan sidang mahasiswa.</p>
-                </div>
-                <div className="bg-white rounded-[48px] p-32 text-center border-2 border-dashed border-slate-100 shadow-sm flex flex-col items-center">
-                    <div className="w-32 h-32 bg-slate-50 rounded-full flex items-center justify-center mb-10 text-slate-200">
-                        <Calendar size={64} />
+            <div className="flex flex-col h-screen overflow-hidden bg-slate-50/50 p-6 lg:p-8 animate-in fade-in duration-700">
+                <div className="mb-6 flex items-center justify-between shrink-0">
+                    <div>
+                         <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-tight">{title}</h1>
+                         <p className="text-slate-500 text-sm mt-1 font-medium">Informasi pelaksanaan sidang kerja praktik Anda.</p>
                     </div>
-                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">Belum Ada Pengajuan Sidang</h3>
-                    <p className="text-slate-400  mx-auto mt-4 text-lg font-medium leading-relaxed">
-                        Anda belum memiliki data pengajuan sidang yang aktif. 
-                        Pastikan bimbingan Bab 5 Anda telah di-ACC oleh pembimbing untuk dapat didaftarkan sidang.
-                    </p>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+                    <ApplySidangForm onApplied={() => fetchData()} />
                 </div>
             </div>
         );
@@ -171,7 +167,7 @@ export function SidangDesktop({ title }: { title: string }) {
     const statusInfo = getStatusInfo(latestSidang.status);
     const StatusIcon = statusInfo.icon;
 
-    const isPenjadwalanDone = latestSidang.prodiApproved || ["MENUNGGU_VERIFIKASI_KAPRODI", "MENUNGGU_KONFIRMASI_JADWAL_KAPRODI", "TERJADWAL", "SELESAI"].includes(latestSidang.status);
+    const isPenjadwalanDone = ["MENUNGGU_VERIFIKASI_KAPRODI", "MENUNGGU_KONFIRMASI_JADWAL_KAPRODI", "TERJADWAL", "SELESAI"].includes(latestSidang.status);
     const isKaprodiDone = ["TERJADWAL", "SELESAI"].includes(latestSidang.status);
 
     return (

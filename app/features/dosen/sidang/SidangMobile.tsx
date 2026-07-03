@@ -34,7 +34,6 @@ interface SidangItem {
     lokasi: string | null;
     status: string;
     pembimbingApproved: boolean;
-    prodiApproved: boolean;
     catatan: string | null;
 }
 
@@ -104,11 +103,14 @@ export function SidangMobile() {
     const handleApply = async (formData: { tanggalSidang: string; waktuSidang: string; lokasi: string }) => {
         if (!isApplying) return;
         try {
-            await sidangApi.applyForSidang({
-                mahasiswaId: isApplying.mahasiswa.id,
-                judul: isApplying.judul || "Skripsi",
-                ...formData
-            });
+            const formDataData = new FormData();
+            formDataData.append("mahasiswaId", isApplying.mahasiswa.id.toString());
+            formDataData.append("judul", isApplying.judul || "Skripsi");
+            formDataData.append("tanggalSidang", formData.tanggalSidang);
+            formDataData.append("waktuSidang", formData.waktuSidang);
+            formDataData.append("lokasi", formData.lokasi);
+
+            await sidangApi.applyForSidang(formDataData);
             setIsApplying(null);
             fetchData();
             showToast("success", "Berhasil diajukan!");

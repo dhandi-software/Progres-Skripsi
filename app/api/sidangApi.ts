@@ -5,18 +5,14 @@ export const sidangApi = {
         const response = await client.get("/sidang/dosen");
         return response.data;
     },
-    applyForSidang: async (data: { 
-        mahasiswaId: number; 
-        judul: string; 
-        tanggalSidang?: string; 
-        waktuSidang?: string; 
-        lokasi?: string 
-    }) => {
-        const response = await client.post("/sidang/apply", data);
+    applyForSidang: async (formData: FormData) => {
+        const response = await client.post("/sidang/apply", formData, {
+            headers: { "Content-Type": "multipart/form-data" }
+        });
         return response.data;
     },
-    pembimbingApprove: async (id: number) => {
-        const response = await client.put(`/sidang/approve/${id}`);
+    pembimbingApprove: async (id: number, data?: { tanggalSidang?: string; waktuSidang?: string; lokasi?: string; isRejected?: boolean }) => {
+        const response = await client.put(`/sidang/approve/${id}`, data || {});
         return response.data;
     },
     scheduleByProdi: async (id: number, data: { 

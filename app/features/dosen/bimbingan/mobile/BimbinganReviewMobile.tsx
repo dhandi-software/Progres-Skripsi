@@ -17,7 +17,7 @@ const parseCatatan = (catatan: string) => {
 };
 
 interface BimbinganReviewMobileProps {
-    mahasiswaId: number;
+    mahasiswaId: string;
     taskId: number;
 }
 
@@ -31,8 +31,10 @@ export const BimbinganReviewMobile: React.FC<BimbinganReviewMobileProps> = ({ ma
     const [reviewNilai, setReviewNilai] = useState<number | null>(null);
     const [reviewFile, setReviewFile] = useState<File | null>(null);
     const [annotations, setAnnotations] = useState<any[]>([]);
+    const [previousAnnotations, setPreviousAnnotations] = useState<any[]>([]);
     const [uploadingReview, setUploadingReview] = useState(false);
-    const [toastProps, setToastProps] = useState<{title: string, variant?: "success" | "destructive" | "default"} | null>(null);
+    const [activeTab, setActiveTab] = useState<'review' | 'history'>('review');
+    const [toastProps, setToastProps] = useState<{ title: string, variant?: "success" | "destructive" | "default" } | null>(null);
 
     const showToast = (title: string, variant: "success" | "destructive" | "default" = "success") => {
         setToastProps({ title, variant });
@@ -41,12 +43,12 @@ export const BimbinganReviewMobile: React.FC<BimbinganReviewMobileProps> = ({ ma
     const fetchData = useCallback(async () => {
         try {
             const students = await bimbinganApi.getDosenBimbinganStudents();
-            const student = students.find((s: any) => s.mahasiswa.id === mahasiswaId);
+            const student = students.find((s: any) => s.mahasiswa.nim === mahasiswaId);
             if (student) setStudentName(student.mahasiswa.nama);
 
             const tasks = await bimbinganApi.getBimbinganByMahasiswa(mahasiswaId);
-            const task = tasks.find((t: any) => t.id === taskId);
-            
+            const task = tasks.find((t: any) => String(t.id) === String(taskId));
+
             if (task) {
                 setReviewingTask(task);
                 const parsed = parseCatatan(task.catatan);
@@ -59,7 +61,7 @@ export const BimbinganReviewMobile: React.FC<BimbinganReviewMobileProps> = ({ ma
                 if (task.status === 'SUBMITTED' && !task.isReadDosen) {
                     try {
                         await bimbinganApi.markAsRead(task.id);
-                    } catch (e) {}
+                    } catch (e) { }
                 }
 
                 const annData = await bimbinganApi.getAnnotations(task.id);
@@ -68,6 +70,10 @@ export const BimbinganReviewMobile: React.FC<BimbinganReviewMobileProps> = ({ ma
                     return { ...pos, id: String(a.id) };
                 });
                 setAnnotations(formatted);
+
+                // Fetch previous annotations
+                const prevAnnData = await bimbinganApi.getPreviousAnnotations(task.id);
+                setPreviousAnnotations(prevAnnData || []);
             }
         } catch (error) {
             console.error(error);
@@ -108,7 +114,7 @@ export const BimbinganReviewMobile: React.FC<BimbinganReviewMobileProps> = ({ ma
 
     const handleReviewSubmit = async () => {
         if (!reviewingTask) return;
-        
+
         if (reviewStatus === 'APPROVED' && reviewNilai !== null && (reviewNilai < 0 || reviewNilai > 100)) {
             showToast("Nilai bimbingan harus berada di rentang 0 - 100", "destructive");
             return;
@@ -157,8 +163,8 @@ export const BimbinganReviewMobile: React.FC<BimbinganReviewMobileProps> = ({ ma
 
             {/* Header */}
             <div className="p-4 border-b border-gray-100 flex items-center gap-3 bg-white sticky top-0 z-10 shadow-sm">
-                <button 
-                    onClick={() => navigate("/dosen/bimbingan")} 
+                <button
+                    onClick={() => navigate("/dosen/bimbingan")}
                     className="p-2 -ml-2 text-gray-400 hover:bg-gray-100 rounded-xl transition-all"
                 >
                     <ArrowLeft className="w-6 h-6" />
@@ -172,7 +178,7 @@ export const BimbinganReviewMobile: React.FC<BimbinganReviewMobileProps> = ({ ma
                     </p>
                 </div>
             </div>
-            
+
             <div className="flex-1 overflow-y-auto bg-gray-50/30">
                 {/* PDF Viewer Section */}
                 {reviewingTask.fileMahasiswa?.toLowerCase().endsWith('.pdf') ? (
@@ -184,18 +190,18 @@ export const BimbinganReviewMobile: React.FC<BimbinganReviewMobileProps> = ({ ma
                                 </div>
                                 <span className="text-[11px] font-bold text-gray-600">Dokumen Utama</span>
                             </div>
-                            <a 
-                                href={`${UPLOADS_URL}${reviewingTask.fileMahasiswa}`} 
-                                target="_blank" rel="noreferrer" 
+                            <a
+                                href={`${UPLOADS_URL}${reviewingTask.fileMahasiswa}`}
+                                target="_blank" rel="noreferrer"
                                 className="px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-[10px] font-bold text-blue-600 shadow-sm flex items-center gap-1.5"
                             >
                                 <Download className="w-3 h-3" /> Unduh
                             </a>
                         </div>
-                        
+
                         <div className="h-[450px] w-full rounded-2xl overflow-hidden shadow-xl border border-gray-200 bg-white relative">
                             <Suspense fallback={<div className="flex h-full items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#119DA4]" /></div>}>
-                                <SharedPdfViewer 
+                                <SharedPdfViewer
                                     url={`${UPLOADS_URL}${reviewingTask.fileMahasiswa}`}
                                     initialHighlights={annotations}
                                     onAddHighlight={handleAddHighlight}
@@ -215,9 +221,9 @@ export const BimbinganReviewMobile: React.FC<BimbinganReviewMobileProps> = ({ ma
                         <p className="text-[11px] text-gray-500 mb-6 leading-relaxed">
                             File ini (.{reviewingTask.fileMahasiswa?.split('.').pop()}) hanya bisa diperiksa secara offline.
                         </p>
-                        <a 
-                            href={`${UPLOADS_URL}${reviewingTask.fileMahasiswa}`} 
-                            target="_blank" rel="noreferrer" 
+                        <a
+                            href={`${UPLOADS_URL}${reviewingTask.fileMahasiswa}`}
+                            target="_blank" rel="noreferrer"
                             className="inline-flex items-center gap-2 px-6 py-3 bg-[#119DA4] text-white font-bold rounded-xl text-[11px] shadow-lg shadow-cyan-500/20"
                         >
                             <Download className="w-4 h-4" /> Unduh Dokumen
@@ -227,79 +233,143 @@ export const BimbinganReviewMobile: React.FC<BimbinganReviewMobileProps> = ({ ma
 
                 {/* Review Actions Section */}
                 {!isApprovedReadOnly && (
-                    <div className="p-5 bg-white border-t border-gray-100 mt-2 space-y-6 shadow-sm">
-                        <div className="space-y-3">
-                            <label className="block text-xs font-black text-gray-400 uppercase tracking-widest">Keputusan Reviu</label>
-                            <div className="grid grid-cols-1 gap-3">
-                                <button 
-                                    onClick={() => setReviewStatus("REVISION")}
-                                    className={`flex items-start gap-3 p-4 rounded-2xl border-2 text-left transition-all ${reviewStatus === 'REVISION' ? 'border-orange-500 bg-orange-50/50' : 'border-gray-50 bg-gray-50/30'}`}
-                                >
-                                    <div className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${reviewStatus === 'REVISION' ? 'border-orange-500 bg-orange-500' : 'border-gray-300'}`}>
-                                        {reviewStatus === 'REVISION' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                                    </div>
-                                    <div>
-                                        <span className="text-[13px] font-bold text-gray-900 block">Perlu Revisi</span>
-                                        <span className="text-[10px] text-gray-500 mt-0.5 block leading-relaxed">Mahasiswa akan diminta memperbaiki berdasarkan anotasi Anda.</span>
-                                    </div>
-                                </button>
-                                <button 
-                                    onClick={() => setReviewStatus("APPROVED")}
-                                    className={`flex items-start gap-3 p-4 rounded-2xl border-2 text-left transition-all ${reviewStatus === 'APPROVED' ? 'border-green-600 bg-green-50/50' : 'border-gray-50 bg-gray-50/30'}`}
-                                >
-                                    <div className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${reviewStatus === 'APPROVED' ? 'border-green-600 bg-green-600' : 'border-gray-300'}`}>
-                                        {reviewStatus === 'APPROVED' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                                    </div>
-                                    <div>
-                                        <span className="text-[13px] font-bold text-gray-900 block">Setujui (ACC)</span>
-                                        <span className="text-[10px] text-gray-500 mt-0.5 block leading-relaxed">Target progres ini dianggap selesai dan mahasiswa dapat lanjut.</span>
-                                    </div>
-                                </button>
-                            </div>
+                    <div className="bg-white px-5 pt-8 pb-32 border-t border-gray-100 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] mt-4">
+                        {/* Tab Headers */}
+                        <div className="flex items-center mb-6 bg-gray-50/80 p-1.5 rounded-xl border border-gray-100">
+                            <button
+                                onClick={() => setActiveTab('review')}
+                                className={`flex-1 py-2.5 text-[13px] font-bold text-center rounded-lg transition-all ${activeTab === 'review' ? 'bg-white shadow-sm text-[#119DA4]' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                Form Keputusan
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('history')}
+                                className={`flex-1 py-2.5 text-[13px] font-bold text-center rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'history' ? 'bg-white shadow-sm text-orange-600' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                Riwayat Anotasi
+                                {previousAnnotations.length > 0 && (
+                                    <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 text-[10px]">
+                                        {previousAnnotations.length}
+                                    </span>
+                                )}
+                            </button>
                         </div>
 
-                        {reviewStatus === 'APPROVED' && (
-                            <div className="space-y-2 p-4 bg-green-50 border border-green-200 rounded-2xl animate-in fade-in duration-300">
-                                <label className="block text-xs font-black text-green-950 uppercase tracking-widest">Nilai Bimbingan (Opsional)</label>
-                                <p className="text-[10px] text-green-800 leading-relaxed mb-2">Input nilai pengerjaan bab ini (rentang 0 - 100).</p>
-                                <input 
-                                    type="number"
-                                    min="0"
-                                    max="100"
-                                    value={reviewNilai !== null ? reviewNilai : ""}
-                                    onChange={(e) => {
-                                        const val = e.target.value === "" ? null : parseInt(e.target.value);
-                                        setReviewNilai(val);
-                                    }}
-                                    placeholder="Contoh: 85"
-                                    className="w-full px-4 py-2 bg-white border border-green-200 rounded-xl text-sm focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all font-semibold text-green-900"
-                                />
+                        {activeTab === 'review' ? (
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Keputusan Reviu</label>
+                                    <div className="grid grid-cols-1 gap-3">
+                                        <button
+                                            onClick={() => setReviewStatus("REVISION")}
+                                            className={`flex items-start gap-3 p-4 rounded-2xl border-2 text-left transition-all ${reviewStatus === 'REVISION' ? 'border-orange-500 bg-orange-50/50' : 'border-gray-50 bg-gray-50/30'}`}
+                                        >
+                                            <div className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${reviewStatus === 'REVISION' ? 'border-orange-500 bg-orange-500' : 'border-gray-300'}`}>
+                                                {reviewStatus === 'REVISION' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                            </div>
+                                            <div>
+                                                <span className="text-[13px] font-bold text-gray-900 block">Perlu Revisi</span>
+                                                <span className="text-[10px] text-gray-500 mt-0.5 block leading-relaxed">Mahasiswa akan diminta memperbaiki berdasarkan anotasi Anda.</span>
+                                            </div>
+                                        </button>
+                                        <button
+                                            onClick={() => setReviewStatus("APPROVED")}
+                                            className={`flex items-start gap-3 p-4 rounded-2xl border-2 text-left transition-all ${reviewStatus === 'APPROVED' ? 'border-green-600 bg-green-50/50' : 'border-gray-50 bg-gray-50/30'}`}
+                                        >
+                                            <div className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${reviewStatus === 'APPROVED' ? 'border-green-600 bg-green-600' : 'border-gray-300'}`}>
+                                                {reviewStatus === 'APPROVED' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                            </div>
+                                            <div>
+                                                <span className="text-[13px] font-bold text-gray-900 block">Setujui (ACC)</span>
+                                                <span className="text-[10px] text-gray-500 mt-0.5 block leading-relaxed">Target progres ini dianggap selesai dan mahasiswa dapat lanjut.</span>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {reviewStatus === 'APPROVED' && (
+                                    <div className="space-y-2 p-4 bg-green-50 border border-green-200 rounded-2xl animate-in fade-in duration-300">
+                                        <label className="block text-xs font-black text-green-950 uppercase tracking-widest">Nilai Bimbingan (Opsional)</label>
+                                        <p className="text-[10px] text-green-800 leading-relaxed mb-2">Input nilai pengerjaan bab ini (rentang 0 - 100).</p>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            value={reviewNilai !== null ? reviewNilai : ""}
+                                            onChange={(e) => {
+                                                const val = e.target.value === "" ? null : parseInt(e.target.value);
+                                                setReviewNilai(val);
+                                            }}
+                                            placeholder="Contoh: 85"
+                                            className="w-full px-4 py-2 bg-white border border-green-200 rounded-xl text-sm focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all font-semibold text-green-900"
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="space-y-3">
+                                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest">Catatan Keseluruhan</label>
+                                    <textarea
+                                        className="w-full rounded-2xl border-gray-100 border-2 p-4 text-sm focus:border-[#119DA4] outline-none transition-all placeholder:text-gray-300 min-h-[120px] bg-gray-50/50"
+                                        placeholder="Tuliskan masukan tambahan di sini..."
+                                        value={reviewCatatan}
+                                        onChange={(e) => setReviewCatatan(e.target.value)}
+                                    ></textarea>
+                                </div>
+
+                                {!reviewingTask.fileMahasiswa?.toLowerCase().endsWith('.pdf') && (
+                                    <div className="p-4 bg-blue-50/50 border-2 border-blue-100 rounded-2xl space-y-3 mt-4">
+                                        <label className="block text-[11px] font-bold text-blue-900 uppercase tracking-wider">Upload Hasil Reviu</label>
+                                        <input
+                                            type="file"
+                                            accept=".doc,.docx,.pdf"
+                                            onChange={(e) => {
+                                                if (e.target.files && e.target.files[0]) {
+                                                    setReviewFile(e.target.files[0]);
+                                                }
+                                            }}
+                                            className="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-blue-600 file:text-white bg-white border border-blue-200 rounded-xl p-1"
+                                        />
+                                    </div>
+                                )}
                             </div>
-                        )}
+                        ) : (
+                            <div className="space-y-4 animate-in fade-in duration-300">
+                                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Catatan dari Draf Sebelumnya</label>
+                                {previousAnnotations.length === 0 ? (
+                                    <div className="p-6 text-center bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl">
+                                        <p className="text-xs text-gray-500 font-medium">Belum ada riwayat anotasi pada target bimbingan ini.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {previousAnnotations.map((ann, idx) => {
+                                            const pos = typeof ann.posisi === 'string' ? JSON.parse(ann.posisi) : (ann.posisi || {});
+                                            const quote = pos.content?.text;
+                                            const pageNum = pos.position?.pageNumber;
 
-                        <div className="space-y-3">
-                            <label className="block text-xs font-black text-gray-400 uppercase tracking-widest">Catatan Keseluruhan</label>
-                            <textarea 
-                                className="w-full rounded-2xl border-gray-100 border-2 p-4 text-sm focus:border-orange-500 outline-none transition-all placeholder:text-gray-300 min-h-[120px] bg-gray-50/50"
-                                placeholder="Tuliskan masukan tambahan di sini..."
-                                value={reviewCatatan}
-                                onChange={(e) => setReviewCatatan(e.target.value)}
-                            ></textarea>
-                        </div>
-
-                        {!reviewingTask.fileMahasiswa?.toLowerCase().endsWith('.pdf') && (
-                            <div className="p-4 bg-blue-50/50 border-2 border-blue-100 rounded-2xl space-y-3 mt-4">
-                                <label className="block text-[11px] font-bold text-blue-900 uppercase tracking-wider">Upload Hasil Reviu</label>
-                                <input 
-                                    type="file" 
-                                    accept=".doc,.docx,.pdf" 
-                                    onChange={(e) => {
-                                        if (e.target.files && e.target.files[0]) {
-                                            setReviewFile(e.target.files[0]);
-                                        }
-                                    }}
-                                    className="w-full text-[10px] text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-blue-600 file:text-white"
-                                />
+                                            return (
+                                                <div key={idx} className="bg-white p-4 rounded-2xl shadow-sm border border-orange-100 hover:border-orange-300 transition-colors">
+                                                    {pageNum && (
+                                                        <div className="inline-block px-2 py-1 bg-orange-100 text-orange-800 rounded text-[10px] font-bold mb-2">
+                                                            Halaman {pageNum}
+                                                        </div>
+                                                    )}
+                                                    {quote && (
+                                                        <div className="pl-3 border-l-2 border-orange-200 mb-3">
+                                                            <p className="text-[11px] text-gray-500 italic line-clamp-3">"{quote}"</p>
+                                                        </div>
+                                                    )}
+                                                    <p className="text-[13px] text-gray-800 font-medium leading-relaxed">{ann.komentar}</p>
+                                                    {ann.bimbinganVersi && (
+                                                        <div className="mt-3 pt-3 border-t border-gray-50 flex items-center justify-between text-[10px] text-gray-400 font-medium">
+                                                            <span>Revisi v{ann.bimbinganVersi}</span>
+                                                            <span>{ann.tanggalBimbingan && new Date(ann.tanggalBimbingan).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -309,13 +379,13 @@ export const BimbinganReviewMobile: React.FC<BimbinganReviewMobileProps> = ({ ma
             {/* Footer Actions */}
             {!isApprovedReadOnly && (
                 <div className="p-4 border-t border-gray-100 bg-white grid grid-cols-2 gap-3 sticky bottom-0 shrink-0">
-                    <button 
+                    <button
                         onClick={() => navigate("/dosen/bimbingan")}
                         className="py-3.5 text-sm font-bold text-gray-500 bg-gray-50 rounded-2xl active:bg-gray-100"
                     >
                         Batal
                     </button>
-                    <button 
+                    <button
                         onClick={handleReviewSubmit}
                         disabled={uploadingReview}
                         className="py-3.5 text-sm font-bold text-white bg-[#D25026] rounded-2xl shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 transition-all"

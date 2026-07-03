@@ -29,13 +29,13 @@ interface SidangItem {
     lokasi: string | null;
     status: string;
     pembimbingApproved: boolean;
-    prodiApproved: boolean;
     mahasiswaSeen: boolean;
     catatan: string | null;
     createdAt: string;
 }
 
 import { useNavigate } from "react-router";
+import { ApplySidangForm } from "./ApplySidangForm";
 
 export function SidangMobile({ title }: { title: string }) {
     const { user } = useAuth();
@@ -120,14 +120,18 @@ export function SidangMobile({ title }: { title: string }) {
 
     if (sidangs.length === 0) {
         return (
-            <div className="flex flex-col min-h-screen bg-white p-8 items-center justify-center text-center">
-                <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-8 text-slate-200">
-                    <Calendar size={48} />
+            <div className="flex flex-col min-h-screen bg-slate-50 pb-12">
+                <div className="bg-slate-900 pt-12 pb-16 px-6 relative overflow-hidden shrink-0">
+                    <div className="absolute top-[-20%] right-[-10%] w-48 h-48 bg-[#FF7A00]/20 rounded-full blur-[60px]" />
+                    <div className="relative z-10">
+                        <h1 className="text-2xl font-black text-white tracking-tight mb-2">{title}</h1>
+                        <p className="text-white/80 text-xs">Formulir Pendaftaran Sidang Kerja Praktik</p>
+                    </div>
                 </div>
-                <h3 className="text-xl font-black text-slate-900 tracking-tight">Belum Ada Pengajuan</h3>
-                <p className="text-slate-400 mt-4 text-sm font-medium leading-relaxed">
-                    Ajukan sidang melalui pembimbing Anda setelah bimbingan Bab 5 disetujui.
-                </p>
+
+                <div className="px-4 -mt-8 relative z-20 flex-1">
+                    <ApplySidangForm onApplied={() => fetchData()} />
+                </div>
             </div>
         );
     }
@@ -136,7 +140,7 @@ export function SidangMobile({ title }: { title: string }) {
     const statusInfo = getStatusInfo(latestSidang.status);
     const StatusIcon = statusInfo.icon;
     
-    const isPenjadwalanDone = latestSidang.prodiApproved || ["MENUNGGU_VERIFIKASI_KAPRODI", "MENUNGGU_KONFIRMASI_JADWAL_KAPRODI", "TERJADWAL", "SELESAI"].includes(latestSidang.status);
+    const isPenjadwalanDone = ["MENUNGGU_VERIFIKASI_KAPRODI", "MENUNGGU_KONFIRMASI_JADWAL_KAPRODI", "TERJADWAL", "SELESAI"].includes(latestSidang.status);
     const isKaprodiDone = ["TERJADWAL", "SELESAI"].includes(latestSidang.status);
 
     return (

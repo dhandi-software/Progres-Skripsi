@@ -2,13 +2,15 @@ import { useState, useEffect } from "react";
 import { pengajuanApi } from "~/api/pengajuan";
 import { CustomSelect } from "~/components/ui/custom-select";
 import { useNavigate } from "react-router";
-import { Loader2, Send, ChevronLeft, MessageSquare, RotateCcw } from "lucide-react";
+import { Loader2, Send, ChevronLeft, MessageSquare, RotateCcw, Calendar } from "lucide-react";
 import { Link } from "react-router";
 import { Toast } from "~/components/ui/toast";
 import { DeleteConfirmationModal } from "~/components/ui/delete-confirmation-modal";
+import { useAuth } from "~/hooks/useAuth";
 
 export function PengajuanMobile() {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [profile, setProfile] = useState<any>(null);
     const [dosenList, setDosenList] = useState<any[]>([]);
     const [formData, setFormData] = useState({
@@ -26,8 +28,8 @@ export function PengajuanMobile() {
     const [submitting, setSubmitting] = useState(false);
     const [cancelling, setCancelling] = useState(false);
     const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
-    const [isReadOnly, setIsReadOnly] = useState(false);
-    const [toastProps, setToastProps] = useState<{title: string, variant?: "success" | "destructive" | "default"} | null>(null);
+    const isReadOnly = profile?.pengajuanJudul?.[0]?.status === 'PENDING' || profile?.pengajuanJudul?.[0]?.status === 'APPROVED';
+    const [toastProps, setToastProps] = useState<{ title: string, variant?: "success" | "destructive" | "default" } | null>(null);
 
     const showToast = (title: string, variant: "success" | "destructive" | "default" = "success") => {
         setToastProps({ title, variant });
@@ -40,53 +42,45 @@ export function PengajuanMobile() {
                     pengajuanApi.getProfile(),
                     pengajuanApi.getDosenList()
                 ]);
-                
+
                 // Block duplicate active applications, but allow resubmission for REJECTED and REVISION
+                const tahunMasuk = profileRes.tahunMasuk || user?.tahunMasuk;
+                let calculatedBatasStudi = "";
+                if (tahunMasuk) {
+                    const startYear = parseInt(tahunMasuk);
+                    calculatedBatasStudi = !isNaN(startYear) ? (startYear + 6).toString() : "";
+                }
+
                 if (profileRes.pengajuanJudul && profileRes.pengajuanJudul.length > 0) {
                     const latestPengajuan = profileRes.pengajuanJudul[0];
-                    if (latestPengajuan.status === 'PENDING' || latestPengajuan.status === 'APPROVED') {
-                        setIsReadOnly(true);
-                        setFormData({
-                            peminatan: (latestPengajuan.peminatan || "").trim(),
-                            semester: latestPengajuan.semester || "",
-                            tahunAkademik: latestPengajuan.tahunAkademik || "",
-                            judul: latestPengajuan.judul || "",
-                            dosenId: latestPengajuan.dosenId?.toString() || "",
-                            sksDicapai: latestPengajuan.sksDicapai?.toString() || "",
-                            sksNilaiD: latestPengajuan.sksNilaiD?.toString() || "",
-                            ipk: latestPengajuan.ipk?.toString() || "",
-                            batasStudi: latestPengajuan.batasStudi || ""
-                        });
-                    } else {
-                        // REJECTED or REVISION: Pre-fill with previous data so they can easily edit and resubmit
-                        setFormData({
-                            peminatan: latestPengajuan.peminatan || "",
-                            semester: latestPengajuan.semester || "",
-                            tahunAkademik: latestPengajuan.tahunAkademik || "",
-                            judul: latestPengajuan.judul || "",
-                            dosenId: latestPengajuan.dosenId?.toString() || "",
-                            sksDicapai: latestPengajuan.sksDicapai?.toString() || "",
-                            sksNilaiD: latestPengajuan.sksNilaiD?.toString() || "",
-                            ipk: latestPengajuan.ipk?.toString() || "",
-                            batasStudi: latestPengajuan.batasStudi || ""
-                        });
-                    }
-                } else if (profileRes.tahunMasuk) {
-                    // Smart Defaults for new applications
-                    const currentYear = new Date().getFullYear();
-                    const currentMonth = new Date().getMonth(); // 0-based
-                    const startYear = parseInt(profileRes.tahunMasuk);
-                    const diffYears = currentYear - startYear;
-                    const calculatedSemester = (diffYears * 2) + (currentMonth > 6 ? 1 : 0);
-                    const calculatedTahunAkademik = currentMonth > 6 ? `${currentYear}/${currentYear + 1}` : `${currentYear - 1}/${currentYear}`;
-                    const calculatedBatasStudi = !isNaN(startYear) ? (startYear + 6).toString() : "";
-                    
-                    setFormData(prev => ({
-                        ...prev,
-                        semester: calculatedSemester > 0 ? calculatedSemester.toString() : "1",
-                        tahunAkademik: calculatedTahunAkademik,
+                    setFormData({
+                        peminatan: latestPengajuan.peminatan || "",
+                        semester: latestPengajuan.semester || "",
+                        tahunAkademik: latestPengajuan.tahunAkademik || "",
+                        judul: latestPengajuan.judul || "",
+                        dosenId: latestPengajuan.dosenNidn?.toString() || latestPengajuan.dosenId?.toString() || "",
+                        sksDicapai: latestPengajuan.sksDicapai?.toString() || "",
+                        sksNilaiD: latestPengajuan.sksNilaiD?.toString() || "",
+                        ipk: latestPengajuan.ipk?.toString() || "",
                         batasStudi: calculatedBatasStudi
-                    }));
+                    });
+                } else {
+                    if (tahunMasuk) {
+                        // Smart Defaults for new applications
+                        const currentYear = new Date().getFullYear();
+                        const currentMonth = new Date().getMonth(); // 0-based
+                        const startYear = parseInt(tahunMasuk);
+                        const diffYears = currentYear - startYear;
+                        const calculatedSemester = (diffYears * 2) + (currentMonth > 6 ? 1 : 0);
+                        const calculatedTahunAkademik = currentMonth > 6 ? `${currentYear}/${currentYear + 1}` : `${currentYear - 1}/${currentYear}`;
+
+                        setFormData(prev => ({
+                            ...prev,
+                            semester: calculatedSemester > 0 ? calculatedSemester.toString() : "1",
+                            tahunAkademik: calculatedTahunAkademik,
+                            batasStudi: calculatedBatasStudi
+                        }));
+                    }
                 }
 
                 setProfile(profileRes);
@@ -109,19 +103,17 @@ export function PengajuanMobile() {
             showToast("kamu harus memperbaiki nilai D tersebut", "default");
         }
 
-        // Warning toast for Batas Studi
-        if (name === 'batasStudi' && profile?.tahunMasuk) {
-            const startYear = parseInt(profile.tahunMasuk);
-            const limitYear = startYear + 6;
-            const enteredYear = parseInt(value);
-            if (!isNaN(limitYear) && !isNaN(enteredYear) && enteredYear > limitYear) {
-                showToast(`Batas studi tidak boleh melebihi tahun ${limitYear} (maksimal 6 tahun dari tahun masuk ${startYear})`, "destructive");
-            }
-        }
+        // Batas Studi is now read-only, no warning needed
     };
 
     const handleSelectChange = (name: string, value: string) => {
-        setFormData(prev => ({ ...prev, [name]: value }));
+        setFormData(prev => {
+            const newData = { ...prev, [name]: value };
+            if (name === "peminatan") {
+                newData.dosenId = "";
+            }
+            return newData;
+        });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -133,16 +125,7 @@ export function PengajuanMobile() {
             return;
         }
 
-        // Validasi Batas Studi
-        if (profile?.tahunMasuk && formData.batasStudi) {
-            const startYear = parseInt(profile.tahunMasuk);
-            const limitYear = startYear + 6;
-            const enteredYear = parseInt(formData.batasStudi);
-            if (!isNaN(limitYear) && !isNaN(enteredYear) && enteredYear > limitYear) {
-                showToast(`Batas studi tidak boleh melebihi tahun ${limitYear} (maksimal 6 tahun dari tahun masuk ${startYear}).`, "destructive");
-                return;
-            }
-        }
+        // Validasi Batas Studi is handled by the disabled input
 
         // BLOCK submission if SKS Grade D > 0
         if (Number(formData.sksNilaiD) > 0) {
@@ -166,11 +149,11 @@ export function PengajuanMobile() {
             await pengajuanApi.createPengajuan(formData);
             showToast("Pengajuan judul berhasil dikirim!", "success");
             setTimeout(() => {
-                navigate("/mahasiswa"); 
+                navigate("/mahasiswa");
             }, 3000);
-        } catch (error) {
-            console.error("Submission error", error);
-            showToast("Gagal mengirim pengajuan. Silakan coba lagi.", "destructive");
+        } catch (error: any) {
+            console.error("Submit error:", error);
+            showToast(error.response?.data?.message || "Gagal mengirim pengajuan. Silakan coba lagi.", "destructive");
             setSubmitting(false);
         }
     };
@@ -186,9 +169,8 @@ export function PengajuanMobile() {
         try {
             await pengajuanApi.cancelPengajuan(profile!.pengajuanJudul[0].id);
             showToast("Pengajuan berhasil dibatalkan. Silakan edit dan kirim ulang jika perlu.", "success");
-            
+
             // Allow editing with current data instead of reloading
-            setIsReadOnly(false);
             setProfile((prev: any) => ({
                 ...prev,
                 pengajuanJudul: []
@@ -231,10 +213,10 @@ export function PengajuanMobile() {
             )}
             {/* Mobile Header */}
             <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 flex items-center gap-3">
-                 <Link to="/mahasiswa/dashboard" className="p-2 -ml-2 text-gray-600">
+                <Link to="/mahasiswa/dashboard" className="p-2 -ml-2 text-gray-600">
                     <ChevronLeft size={24} />
-                 </Link>
-                 <h1 className="text-lg font-bold text-gray-900">Pengajuan Judul</h1>
+                </Link>
+                <h1 className="text-lg font-bold text-gray-900">Pengajuan Judul</h1>
             </div>
 
             <div className="p-4 space-y-6">
@@ -255,6 +237,21 @@ export function PengajuanMobile() {
                                     <p className="text-[13px] text-yellow-900 italic">"{profile.pengajuanJudul[0].remarks}"</p>
                                 </div>
                             )}
+                            {profile.pengajuanJudul[0].deadlineRevisi && (
+                                <div className="mt-2 p-2.5 bg-white border border-yellow-200 rounded-lg text-sm">
+                                    <p className="text-xs font-bold text-yellow-700 mb-1 flex items-center gap-1">
+                                        <Calendar className="w-3.5 h-3.5" /> Batas Waktu Pengumpulan Revisi:
+                                    </p>
+                                    <p className="text-[13px] text-yellow-900 font-semibold">
+                                        {new Date(profile.pengajuanJudul[0].deadlineRevisi).toLocaleDateString('id-ID', {
+                                            weekday: 'long',
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric'
+                                        })}
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -262,19 +259,19 @@ export function PengajuanMobile() {
                 {/* Official Header (Simplified) */}
                 <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-center space-y-2">
                     <div className="flex justify-center items-center gap-4">
-                        <img 
-                            src="https://upload.wikimedia.org/wikipedia/id/thumb/4/46/Logo_Universitas_Pancasila.png/250px-Logo_Universitas_Pancasila.png" 
-                            alt="Logo UP" 
+                        <img
+                            src="https://upload.wikimedia.org/wikipedia/id/thumb/4/46/Logo_Universitas_Pancasila.png/250px-Logo_Universitas_Pancasila.png"
+                            alt="Logo UP"
                             className="w-12 h-12 object-contain"
                         />
-                        <img 
-                            src="/images/LogoUpKebanggan.png" 
-                            alt="Logo Fakultas" 
+                        <img
+                            src="/images/LogoUpKebanggan.png"
+                            alt="Logo Fakultas"
                             className="w-12 h-12 object-contain"
                         />
                     </div>
                     <h2 className="text-xs font-bold text-gray-800 uppercase leading-relaxed">
-                        Fakultas Teknik <br/> Universitas Pancasila
+                        Fakultas Teknik <br /> Universitas Pancasila
                     </h2>
                     <div className="w-16 h-0.5 bg-orange-500 mx-auto rounded-full"></div>
                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Permohonan Kerja Praktik</p>
@@ -284,22 +281,14 @@ export function PengajuanMobile() {
                     {/* Data Akademik Group */}
                     <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-4">
                         <h3 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-2">Info Akademik</h3>
-                        
+
                         <div className="space-y-3">
-                            <div>
-                                <label className="text-xs font-medium text-gray-500 mb-1 block">Program Studi</label>
-                                <input 
-                                    type="text" 
-                                    value={profile?.jurusan || "-"} 
-                                    disabled 
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 font-medium outline-none"
-                                />
-                            </div>
-                            
+
+
                             <div>
                                 <label className="text-xs font-medium text-gray-500 mb-1 block">Semester</label>
-                                <input 
-                                    type="text" 
+                                <input
+                                    type="text"
                                     name="semester"
                                     value={formData.semester}
                                     onChange={handleInputChange}
@@ -312,8 +301,8 @@ export function PengajuanMobile() {
 
                             <div>
                                 <label className="text-xs font-medium text-gray-500 mb-1 block">Tahun Akademik</label>
-                                <input 
-                                    type="text" 
+                                <input
+                                    type="text"
                                     name="tahunAkademik"
                                     value={formData.tahunAkademik}
                                     onChange={handleInputChange}
@@ -329,24 +318,24 @@ export function PengajuanMobile() {
                     {/* Data Diri Group */}
                     <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-4">
                         <h3 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-2">Data Mahasiswa</h3>
-                        
+
                         <div className="space-y-3">
                             <div>
-                                <label className="text-xs font-medium text-gray-500 mb-1 block">Nama Lengkap</label>
-                                <input 
-                                    type="text" 
-                                    value={profile?.nama || "-"} 
-                                    disabled 
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 font-medium outline-none"
+                                <label className="text-sm font-semibold text-gray-700">Nama</label>
+                                <input
+                                    type="text"
+                                    value={user?.name || profile?.nama || "-"}
+                                    disabled
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-600 font-medium outline-none"
                                 />
                             </div>
 
-                            <div>
-                                <label className="text-xs font-medium text-gray-500 mb-1 block">NIM</label>
-                                <input 
-                                    type="text" 
-                                    value={profile?.nim || "-"} 
-                                    disabled 
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm font-semibold text-gray-700">No. Pokok / NIM</label>
+                                <input
+                                    type="text"
+                                    value={user?.mahasiswaNim || profile?.nim || "-"}
+                                    disabled
                                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 font-medium outline-none"
                                 />
                             </div>
@@ -356,14 +345,14 @@ export function PengajuanMobile() {
                     {/* Proposal Group */}
                     <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-4">
                         <h3 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-2">Detail Pengajuan</h3>
-                        
+
                         <div className="space-y-4">
                             <div>
                                 <label className="text-xs font-medium text-gray-500 mb-1 block">Peminatan</label>
                                 <CustomSelect
                                     options={[
                                         { label: "Data Science", value: "Data Science" },
-                                        { label: "Artificial Intelligent", value: "Artificial Intelligent" },
+                                        { label: "Artificial Intelligence", value: "Artificial Intelligence" },
                                         { label: "Software Engineering", value: "Software Engineering" },
                                         { label: "Network and Cyber Security", value: "Network and Cyber Security" }
                                     ]}
@@ -377,7 +366,7 @@ export function PengajuanMobile() {
 
                             <div>
                                 <label className="text-xs font-medium text-gray-500 mb-1 block">Usulan Judul</label>
-                                <textarea 
+                                <textarea
                                     name="judul"
                                     value={formData.judul}
                                     disabled={isReadOnly}
@@ -404,11 +393,33 @@ export function PengajuanMobile() {
                             <div>
                                 <label className="text-xs font-medium text-gray-500 mb-1 block">Usulan Pembimbing</label>
                                 <CustomSelect
-                                    options={dosenList.map(d => ({ label: d.nama, value: d.id.toString() }))}
+                                    options={[...dosenList]
+                                        .filter(d => {
+                                            if (!formData.peminatan) return true;
+                                            return d.peminatan && Array.isArray(d.peminatan) && d.peminatan.includes(formData.peminatan);
+                                        })
+                                        .sort((a, b) => {
+                                            const aSelectable = (a.jabatan || '').toLowerCase().includes('pembimbing') || (a.jabatan || '').toLowerCase().includes('koordinator');
+                                            const bSelectable = (b.jabatan || '').toLowerCase().includes('pembimbing') || (b.jabatan || '').toLowerCase().includes('koordinator');
+                                            if (aSelectable && !bSelectable) return -1;
+                                            if (!aSelectable && bSelectable) return 1;
+                                            return a.nama.localeCompare(b.nama);
+                                        })
+                                        .map(d => {
+                                            const isSelectable = (d.jabatan || '').toLowerCase().includes('pembimbing') || (d.jabatan || '').toLowerCase().includes('koordinator');
+                                            const peminatanText = d.peminatan && Array.isArray(d.peminatan) && d.peminatan.length > 0 
+                                                ? ` - [${d.peminatan.join(', ')}]` 
+                                                : '';
+                                            return {
+                                                label: isSelectable ? `${d.nama} (${d.appointment || d.jabatan})${peminatanText}` : `${d.nama} (Viewer)`,
+                                                value: d.nidn.toString(),
+                                                disabled: !isSelectable
+                                            };
+                                        })}
                                     value={formData.dosenId}
                                     onChange={(val) => handleSelectChange("dosenId", val)}
                                     disabled={isReadOnly}
-                                    placeholder="Pilih Dosen"
+                                    placeholder={formData.peminatan ? "Pilih Dosen Pembimbing" : "Pilih Peminatan Dahulu"}
                                     className="w-full"
                                 />
                             </div>
@@ -418,12 +429,12 @@ export function PengajuanMobile() {
                     {/* Stats Group */}
                     <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-4">
                         <h3 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-2">Statistik Akademik</h3>
-                        
+
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="text-xs font-medium text-gray-500 mb-1 block">SKS Dicapai</label>
-                                <input 
-                                    type="number" 
+                                <input
+                                    type="number"
                                     name="sksDicapai"
                                     value={formData.sksDicapai}
                                     onChange={handleInputChange}
@@ -432,11 +443,11 @@ export function PengajuanMobile() {
                                     required
                                 />
                             </div>
-                            
+
                             <div>
                                 <label className="text-xs font-medium text-gray-500 mb-1 block">SKS Nilai D</label>
-                                <input 
-                                    type="number" 
+                                <input
+                                    type="number"
                                     name="sksNilaiD"
                                     value={formData.sksNilaiD}
                                     onChange={handleInputChange}
@@ -448,8 +459,8 @@ export function PengajuanMobile() {
 
                             <div>
                                 <label className="text-xs font-medium text-gray-500 mb-1 block">IPK</label>
-                                <input 
-                                    type="number" 
+                                <input
+                                    type="number"
                                     step="0.01"
                                     name="ipk"
                                     value={formData.ipk}
@@ -462,21 +473,18 @@ export function PengajuanMobile() {
 
                             <div>
                                 <label className="text-xs font-medium text-gray-500 mb-1 block">Batas Studi</label>
-                                <input 
-                                    type="text" 
+                                <input
+                                    type="text"
                                     name="batasStudi"
                                     value={formData.batasStudi}
-                                    onChange={handleInputChange}
-                                    disabled={isReadOnly}
-                                    placeholder="Sisa masa studi e.g. 2030"
-                                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-all"
+                                    disabled={true}
+                                    placeholder="Otomatis (Tahun Masuk + 6)"
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 font-medium outline-none"
                                     required
                                 />
                             </div>
                         </div>
                     </div>
-
-                    {/* Submit Button */}
                     {isReadOnly ? (
                         <div className="space-y-3">
                             <div className={`w-full py-3.5 font-bold rounded-xl border text-center text-sm ${profile?.pengajuanJudul?.[0]?.status === 'APPROVED' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
@@ -487,15 +495,16 @@ export function PengajuanMobile() {
                                     type="button"
                                     onClick={handleCancel}
                                     disabled={cancelling}
-                                    className="w-full text-center text-sm font-bold text-red-600 active:scale-95 transition-all py-2 disabled:opacity-50"
+                                    className="w-full text-sm font-bold text-red-600 hover:text-red-700 underline flex items-center justify-center gap-1 py-2 transition-all disabled:opacity-50"
                                 >
-                                    {cancelling ? "Membatalkan..." : "Batalkan Pengajuan"}
+                                    {cancelling ? <Loader2 className="animate-spin" size={14} /> : null}
+                                    Batalkan Pengajuan
                                 </button>
                             )}
                         </div>
                     ) : (
-                        <button 
-                            type="submit" 
+                        <button
+                            type="submit"
                             disabled={submitting}
                             className="w-full py-3.5 bg-[#D25026] text-white font-bold rounded-xl shadow-lg shadow-orange-500/20 active:scale-95 transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                         >
@@ -509,7 +518,7 @@ export function PengajuanMobile() {
                             {submitting ? "Mengirim..." : (profile?.pengajuanJudul?.[0]?.status === 'REVISION' ? "Kirim Ulang Permohonan" : "Kirim Permohonan")}
                         </button>
                     )}
-                    
+
                     <div className="h-4"></div>
                 </form>
             </div>

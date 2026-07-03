@@ -217,7 +217,7 @@ export function SanksiDesktop({ title }: { title: string }) {
                                 <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="font-bold text-slate-800">{item.nama}</div>
-                                        <div className="text-xs text-slate-400 font-medium">{item.mahasiswa?.jurusan}</div>
+
                                     </td>
                                     <td className="px-6 py-4 text-slate-600 font-medium">{item.nim}</td>
                                     <td className="px-6 py-4 text-slate-600 font-medium">
@@ -313,7 +313,7 @@ export function SanksiDesktop({ title }: { title: string }) {
                                                             className="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-semibold text-slate-800 transition-all flex items-center justify-between"
                                                         >
                                                             <span>{s.nama} <span className="text-xs text-slate-400 ml-1">({s.nim})</span></span>
-                                                            <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded font-bold text-slate-500">{s.jurusan}</span>
+
                                                         </div>
                                                     ))
                                                 )}

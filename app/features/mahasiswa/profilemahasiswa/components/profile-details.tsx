@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { User, Loader2, Edit3, Save, X, Award } from "lucide-react";
 import { pengajuanApi } from "~/api/pengajuan";
 import { Toast } from "~/components/ui/toast";
+import { useAuth } from "~/hooks/useAuth";
 
 interface ProfileDetailsProps {
     profile: any;
@@ -9,19 +10,20 @@ interface ProfileDetailsProps {
 }
 
 export function ProfileDetails({ profile, onUpdate }: ProfileDetailsProps) {
+    const { user } = useAuth();
     const [toastProps, setToastProps] = useState<{title: string, variant?: "success" | "destructive"} | null>(null);
     const [isEditing, setIsEditing] = useState(false);
-    const [nama, setNama] = useState(profile?.nama || "");
-    const [email, setEmail] = useState(profile?.user?.email || "");
-    const [nomorTelepon, setNomorTelepon] = useState(profile?.user?.nomorTelepon || "");
+    const [nama, setNama] = useState(user?.name || profile?.nama || "");
+    const [email, setEmail] = useState(profile?.email || "");
+    const [nomorTelepon, setNomorTelepon] = useState(profile?.nomorTelepon || "");
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         if (profile) {
-            setNama(profile.nama || "");
-            setEmail(profile.user?.email || "");
-            setNomorTelepon(profile.user?.nomorTelepon || "");
-            if (!profile.user?.nomorTelepon) {
+            setNama(user?.name || profile.nama || "");
+            setEmail(profile?.email || "");
+            setNomorTelepon(profile?.nomorTelepon || "");
+            if (!profile?.nomorTelepon) {
                 setIsEditing(true);
             }
         }
@@ -107,7 +109,7 @@ export function ProfileDetails({ profile, onUpdate }: ProfileDetailsProps) {
                         />
                     ) : (
                         <div className="px-5 py-4 bg-gray-50/50 rounded-2xl border border-gray-50 font-bold text-gray-800 text-lg">
-                            {profile?.nama || "-"}
+                            {user?.name || profile?.nama || "-"}
                         </div>
                     )}
                 </div>
@@ -115,7 +117,7 @@ export function ProfileDetails({ profile, onUpdate }: ProfileDetailsProps) {
                 <div className="space-y-3">
                     <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest pl-1">NPM</label>
                     <div className="px-5 py-4 bg-gray-100/50 rounded-2xl border border-gray-100 font-mono font-black text-gray-400 text-lg cursor-not-allowed">
-                        {profile?.nim || "-"}
+                        {user?.mahasiswaNim || profile?.nim || "-"}
                     </div>
                 </div>
 
@@ -131,7 +133,7 @@ export function ProfileDetails({ profile, onUpdate }: ProfileDetailsProps) {
                         />
                     ) : (
                         <div className="px-5 py-4 bg-gray-50/50 rounded-2xl border border-gray-50 font-bold text-gray-800 text-lg">
-                            {profile?.user?.email || "-"}
+                            {profile?.email || "-"}
                         </div>
                     )}
                 </div>
@@ -149,7 +151,7 @@ export function ProfileDetails({ profile, onUpdate }: ProfileDetailsProps) {
                         />
                     ) : (
                         <div className="px-5 py-4 bg-gray-50/50 rounded-2xl border border-gray-50 font-bold text-gray-800 text-lg">
-                            {profile?.user?.nomorTelepon || <span className="text-red-400 italic font-normal text-sm">Belum diisi (Wajib)</span>}
+                            {profile?.nomorTelepon || <span className="text-red-400 italic font-normal text-sm">Belum diisi (Wajib)</span>}
                         </div>
                     )}
                 </div>

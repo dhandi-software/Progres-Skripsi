@@ -38,10 +38,10 @@ const getTimeRemaining = (deadline?: string) => {
     const now = new Date();
     const dDate = new Date(deadline);
     dDate.setHours(23, 59, 59, 999);
-    
+
     const diffTime = dDate.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays < 0) return { text: `Terlambat ${Math.abs(diffDays)} hari`, isLate: true, isWarning: false };
     if (diffDays === 0) return { text: "Hari ini", isLate: false, isWarning: true };
     if (diffDays <= 3) return { text: `${diffDays} hari lagi`, isLate: false, isWarning: true };
@@ -60,19 +60,19 @@ const parseCatatan = (catatan: string) => {
 export function BimbinganDesktop() {
     const [students, setStudents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [assigningId, setAssigningId] = useState<number | null>(null);
-    const [selectedTasks, setSelectedTasks] = useState<{[key: number]: string}>({});
-    const [selectedSchedules, setSelectedSchedules] = useState<{[key: number]: string}>({});
-    const [toastProps, setToastProps] = useState<{title: string, variant?: "success" | "destructive" | "default"} | null>(null);
+    const [assigningId, setAssigningId] = useState<string | null>(null);
+    const [selectedTasks, setSelectedTasks] = useState<{ [key: string]: string }>({});
+    const [selectedSchedules, setSelectedSchedules] = useState<{ [key: string]: string }>({});
+    const [toastProps, setToastProps] = useState<{ title: string, variant?: "success" | "destructive" | "default" } | null>(null);
     const navigate = useNavigate();
 
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("Semua");
 
     const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
-    const [inputGrades, setInputGrades] = useState<{[key: number]: string}>({});
+    const [inputGrades, setInputGrades] = useState<{ [key: number]: string }>({});
     const [savingGradeId, setSavingGradeId] = useState<number | null>(null);
-    
+
     const [profileModalOpen, setProfileModalOpen] = useState(false);
 
     // List Pagination
@@ -92,6 +92,7 @@ export function BimbinganDesktop() {
     const [chartData, setChartData] = useState<any[]>([]);
     const [allStudentTasks, setAllStudentTasks] = useState<any[]>([]);
     const [history, setHistory] = useState<any[]>([]);
+    const [expandedHistoryId, setExpandedHistoryId] = useState<number | null>(null);
 
     const showToast = (title: string, variant: "success" | "destructive" | "default" = "success") => {
         setToastProps({ title, variant });
@@ -123,7 +124,7 @@ export function BimbinganDesktop() {
         setCurrentPage(1);
     }, [statusFilter]);
 
-    const fetchStudentTasks = async (mahasiswaId: number) => {
+    const fetchStudentTasks = async (mahasiswaId: string) => {
         setStudentLoading(true);
         try {
             const tasks = await bimbinganApi.getBimbinganByMahasiswa(mahasiswaId);
@@ -137,7 +138,7 @@ export function BimbinganDesktop() {
             const uniqueTasks: any[] = Object.values(grouped);
             const active = uniqueTasks.find((t: any) => t.status !== 'APPROVED');
             const completed = uniqueTasks.filter((t: any) => t.status === 'APPROVED');
-            
+
             setStudentActiveTask(active || null);
             setCompletedTasks(completed);
 
@@ -156,7 +157,7 @@ export function BimbinganDesktop() {
                 { label: "Bab 5: Kesimpulan dan Saran", value: "Bab 5: Kesimpulan dan Saran" },
                 { label: "Laporan Akhir (Finalisasi)", value: "Laporan Akhir (Finalisasi)" },
             ];
-            
+
             const groupedByTopic = tasks.reduce((acc: any, task: any) => {
                 if (!acc[task.topik]) acc[task.topik] = [];
                 acc[task.topik].push(task);
@@ -172,7 +173,7 @@ export function BimbinganDesktop() {
                 isSubmitted: false,
                 statusText: "Belum Mulai"
             });
-            
+
             taskOptionsList.forEach(opt => {
                 const topicTasks = groupedByTopic[opt.value];
                 if (topicTasks) {
@@ -182,18 +183,18 @@ export function BimbinganDesktop() {
 
                     if (assignedTask || submittedTasks.length > 0) {
                         const deadline = assignedTask?.jadwalBimbingan ? new Date(assignedTask.jadwalBimbingan) : null;
-                        
+
                         // Cek apakah sudah ada submission
                         if (submittedTasks.length > 0) {
                             const firstSubmission = submittedTasks[0];
                             const submittedDate = new Date(firstSubmission.tanggal);
-                            
+
                             let diffDays = 0;
                             if (deadline) {
                                 const diffTime = submittedDate.getTime() - deadline.getTime();
                                 diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                             }
-                            
+
                             const isApproved = submittedTasks.some((t: any) => t.status === 'APPROVED');
                             const baseScore = isApproved ? 100 : 50;
 
@@ -201,9 +202,9 @@ export function BimbinganDesktop() {
                             if (diffDays > 0) {
                                 score = Math.max(0, baseScore - (diffDays * 10)); // Deduct 10 points per day late
                             }
-                            
+
                             newChartData.push({
-                                name: opt.label.split(':')[0].replace('Laporan Akhir (Finalisasi)', 'Laporan Akhir'), 
+                                name: opt.label.split(':')[0].replace('Laporan Akhir (Finalisasi)', 'Laporan Akhir'),
                                 score: score,
                                 fullTopic: opt.label,
                                 diffDays: diffDays > 0 ? diffDays : 0,
@@ -219,15 +220,15 @@ export function BimbinganDesktop() {
                                 const diffTime = now.getTime() - deadline.getTime();
                                 diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                             }
-                            
+
                             const baseScore = 50;
                             let score = baseScore;
                             if (diffDays > 0) {
                                 score = Math.max(0, baseScore - (diffDays * 10));
                             }
-                            
+
                             newChartData.push({
-                                name: opt.label.split(':')[0].replace('Laporan Akhir (Finalisasi)', 'Laporan Akhir'), 
+                                name: opt.label.split(':')[0].replace('Laporan Akhir (Finalisasi)', 'Laporan Akhir'),
                                 score: score,
                                 fullTopic: opt.label,
                                 diffDays: diffDays > 0 ? diffDays : 0,
@@ -238,7 +239,7 @@ export function BimbinganDesktop() {
                         }
                     } else {
                         newChartData.push({
-                            name: opt.label.split(':')[0].replace('Laporan Akhir (Finalisasi)', 'Laporan Akhir'), 
+                            name: opt.label.split(':')[0].replace('Laporan Akhir (Finalisasi)', 'Laporan Akhir'),
                             score: 0,
                             fullTopic: opt.label,
                             diffDays: 0,
@@ -248,7 +249,7 @@ export function BimbinganDesktop() {
                     }
                 } else {
                     newChartData.push({
-                        name: opt.label.split(':')[0].replace('Laporan Akhir (Finalisasi)', 'Laporan Akhir'), 
+                        name: opt.label.split(':')[0].replace('Laporan Akhir (Finalisasi)', 'Laporan Akhir'),
                         score: 0,
                         fullTopic: opt.label,
                         diffDays: 0,
@@ -270,10 +271,10 @@ export function BimbinganDesktop() {
         setSelectedStudent(student);
         setActiveTab("aktif");
         setIsEditingTask(false);
-        fetchStudentTasks(student.mahasiswa.id);
+        fetchStudentTasks(student.mahasiswa.nim);
     };
 
-    const handleAssign = async (mahasiswaId: number) => {
+    const handleAssign = async (mahasiswaId: string) => {
         const task = selectedTasks[mahasiswaId];
         const schedule = selectedSchedules[mahasiswaId];
         if (!task) {
@@ -297,7 +298,7 @@ export function BimbinganDesktop() {
             // Refresh list
             fetchStudents();
             if (selectedStudent) {
-                fetchStudentTasks(selectedStudent.mahasiswa.id);
+                fetchStudentTasks(selectedStudent.mahasiswa.nim);
             }
             // Clear selection
             setSelectedTasks(prev => ({ ...prev, [mahasiswaId]: "" }));
@@ -321,7 +322,7 @@ export function BimbinganDesktop() {
     ];
 
     const handleOpenReview = (task: any, isReadOnly: boolean = false) => {
-        navigate(`/dosen/bimbingan/${task.mahasiswaId}/review/${task.id}`);
+        navigate(`/dosen/bimbingan/${task.mahasiswaNim}/review/${task.id}`);
     };
 
     const handleSaveGrade = async (task: any) => {
@@ -340,7 +341,7 @@ export function BimbinganDesktop() {
             showToast("Nilai berhasil disimpan!", "success");
             setEditingTaskId(null);
             if (selectedStudent) {
-                fetchStudentTasks(selectedStudent.mahasiswa.id);
+                fetchStudentTasks(selectedStudent.mahasiswa.nim);
             }
         } catch (error) {
             console.error(error);
@@ -396,7 +397,7 @@ export function BimbinganDesktop() {
                         <div className="flex items-center gap-3 w-full md:w-auto">
                             <div className="relative flex-1 md:w-[250px]">
                                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                                <input 
+                                <input
                                     type="text"
                                     placeholder="Cari nama atau NIM..."
                                     value={searchQuery}
@@ -432,7 +433,7 @@ export function BimbinganDesktop() {
                                     <p className="text-sm text-gray-500 w-full">
                                         Tidak ada mahasiswa yang sesuai dengan kata kunci atau filter status yang Anda pilih.
                                     </p>
-                                    <button 
+                                    <button
                                         onClick={() => { setSearchQuery(""); setStatusFilter("Semua"); }}
                                         className="mt-6 px-4 py-2 text-sm font-bold text-[#119DA4] bg-[#119DA4]/10 hover:bg-[#119DA4]/20 rounded-xl transition-colors"
                                     >
@@ -503,7 +504,7 @@ export function BimbinganDesktop() {
                                                     )}
                                                 </td>
                                                 <td className="p-4 pr-6 align-top text-right">
-                                                    <button 
+                                                    <button
                                                         onClick={() => handleStudentClick(pengajuan)}
                                                         className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700 text-xs font-bold rounded-lg transition-all shadow-sm active:scale-95"
                                                     >
@@ -522,16 +523,16 @@ export function BimbinganDesktop() {
                             <Pagination>
                                 <PaginationContent>
                                     <PaginationItem>
-                                        <PaginationPrevious 
-                                            href="#" 
+                                        <PaginationPrevious
+                                            href="#"
                                             onClick={(e) => { e.preventDefault(); setCurrentPage(p => Math.max(1, p - 1)) }}
                                             className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
                                         />
                                     </PaginationItem>
-                                    {Array.from({length: totalPages}).map((_, i) => (
+                                    {Array.from({ length: totalPages }).map((_, i) => (
                                         <PaginationItem key={i}>
-                                            <PaginationLink 
-                                                href="#" 
+                                            <PaginationLink
+                                                href="#"
                                                 isActive={currentPage === i + 1}
                                                 onClick={(e) => { e.preventDefault(); setCurrentPage(i + 1) }}
                                             >
@@ -540,8 +541,8 @@ export function BimbinganDesktop() {
                                         </PaginationItem>
                                     ))}
                                     <PaginationItem>
-                                        <PaginationNext 
-                                            href="#" 
+                                        <PaginationNext
+                                            href="#"
                                             onClick={(e) => { e.preventDefault(); setCurrentPage(p => Math.min(totalPages, p + 1)) }}
                                             className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
                                         />
@@ -554,7 +555,7 @@ export function BimbinganDesktop() {
             ) : (
                 <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="p-6 border-b border-gray-100 flex items-center gap-4 bg-white relative">
-                        <button 
+                        <button
                             onClick={() => setSelectedStudent(null)}
                             className="p-2 hover:bg-gray-100 text-gray-500 rounded-xl transition-colors shrink-0"
                             title="Kembali ke daftar"
@@ -565,7 +566,7 @@ export function BimbinganDesktop() {
                         <div>
                             <div className="flex items-center gap-3">
                                 <h2 className="text-xl font-bold text-gray-900 leading-tight">Detail Bimbingan: {selectedStudent.mahasiswa.nama}</h2>
-                                <button 
+                                <button
                                     onClick={() => setProfileModalOpen(true)}
                                     className="px-2 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-bold border border-blue-100 transition-colors flex items-center gap-1"
                                     title="Lihat Profil"
@@ -613,7 +614,7 @@ export function BimbinganDesktop() {
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                                 <div className="lg:col-span-2 space-y-6">
                                     <h3 className="text-lg font-bold text-gray-800">Target Saat Ini</h3>
-                                    
+
                                     {studentActiveTask ? (
                                         <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
                                             <div className="h-2 w-full bg-[#119DA4]"></div>
@@ -629,7 +630,7 @@ export function BimbinganDesktop() {
                                                                 <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-bold border border-blue-100">
                                                                     Aktif
                                                                 </span>
-                                                                {new Date(studentActiveTask.tanggal).toLocaleDateString('id-ID', {day: 'numeric', month: 'short', year: 'numeric'})}
+                                                                {new Date(studentActiveTask.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -649,7 +650,7 @@ export function BimbinganDesktop() {
                                                             </tr>
                                                             <tr className="bg-gray-50/50">
                                                                 <th className="py-3 px-4 font-bold text-gray-700 w-[40%] border-r border-gray-200">Batas Waktu</th>
-                                                                <td className="py-3 px-4 text-gray-900 bg-white font-medium">{studentActiveTask.jadwalBimbingan ? new Date(studentActiveTask.jadwalBimbingan).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute:'2-digit'}) : '-'}</td>
+                                                                <td className="py-3 px-4 text-gray-900 bg-white font-medium">{studentActiveTask.jadwalBimbingan ? new Date(studentActiveTask.jadwalBimbingan).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}</td>
                                                             </tr>
                                                             <tr className="bg-gray-50/50">
                                                                 <th className="py-3 px-4 font-bold text-gray-700 w-[40%] border-r border-gray-200">Keterlambatan</th>
@@ -668,11 +669,11 @@ export function BimbinganDesktop() {
                                                             <FileStack className="w-4 h-4" /> Dokumen Mahasiswa Memerlukan Reviu
                                                         </h4>
                                                         <p className="text-xs text-blue-700 mb-4 leading-relaxed">
-                                                            Mahasiswa telah mengumpulkan draf dengan keterangan: "{studentActiveTask.keteranganProgres}".<br/>
+                                                            Mahasiswa telah mengumpulkan draf dengan keterangan: "{studentActiveTask.keteranganProgres}".<br />
                                                             Klik tombol di bawah ini untuk melihat dokumen aslinya dan memberikan anotasi reviu langsung di layar Anda.
                                                         </p>
                                                         <div className="flex gap-3">
-                                                            <button 
+                                                            <button
                                                                 onClick={() => handleOpenReview(studentActiveTask)}
                                                                 className="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-sm rounded-xl transition-all shadow-sm shadow-blue-500/30 flex justify-center items-center gap-2"
                                                             >
@@ -684,18 +685,18 @@ export function BimbinganDesktop() {
                                                 {studentActiveTask.status !== 'APPROVED' && (
                                                     <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg flex flex-col items-center gap-3 mt-4">
                                                         <span className="text-sm text-gray-500 text-center italic">
-                                                            {studentActiveTask.status === 'ASSIGNED' 
-                                                                ? "Menunggu mahasiswa mengunggah draf ke dalam sistem..." 
+                                                            {studentActiveTask.status === 'ASSIGNED'
+                                                                ? "Menunggu mahasiswa mengunggah draf ke dalam sistem..."
                                                                 : "Draf telah dikumpulkan/direviu. Anda masih bisa mengubah target bab/deadline jika diperlukan."}
                                                         </span>
-                                                        <button 
+                                                        <button
                                                             onClick={() => {
-                                                                setSelectedTasks(prev => ({...prev, [selectedStudent.mahasiswa.id]: studentActiveTask.topik}));
+                                                                setSelectedTasks(prev => ({ ...prev, [selectedStudent.mahasiswa.nim]: studentActiveTask.topik }));
                                                                 if (studentActiveTask.jadwalBimbingan) {
-                                                                    setSelectedSchedules(prev => ({...prev, [selectedStudent.mahasiswa.id]: studentActiveTask.jadwalBimbingan}));
+                                                                    setSelectedSchedules(prev => ({ ...prev, [selectedStudent.mahasiswa.nim]: studentActiveTask.jadwalBimbingan }));
                                                                 }
                                                                 setIsEditingTask(true);
-                                                            }} 
+                                                            }}
                                                             className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg transition-colors shadow-sm"
                                                         >
                                                             Edit Target / Tenggat Waktu
@@ -727,20 +728,61 @@ export function BimbinganDesktop() {
                                                                 <div className="w-2 h-2 rounded-full bg-white"></div>
                                                             </div>
                                                             <div className="bg-gray-50/50 p-3 rounded-lg border border-gray-100 flex-1">
-                                                                <div className="flex justify-between items-start mb-1">
-                                                                    <div className="font-bold text-gray-800 text-sm">Versi {item.versi}</div>
-                                                                    <div className="text-[10px] text-gray-500 bg-white border border-gray-100 px-1.5 py-0.5 rounded-sm">{new Date(item.tanggal).toLocaleDateString('id-ID')}</div>
-                                                                </div>
-                                                                <p className="text-xs text-gray-500">
-                                                                    {item.status === 'ASSIGNED' ? "Target diberikan oleh Anda" :
-                                                                     item.status === 'SUBMITTED' ? "Draf diunggah mahasiswa" :
-                                                                     item.status === 'REVISION' ? <span className="text-orange-600 font-medium">Anda memberikan revisi</span> :
-                                                                     item.status === 'APPROVED' ? <span className="text-green-600 font-medium">Reviu disetujui ACC</span> : ""}
-                                                                </p>
+                                                                <button
+                                                                    onClick={() => setExpandedHistoryId(expandedHistoryId === item.id ? null : item.id)}
+                                                                    className="w-full text-left focus:outline-none"
+                                                                >
+                                                                    <div className="flex justify-between items-start mb-1">
+                                                                        <div className="font-bold text-gray-800 text-sm">Versi {item.versi}</div>
+                                                                        <div className="text-[10px] text-gray-500 bg-white border border-gray-100 px-1.5 py-0.5 rounded-sm">{new Date(item.tanggal).toLocaleDateString('id-ID')}</div>
+                                                                    </div>
+                                                                    <p className="text-xs text-gray-500">
+                                                                        {item.status === 'ASSIGNED' ? "Target diberikan oleh Anda" :
+                                                                            item.status === 'SUBMITTED' ? "Draf diunggah mahasiswa" :
+                                                                                item.status === 'REVISION' ? <span className="text-orange-600 font-medium">Anda memberikan revisi</span> :
+                                                                                    item.status === 'APPROVED' ? <span className="text-green-600 font-medium">Reviu disetujui ACC</span> : ""}
+                                                                    </p>
+                                                                </button>
                                                                 {item.fileMahasiswa && item.status !== 'ASSIGNED' && (
                                                                     <a href={`${UPLOADS_URL}${item.fileMahasiswa}`} target="_blank" rel="noreferrer" className="mt-2 text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 w-max bg-blue-50 px-2 py-1 rounded">
                                                                         <Download className="w-3 h-3" /> Unduh PDF
                                                                     </a>
+                                                                )}
+
+                                                                {/* Annotation History Accordion */}
+                                                                {expandedHistoryId === item.id && item.anotasi && item.anotasi.length > 0 && (
+                                                                    <div className="mt-3 space-y-3 pt-3 border-t border-gray-200">
+                                                                        <div className="text-xs font-bold text-gray-700 flex items-center justify-between">
+                                                                            <span>Riwayat Anotasi pada Versi Ini:</span>
+                                                                            <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded-md text-[10px]">{item.anotasi.length} catatan</span>
+                                                                        </div>
+                                                                        {item.anotasi.map((ann: any, idx: number) => {
+                                                                            const pos = typeof ann.posisi === 'string' ? JSON.parse(ann.posisi) : (ann.posisi || {});
+                                                                            const quote = pos.content?.text;
+                                                                            const pageNum = pos.position?.pageNumber;
+
+                                                                            return (
+                                                                                <div key={idx} className="bg-white p-3 rounded-xl shadow-sm border border-orange-100 relative before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:bg-orange-400 before:rounded-r-md">
+                                                                                    {pageNum && (
+                                                                                        <div className="inline-block px-1.5 py-0.5 bg-orange-50 text-orange-800 rounded text-[9px] font-bold mb-1.5 border border-orange-100">
+                                                                                            Halaman {pageNum}
+                                                                                        </div>
+                                                                                    )}
+                                                                                    {quote && (
+                                                                                        <div className="pl-2 border-l-2 border-orange-200 mb-2">
+                                                                                            <p className="text-[10px] text-gray-500 italic line-clamp-2">"{quote}"</p>
+                                                                                        </div>
+                                                                                    )}
+                                                                                    <p className="text-xs text-gray-800 font-medium leading-relaxed">{ann.komentar}</p>
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                )}
+                                                                {expandedHistoryId === item.id && (!item.anotasi || item.anotasi.length === 0) && (
+                                                                    <div className="mt-3 pt-3 border-t border-gray-200">
+                                                                        <p className="text-xs text-gray-400 italic text-center">Tidak ada anotasi pada versi ini.</p>
+                                                                    </div>
                                                                 )}
                                                             </div>
                                                         </div>
@@ -756,21 +798,21 @@ export function BimbinganDesktop() {
                                                     {isEditingTask && (
                                                         <button onClick={() => {
                                                             setIsEditingTask(false);
-                                                            setSelectedTasks(prev => ({...prev, [selectedStudent.mahasiswa.id]: ""}));
-                                                            setSelectedSchedules(prev => ({...prev, [selectedStudent.mahasiswa.id]: ""}));
+                                                            setSelectedTasks(prev => ({ ...prev, [selectedStudent.mahasiswa.nim]: "" }));
+                                                            setSelectedSchedules(prev => ({ ...prev, [selectedStudent.mahasiswa.nim]: "" }));
                                                         }} className="text-xs text-blue-600 hover:underline font-bold">Batalkan Edit</button>
                                                     )}
                                                 </div>
                                                 <div className="space-y-4">
                                                     <div>
                                                         <label className="block text-xs font-bold text-gray-700 mb-1.5">Pilih Bab / Target Penugasan</label>
-                                                        <CustomSelect 
+                                                        <CustomSelect
                                                             options={taskOptions.map(opt => ({
                                                                 ...opt,
                                                                 disabled: completedTasks.some(t => t.topik === opt.value) || studentActiveTask?.topik === opt.value
                                                             }))}
-                                                            value={selectedTasks[selectedStudent.mahasiswa.id] || ""}
-                                                            onChange={(val) => setSelectedTasks(prev => ({...prev, [selectedStudent.mahasiswa.id]: val}))}
+                                                            value={selectedTasks[selectedStudent.mahasiswa.nim] || ""}
+                                                            onChange={(val) => setSelectedTasks(prev => ({ ...prev, [selectedStudent.mahasiswa.nim]: val }))}
                                                             placeholder="Pilih Bab"
                                                             className="h-10 text-sm"
                                                         />
@@ -778,37 +820,39 @@ export function BimbinganDesktop() {
                                                     <div>
                                                         <label className="block text-xs font-bold text-gray-700 mb-1.5">Batas Pengumpulan (Waktu)</label>
                                                         <div className="flex flex-col gap-2 relative z-50">
-                                                            <MonthYearFilter 
-                                                                date={selectedSchedules[selectedStudent.mahasiswa.id] ? new Date(selectedSchedules[selectedStudent.mahasiswa.id]) : undefined}
+                                                            <MonthYearFilter
+                                                                date={selectedSchedules[selectedStudent.mahasiswa.nim] ? new Date(selectedSchedules[selectedStudent.mahasiswa.nim]) : undefined}
+                                                                minDate={new Date()}
+                                                                maxDate={new Date(new Date().getFullYear(), 11, 31)}
                                                                 setDate={(d) => {
                                                                     if (d) {
-                                                                        const existingDate = selectedSchedules[selectedStudent.mahasiswa.id] ? new Date(selectedSchedules[selectedStudent.mahasiswa.id]) : null;
+                                                                        const existingDate = selectedSchedules[selectedStudent.mahasiswa.nim] ? new Date(selectedSchedules[selectedStudent.mahasiswa.nim]) : null;
                                                                         const hours = existingDate ? existingDate.getHours() : 23;
                                                                         const minutes = existingDate ? existingDate.getMinutes() : 59;
                                                                         d.setHours(hours, minutes);
-                                                                        setSelectedSchedules(prev => ({...prev, [selectedStudent.mahasiswa.id]: d.toISOString()}));
+                                                                        setSelectedSchedules(prev => ({ ...prev, [selectedStudent.mahasiswa.nim]: d.toISOString() }));
                                                                     } else {
-                                                                        setSelectedSchedules(prev => { const p = {...prev}; delete p[selectedStudent.mahasiswa.id]; return p; });
+                                                                        setSelectedSchedules(prev => { const p = { ...prev }; delete p[selectedStudent.mahasiswa.nim]; return p; });
                                                                     }
                                                                 }}
                                                             />
                                                             <div className="flex mt-1 w-full max-w-[200px]">
                                                                 <div className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg shadow-sm flex items-center justify-between transition-colors hover:bg-gray-50 focus-within:border-[#119DA4] focus-within:ring-1 focus-within:ring-[#119DA4]">
-                                                                    <label className="text-xs font-bold text-gray-600 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5"/> Jam</label>
-                                                                    <input 
-                                                                        type="time" 
+                                                                    <label className="text-xs font-bold text-gray-600 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Jam</label>
+                                                                    <input
+                                                                        type="time"
                                                                         className="px-2 py-1 text-sm font-bold bg-transparent outline-none text-gray-800"
                                                                         value={(() => {
-                                                                            if (!selectedSchedules[selectedStudent.mahasiswa.id]) return "23:59";
-                                                                            const d = new Date(selectedSchedules[selectedStudent.mahasiswa.id]);
+                                                                            if (!selectedSchedules[selectedStudent.mahasiswa.nim]) return "23:59";
+                                                                            const d = new Date(selectedSchedules[selectedStudent.mahasiswa.nim]);
                                                                             return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
                                                                         })()}
                                                                         onChange={(e) => {
-                                                                            const d = selectedSchedules[selectedStudent.mahasiswa.id] ? new Date(selectedSchedules[selectedStudent.mahasiswa.id]) : new Date();
+                                                                            const d = selectedSchedules[selectedStudent.mahasiswa.nim] ? new Date(selectedSchedules[selectedStudent.mahasiswa.nim]) : new Date();
                                                                             if (e.target.value) {
                                                                                 const [hh, mm] = e.target.value.split(":");
                                                                                 d.setHours(parseInt(hh), parseInt(mm));
-                                                                                setSelectedSchedules(prev => ({...prev, [selectedStudent.mahasiswa.id]: d.toISOString()}));
+                                                                                setSelectedSchedules(prev => ({ ...prev, [selectedStudent.mahasiswa.nim]: d.toISOString() }));
                                                                             }
                                                                         }}
                                                                     />
@@ -816,12 +860,12 @@ export function BimbinganDesktop() {
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <button 
-                                                        onClick={() => handleAssign(selectedStudent.mahasiswa.id)}
-                                                        disabled={assigningId === selectedStudent.mahasiswa.id || !selectedTasks[selectedStudent.mahasiswa.id] || !selectedSchedules[selectedStudent.mahasiswa.id]}
+                                                    <button
+                                                        onClick={() => handleAssign(selectedStudent.mahasiswa.nim)}
+                                                        disabled={assigningId === selectedStudent.mahasiswa.nim || !selectedTasks[selectedStudent.mahasiswa.nim] || !selectedSchedules[selectedStudent.mahasiswa.nim]}
                                                         className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-3 bg-[#119DA4] hover:bg-[#0e868c] active:bg-[#0b6b70] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition-colors shadow-sm"
                                                     >
-                                                        {assigningId === selectedStudent.mahasiswa.id ? (
+                                                        {assigningId === selectedStudent.mahasiswa.nim ? (
                                                             <Loader2 size={16} className="animate-spin" />
                                                         ) : (
                                                             <Send size={16} />
@@ -845,26 +889,26 @@ export function BimbinganDesktop() {
                                                 <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
                                                     <defs>
                                                         <linearGradient id="colorScoreDesktop" x1="0" y1="0" x2="0" y2="1">
-                                                            <stop offset="5%" stopColor="#f97316" stopOpacity={0.3}/>
-                                                            <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
+                                                            <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
+                                                            <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
                                                         </linearGradient>
                                                     </defs>
                                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                                                    <XAxis 
-                                                        dataKey="name" 
-                                                        axisLine={false} 
-                                                        tickLine={false} 
+                                                    <XAxis
+                                                        dataKey="name"
+                                                        axisLine={false}
+                                                        tickLine={false}
                                                         tick={{ fontSize: 12, fill: '#6B7280', fontWeight: 600 }}
                                                         dy={10}
                                                     />
-                                                    <YAxis 
-                                                        axisLine={false} 
-                                                        tickLine={false} 
+                                                    <YAxis
+                                                        axisLine={false}
+                                                        tickLine={false}
                                                         tick={{ fontSize: 12, fill: '#6B7280' }}
                                                         domain={[0, 100]}
                                                         ticks={[0, 25, 50, 75, 100]}
                                                     />
-                                                    <Tooltip 
+                                                    <Tooltip
                                                         content={({ active, payload }) => {
                                                             if (active && payload && payload.length) {
                                                                 const data = payload[0].payload;
@@ -890,12 +934,12 @@ export function BimbinganDesktop() {
                                                             return null;
                                                         }}
                                                     />
-                                                    <Area 
-                                                        type="monotone" 
-                                                        dataKey="score" 
-                                                        stroke="#f97316" 
-                                                        fillOpacity={1} 
-                                                        fill="url(#colorScoreDesktop)" 
+                                                    <Area
+                                                        type="monotone"
+                                                        dataKey="score"
+                                                        stroke="#f97316"
+                                                        fillOpacity={1}
+                                                        fill="url(#colorScoreDesktop)"
                                                         strokeWidth={3}
                                                         dot={{ r: 5, fill: '#f97316', strokeWidth: 0, stroke: '#fff' }}
                                                         activeDot={{ r: 7, stroke: '#ffedd5', strokeWidth: 4, fill: '#f97316' }}
@@ -917,17 +961,17 @@ export function BimbinganDesktop() {
                         ) : activeTab === 'portfolio' ? (
                             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 <div className="bg-white rounded-3xl overflow-hidden">
-                                     <ProgressStats bimbinganTasks={allStudentTasks} />
+                                    <ProgressStats bimbinganTasks={allStudentTasks} />
                                 </div>
                                 <div className="bg-white rounded-3xl overflow-hidden">
-                                     <BadgeWall bimbinganTasks={allStudentTasks} />
+                                    <BadgeWall bimbinganTasks={allStudentTasks} />
                                 </div>
                                 <div className="p-6 bg-blue-50 border border-blue-100 rounded-2xl">
                                     <h4 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
                                         <Trophy className="w-4 h-4" /> Catatan Untuk Dosen
                                     </h4>
                                     <p className="text-sm text-blue-700 leading-relaxed">
-                                        Sistem Badge dan Progress di atas didasarkan pada draf bimbingan yang telah dikumpulkan dan disetujui (ACC) dalam sistem. 
+                                        Sistem Badge dan Progress di atas didasarkan pada draf bimbingan yang telah dikumpulkan dan disetujui (ACC) dalam sistem.
                                         Badge <span className="font-bold">"Tepat Waktu"</span> akan hilang secara otomatis jika mahasiswa memiliki riwayat pengumpulan yang melewati tenggat waktu yang Anda berikan.
                                     </p>
                                 </div>
@@ -946,7 +990,7 @@ export function BimbinganDesktop() {
                                     completedTasks.map(task => {
                                         const parsed = parseCatatan(task.catatan);
                                         const isEditing = editingTaskId === task.id;
-                                        
+
                                         return (
                                             <div key={task.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col min-h-[200px]">
                                                 <div className="h-2 w-full bg-green-500"></div>
@@ -954,7 +998,7 @@ export function BimbinganDesktop() {
                                                     <div>
                                                         <div className="flex justify-between items-center mb-3">
                                                             <span className="text-[10px] font-bold px-2 py-0.5 bg-green-50 border border-green-200 text-green-700 rounded-md">SELESAI (ACC)</span>
-                                                            
+
                                                             {!isEditing && (
                                                                 parsed.nilai !== null ? (
                                                                     <span className="text-[11px] font-bold px-2.5 py-0.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-full shadow-sm">
@@ -1052,7 +1096,7 @@ export function BimbinganDesktop() {
                     </div>
                 </div>
             )}
-            
+
             {selectedStudent && (
                 <PublicProfileModal
                     userId={selectedStudent.mahasiswa.userId}

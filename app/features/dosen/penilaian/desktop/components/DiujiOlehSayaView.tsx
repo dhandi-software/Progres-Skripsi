@@ -7,7 +7,7 @@ import { cn } from "~/lib/utils";
 
 interface DiujiOlehSayaViewProps {
     data: PenilaianItem[];
-    dosenList: { id: number; nama: string }[];
+    dosenList: { id: string; nama: string }[];
     isLowVision: boolean;
     user: any;
     onOpenForm: (item: PenilaianItem) => void;
@@ -139,7 +139,7 @@ export function DiujiOlehSayaView({
                                     <td className={cn("px-6 py-4 whitespace-nowrap", isLowVision ? "border-r border-black" : "")}>
                                         <div className="flex flex-col">
                                             <span className={cn("font-bold text-slate-900", isLowVision ? "text-lg font-black text-black" : "text-sm")}>{item.nama}</span>
-                                            <span className={cn("text-[10px] text-slate-400 uppercase tracking-tight", isLowVision ? "text-xs text-slate-600 font-extrabold" : "")}>{item.jurusan}</span>
+
                                         </div>
                                     </td>
                                     <td className={cn("px-2 py-4 text-center text-xs border-l", isLowVision ? "text-sm border-black font-black text-black" : "bg-blue-50/5")}>{item.p1_k1 || "-"}</td>

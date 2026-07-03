@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { acaraApi } from "~/api/acaraApi";
+import { jadwalKpApi } from "~/api/jadwalKpApi";
+import type { JadwalKp } from "~/api/jadwalKpApi";
 
 export function DashboardMobile() {
     const { user } = useAuth();
@@ -24,6 +26,7 @@ export function DashboardMobile() {
     const [bimbinganTasks, setBimbinganTasks] = useState<any[]>([]);
     const [acaras, setAcaras] = useState<any[]>([]);
     const [unreadAcaraCount, setUnreadAcaraCount] = useState(0);
+    const [upcomingJadwal, setUpcomingJadwal] = useState<JadwalKp[]>([]);
     const [showAllActivities, setShowAllActivities] = useState(false);
 
     const fetchAcaraData = () => {
@@ -52,6 +55,13 @@ export function DashboardMobile() {
                 .catch(console.error);
             
             fetchAcaraData();
+            jadwalKpApi.getAllJadwalKp()
+                .then((data: JadwalKp[]) => {
+                    const now = new Date();
+                    const upcoming = data.filter(j => new Date(j.tanggalSelesai) >= now && j.tipe !== 'JADWAL_SIDANG').sort((a, b) => new Date(a.tanggalSelesai).getTime() - new Date(b.tanggalSelesai).getTime());
+                    setUpcomingJadwal(upcoming);
+                })
+                .catch(console.error);
         }
     }, [user?.id]);
 
@@ -188,6 +198,42 @@ export function DashboardMobile() {
                     </button>
                 </div>
             </div>
+
+            {/* Notification Banner for Upcoming Jadwal Mobile */}
+            {upcomingJadwal.map((jadwal, index) => (
+                <div key={`jadwal-${index}`} className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 shadow-sm relative overflow-hidden animate-in fade-in slide-in-from-top-2 duration-500">
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 bg-emerald-100 rounded-full text-emerald-600 shrink-0">
+                            <Calendar className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1.5">
+                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${jadwal.tipe === 'PENGARAHAN_KP' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                                    {jadwal.tipe === 'PENGARAHAN_KP' ? 'Pengarahan KP' : 'Pengumpulan Laporan Sidang'}
+                                </span>
+                            </div>
+                            <h3 className="text-emerald-800 font-bold text-sm">{jadwal.judul}</h3>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                <span className="bg-emerald-600 text-white font-black text-sm px-3 py-1 rounded-lg shadow-sm">
+                                    {new Date(jadwal.tanggalSelesai).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                </span>
+                                <span className="bg-emerald-100 text-emerald-800 font-black text-sm px-3 py-1 rounded-lg border border-emerald-200">
+                                    {new Date(jadwal.tanggalSelesai).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                            </div>
+                            {jadwal.deskripsi && <p className="text-emerald-700 text-[10px] mt-2 pr-2 leading-relaxed italic">"{jadwal.deskripsi}"</p>}
+                            {jadwal.tipe === 'PENGARAHAN_SIDANG' && (
+                                <button 
+                                    onClick={() => navigate("/mahasiswa/sidang")}
+                                    className="mt-3 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 transition-colors text-white text-xs font-bold rounded-lg shadow-sm w-full"
+                                >
+                                    Kumpul Laporan
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            ))}
 
             {/* Notification Banner for Rejected Applications Mobile */}
             {profile?.pengajuanJudul && profile.pengajuanJudul.length > 0 && profile.pengajuanJudul[0].status === 'REJECTED' && (
@@ -326,7 +372,7 @@ export function DashboardMobile() {
                     <span className="text-gray-400 text-xs font-medium uppercase">SKS Tempuh</span>
                     <div className="flex items-center gap-2 mt-1">
                         <BookOpen className="w-4 h-4 text-blue-600" />
-                        <span className="text-lg font-bold text-gray-800">110</span>
+                        <span className="text-lg font-bold text-gray-800">{profile?.pengajuanJudul && profile.pengajuanJudul.length > 0 ? profile.pengajuanJudul[0].sksDicapai || 0 : 0}</span>
                     </div>
                 </div>
                 <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
@@ -418,7 +464,7 @@ export function DashboardMobile() {
                                             <h4 className="font-semibold text-gray-900 flex items-center gap-2">
                                                 {item.title}
                                                 {item.isRead === false && (
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-sm animate-pulse" />
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-sm" />
                                                 )}
                                             </h4>
                                             <p className="text-[10px] text-gray-500 mt-0.5 line-clamp-2 pr-2">{item.desc || ''}</p>

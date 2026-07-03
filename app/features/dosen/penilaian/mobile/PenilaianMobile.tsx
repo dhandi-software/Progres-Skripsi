@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "~/hooks/useAuth";
 import { penilaianApi } from "~/api/penilaianApi";
-import { CheckCircle, Edit3, Trash2, X, Save, AlertCircle, Search, User, GraduationCap, ChevronRight, Calculator, Info, Lock, Eye } from "lucide-react";
+import { CheckCircle, Edit3, Trash2, X, Save, AlertCircle, Search, User, GraduationCap, ChevronRight, Calculator, Info, Lock, Eye, Users, Printer } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 
 interface PenilaianItem {
-    mahasiswaId: number;
+    mahasiswaId: string;
     nama: string;
     nim: string;
-    jurusan: string;
+    tahunMasuk: string;
     judulSkripsi: string;
     penilaianId: number | null;
     
@@ -24,14 +24,15 @@ interface PenilaianItem {
     keterangan: string | null;
     tanggal: string | null;
 
-    pembimbingId?: number;
+    pembimbingId?: string;
     pembimbingNama?: string;
-    pengujiId?: number | null;
+    pengujiId?: string | null;
     pengujiNama?: string | null;
+    suratTugasUrl?: string | null;
 }
 
 interface FormState {
-    mahasiswaId: number;
+    mahasiswaId: string;
     penilaianId: number | null;
     nama: string;
     nim: string;
@@ -59,23 +60,30 @@ export function PenilaianMobile({ title }: { title?: string }) {
     const [searchQuery, setSearchQuery] = useState("");
     const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
     const [deleteConfirm, setDeleteConfirm] = useState<PenilaianItem | null>(null);
-
-    const [dosenList, setDosenList] = useState<{ id: number, nama: string }[]>([]);
+    const [dosenList, setDosenList] = useState<{ id: string, nama: string }[]>([]);
     const [isKoordinator, setIsKoordinator] = useState(false);
-    const [assigningId, setAssigningId] = useState<number | null>(null);
+    const [assigningId, setAssigningId] = useState<string | null>(null);
+    const [suratTugasFile, setSuratTugasFile] = useState<File | null>(null);
+
+    // Modal Confirmation State
+    const [confirmModal, setConfirmModal] = useState<{
+        type: "bulk" | "row" | "cancel" | "cancel_bulk";
+        mahasiswaId?: string;
+        pengujiId?: string;
+        pembimbingId?: string;
+        studentName?: string;
+        pengujiName?: string;
+        pembimbingName?: string;
+    } | null>(null);
 
     // Custom dropdown & Accessibility states
-    const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
+    const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
     const [dropdownSearch, setDropdownSearch] = useState("");
     const [isLowVision, setIsLowVision] = useState(false);
-    const [selectedPembimbingId, setSelectedPembimbingId] = useState<number | "all" | null>(null);
+    const [selectedPembimbingId, setSelectedPembimbingId] = useState<string | "all" | null>("all");
     const [activeTab, setActiveTab] = useState<"koordinator" | "pembimbing" | "penguji">("pembimbing");
     const [isEditingPenguji, setIsEditingPenguji] = useState(false);
-    const [confirmAssignPenguji, setConfirmAssignPenguji] = useState<{
-        pembimbingId: number;
-        pengujiId: number | null;
-        pengujiNama: string | null;
-    } | null>(null);
+    const [isEditingBulk, setIsEditingBulk] = useState(false);
 
 
 
@@ -103,8 +111,24 @@ export function PenilaianMobile({ title }: { title?: string }) {
         }
     };
 
-    const handleAssignPengujiBulk = async (pembimbingId: number | null, pengujiId: number | null) => {
-        if (!pembimbingId) return;
+    const handleAssignPenguji = async (mahasiswaId: string, pengujiId: string, file?: File | null) => {
+        setIsSaving(true);
+        setAssigningId(mahasiswaId);
+        try {
+            await penilaianApi.assignPenguji({ mahasiswaId, pengujiId, surat_tugas: file });
+            showToast("success", "Penugasan penguji berhasil disimpan.");
+            await fetchData();
+            setConfirmModal(null);
+            setSuratTugasFile(null);
+        } catch (err: any) {
+            showToast("error", err.message || "Gagal menugaskan penguji.");
+        } finally {
+            setIsSaving(false);
+            setAssigningId(null);
+        }
+    };
+
+    const handleAssignPengujiBulk = async (pembimbingId: string, pengujiId: string, file?: File | null) => {
         setIsSaving(true);
         const pembimbing = dosenList.find(d => d.id === pembimbingId);
         const studentsToUpdate = data.filter(item => item.pembimbingId === pembimbingId || item.pembimbingNama === pembimbing?.nama);
@@ -118,17 +142,67 @@ export function PenilaianMobile({ title }: { title?: string }) {
         setAssigningId(pembimbingId);
         try {
             await Promise.all(
-                studentsToUpdate.map(student => 
-                    penilaianApi.assignPenguji(student.mahasiswaId, pengujiId)
-                )
+                studentsToUpdate.map(student => penilaianApi.assignPenguji({ mahasiswaId: student.mahasiswaId, pengujiId, surat_tugas: file }))
             );
             await fetchData();
-            showToast("success", `Berhasil menugaskan Dosen Penguji untuk semua bimbingan ${pembimbing?.nama}!`);
+            showToast("success", `Berhasil menugaskan Dosen Penguji untuk semua bimbingan ${pembimbing?.nama || ''}!`);
+            setConfirmModal(null);
+            setSuratTugasFile(null);
+            setIsEditingBulk(false);
         } catch {
             showToast("error", "Gagal menugaskan Dosen Penguji.");
         } finally {
             setAssigningId(null);
             setIsSaving(false);
+        }
+    };
+
+    const handleCancelPenguji = async (mahasiswaId: string) => {
+        setIsSaving(true);
+        setAssigningId(mahasiswaId);
+        try {
+            await penilaianApi.cancelPenguji({ mahasiswaId });
+            showToast("success", "Penugasan penguji berhasil dibatalkan.");
+            await fetchData();
+            setConfirmModal(null);
+        } catch (err: any) {
+            showToast("error", err.message || "Gagal membatalkan penguji.");
+        } finally {
+            setIsSaving(false);
+            setAssigningId(null);
+        }
+    };
+
+    const handleCancelPengujiBulk = async (pembimbingId: string) => {
+        setIsSaving(true);
+        const pembimbing = dosenList.find(d => d.id === pembimbingId);
+        const studentsToUpdate = data.filter(item => item.pembimbingId === pembimbingId || item.pembimbingNama === pembimbing?.nama);
+
+        setAssigningId(pembimbingId);
+        try {
+            await Promise.all(
+                studentsToUpdate.map(student => penilaianApi.cancelPenguji({ mahasiswaId: student.mahasiswaId }))
+            );
+            showToast("success", `Berhasil membatalkan Dosen Penguji untuk semua bimbingan ${pembimbing?.nama || ''}!`);
+            await fetchData();
+            setConfirmModal(null);
+            setIsEditingBulk(false);
+        } catch (err: any) {
+            showToast("error", err.message || "Gagal membatalkan dosen penguji.");
+        } finally {
+            setIsSaving(false);
+            setAssigningId(null);
+        }
+    };
+
+    const handlePrintSuratTugasBulk = (students: PenilaianItem[]) => {
+        const firstStudent = students.find(s => s.suratTugasUrl);
+        if (firstStudent && firstStudent.suratTugasUrl) {
+            import("~/api/client").then(({ UPLOADS_URL }) => {
+                window.open(`${UPLOADS_URL}${firstStudent.suratTugasUrl}`, '_blank');
+            });
+        } else {
+            showToast("error", "Surat tugas belum diunggah atau tidak ditemukan.");
         }
     };
 
@@ -247,6 +321,8 @@ export function PenilaianMobile({ title }: { title?: string }) {
         (item.judulSkripsi && item.judulSkripsi.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
+    const activePengujiNama = activePembimbingStudents.find(item => item.pengujiNama)?.pengujiNama;
+
     const calcP1Total = () => {
         if (!form) return 0;
         return (0.35 * (parseFloat(form.p1_k1) || 0)) + (0.30 * (parseFloat(form.p1_k2) || 0)) + (0.35 * (parseFloat(form.p1_k3) || 0));
@@ -259,11 +335,11 @@ export function PenilaianMobile({ title }: { title?: string }) {
 
     const student = form ? data.find(d => d.mahasiswaId === form.mahasiswaId) : null;
     const isUserPembimbing = student && user && (
-        (user.dosenId && student.pembimbingId === user.dosenId) ||
+        (user.dosenNidn && student.pembimbingId === user.dosenNidn) ||
         (user.name && (student.pembimbingNama === user.name || form?.p1_nama === user.name))
     );
     const isUserPenguji = student && user && (
-        (user.dosenId && student.pengujiId === user.dosenId) ||
+        (user.dosenNidn && student.pengujiId === user.dosenNidn) ||
         (user.name && (student.pengujiNama === user.name || form?.p2_nama === user.name))
     );
 
@@ -367,7 +443,6 @@ export function PenilaianMobile({ title }: { title?: string }) {
             <div className="flex-1 p-5 flex flex-col gap-4">
                 {/* Unified Coordinator & Examiner Management Panel (tim penilai diluar dari tabel, dibawah menu download/search) */}
                 {((activeTab === "koordinator" && isKoordinator) || activeTab === "pembimbing") && (() => {
-                    const canAssign = (activeTab === "koordinator" && isKoordinator) || activePembimbing?.nama === user?.name;
                     return (
                         <div className={cn(
                             "p-5 rounded-2xl flex flex-col gap-4 transition-all",
@@ -377,115 +452,221 @@ export function PenilaianMobile({ title }: { title?: string }) {
                         )}>
                             {/* 1. Pembimbing Selection Dropdown (Coordinator only) */}
                             {activeTab === "koordinator" && isKoordinator ? (
-                                <div className="flex flex-col gap-2">
-                                    <label className={cn("text-xs font-black uppercase tracking-wider text-slate-500", isLowVision ? "text-sm text-black font-black" : "text-slate-400")}>
-                                        Pilih Dosen Pembimbing
-                                    </label>
-                                    <div className="relative custom-dropdown-container">
-                                        <Button
-                                            variant="outline"
-                                            type="button"
-                                            onClick={() => {
-                                                setOpenDropdownId(openDropdownId === -10 ? null : -10);
-                                                setDropdownSearch("");
-                                            }}
-                                            className={cn(
-                                                "text-sm bg-slate-50 border rounded-xl px-3.5 py-2.5 font-bold text-slate-700 flex items-center justify-between w-full h-11 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#119DA4] hover:bg-slate-100",
-                                                openDropdownId === -10 ? "border-[#119DA4]" : "border-slate-100",
-                                                isLowVision && "bg-white border-2 border-black font-black text-base text-black h-12"
-                                            )}
-                                        >
-                                            <span className="truncate">
-                                                {selectedPembimbingId === "all" ? "Semua Dosen Pembimbing" : (activePembimbing?.nama || "Pilih Pembimbing")}
-                                            </span>
-                                            <span className="text-slate-400 font-normal">▼</span>
-                                        </Button>
-                                        {openDropdownId === -10 && (
-                                            <div className={cn(
-                                                "absolute left-0 mt-1 w-full bg-white border rounded-xl shadow-xl z-50 p-2 animate-in fade-in slide-in-from-top-1 duration-150 origin-top-left",
-                                                isLowVision ? "border-3 border-black text-black" : "border-slate-200"
-                                            )}>
-                                                <div className="relative mb-2">
-                                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Cari Pembimbing..."
-                                                        value={dropdownSearch}
-                                                        onChange={(e) => setDropdownSearch(e.target.value)}
-                                                        className={cn(
-                                                            "w-full pl-8 pr-2.5 py-1.5 text-sm border rounded-lg focus:outline-none focus:border-[#119DA4]",
-                                                            isLowVision ? "border-2 border-black text-black font-bold" : "border-slate-200"
-                                                        )}
-                                                    />
+                                <div className="flex flex-col gap-4">
+                                    <div className="flex flex-col gap-2">
+                                        <label className={cn("text-xs font-black uppercase tracking-wider text-slate-500", isLowVision ? "text-sm text-black font-black" : "text-slate-400")}>
+                                            Pilih Dosen Pembimbing
+                                        </label>
+                                        <div className="relative custom-dropdown-container">
+                                            <Button
+                                                variant="outline"
+                                                type="button"
+                                                onClick={() => {
+                                                    setOpenDropdownId(openDropdownId === "-10" ? null : "-10");
+                                                    setDropdownSearch("");
+                                                }}
+                                                className={cn(
+                                                    "text-sm bg-slate-50 border rounded-xl px-3.5 py-2.5 font-bold text-slate-700 flex items-center justify-between w-full h-11 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#119DA4] hover:bg-slate-100",
+                                                    openDropdownId === "-10" ? "border-[#119DA4]" : "border-slate-100",
+                                                    isLowVision && "bg-white border-2 border-black font-black text-base text-black h-12"
+                                                )}
+                                            >
+                                                <span className="truncate">
+                                                    {selectedPembimbingId === "all" ? "Semua Dosen Pembimbing" : (activePembimbing?.nama || "Pilih Pembimbing")}
+                                                </span>
+                                                <span className="text-slate-400 font-normal">▼</span>
+                                            </Button>
+                                            {openDropdownId === "-10" && (
+                                                <div className={cn(
+                                                    "absolute left-0 mt-1 w-full bg-white border rounded-xl shadow-xl z-50 p-2 animate-in fade-in slide-in-from-top-1 duration-150 origin-top-left",
+                                                    isLowVision ? "border-3 border-black text-black" : "border-slate-200"
+                                                )}>
+                                                    <div className="relative mb-2">
+                                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Cari Pembimbing..."
+                                                            value={dropdownSearch}
+                                                            onChange={(e) => setDropdownSearch(e.target.value)}
+                                                            className={cn(
+                                                                "w-full pl-8 pr-2.5 py-1.5 text-sm border rounded-lg focus:outline-none focus:border-[#119DA4]",
+                                                                isLowVision ? "border-2 border-black text-black font-bold" : "border-slate-200"
+                                                            )}
+                                                        />
+                                                    </div>
+                                                    <div className="max-h-[220px] overflow-y-auto flex flex-col gap-0.5">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setSelectedPembimbingId("all");
+                                                                setOpenDropdownId(null);
+                                                                setIsEditingBulk(false);
+                                                            }}
+                                                            className={cn(
+                                                                "w-full text-left px-2.5 py-2.5 text-xs rounded-md transition-colors flex items-center justify-between gap-4 border-b border-slate-50",
+                                                                selectedPembimbingId === "all" ? "bg-slate-100 text-[#119DA4] font-extrabold" : "text-slate-700 hover:bg-slate-50/50",
+                                                                isLowVision && "text-sm text-black font-black hover:bg-slate-200 border-b border-black"
+                                                            )}
+                                                        >
+                                                            <div className="flex flex-col min-w-0">
+                                                                <span className="font-bold text-xs">Semua Dosen Pembimbing</span>
+                                                                <span className="text-[9px] text-slate-400 font-medium truncate mt-0.5">
+                                                                    Tampilkan bimbingan dari seluruh dosen
+                                                                </span>
+                                                            </div>
+                                                            {selectedPembimbingId === "all" && <span className="shrink-0 text-[#119DA4] font-black text-xs">✓</span>}
+                                                        </button>
+                                                        {dosenList
+                                                            .filter(d => d.nama.toLowerCase().includes(dropdownSearch.toLowerCase()))
+                                                            .map(d => {
+                                                                const pembimbingStudents = data.filter(item => item.pembimbingId === d.id || item.pembimbingNama === d.nama);
+                                                                const firstPengujiNama = pembimbingStudents.find(item => item.pengujiNama)?.pengujiNama;
+                                                                
+                                                                return (
+                                                                    <button
+                                                                        key={d.id}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setSelectedPembimbingId(d.id);
+                                                                            setOpenDropdownId(null);
+                                                                            setIsEditingBulk(false);
+                                                                        }}
+                                                                        className={cn(
+                                                                            "w-full text-left px-2.5 py-2.5 text-sm rounded-md transition-colors flex items-center justify-between gap-4 border-b border-slate-50",
+                                                                            d.id === activePembimbingId ? "bg-slate-100 text-[#119DA4] font-extrabold" : "text-slate-700 hover:bg-slate-50/50",
+                                                                            isLowVision && "text-sm text-black font-black hover:bg-slate-200 border-b border-black"
+                                                                        )}
+                                                                    >
+                                                                        <div className="flex flex-col min-w-0">
+                                                                            <span className="truncate font-bold text-xs">{d.nama}</span>
+                                                                            {pembimbingStudents.length > 0 ? (
+                                                                                firstPengujiNama ? (
+                                                                                    <span className="text-[9px] text-emerald-600 font-extrabold truncate mt-0.5">
+                                                                                        Penguji: {firstPengujiNama}
+                                                                                    </span>
+                                                                                ) : (
+                                                                                    <span className="text-[9px] text-amber-600 font-black truncate mt-0.5">
+                                                                                        Belum ada Penguji ⚠️
+                                                                                    </span>
+                                                                                )
+                                                                            ) : (
+                                                                                <span className="text-[9px] text-slate-400 font-medium truncate mt-0.5">
+                                                                                    Tidak ada bimbingan
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                        {d.id === activePembimbingId && <span className="shrink-0 text-[#119DA4] font-black text-xs">✓</span>}
+                                                                    </button>
+                                                                );
+                                                            })
+                                                        }
+                                                    </div>
                                                 </div>
-                                                <div className="max-h-[220px] overflow-y-auto flex flex-col gap-0.5">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setSelectedPembimbingId("all");
-                                                            setOpenDropdownId(null);
-                                                            setIsEditingPenguji(false);
-                                                        }}
-                                                        className={cn(
-                                                            "w-full text-left px-2.5 py-2.5 text-xs rounded-md transition-colors flex items-center justify-between gap-4 border-b border-slate-50",
-                                                            selectedPembimbingId === "all" ? "bg-slate-100 text-[#119DA4] font-extrabold" : "text-slate-700 hover:bg-slate-50/50",
-                                                            isLowVision && "text-sm text-black font-black hover:bg-slate-200 border-b border-black"
-                                                        )}
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* 2. Penguji Bulk Assignment Dropdown */}
+                                    <div className="flex flex-col gap-2 mt-2">
+                                        <label className={cn("text-xs font-black uppercase tracking-wider text-slate-500", isLowVision ? "text-sm text-black font-black" : "text-slate-400")}>
+                                            Tugaskan Dosen Penguji
+                                        </label>
+                                        {activePengujiNama && !isEditingBulk && selectedPembimbingId !== "all" ? (
+                                            <div className="flex flex-col gap-2">
+                                                <div className={cn("flex items-center gap-2 px-3.5 py-2.5 rounded-xl border", isLowVision ? "border-2 border-black bg-white" : "border-orange-200 bg-orange-50")}>
+                                                    <span className={cn("font-bold text-sm truncate", isLowVision ? "text-black" : "text-orange-700")}>🔒 {activePengujiNama}</span>
+                                                </div>
+                                                <div className="flex flex-col gap-1.5 mt-1.5">
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="sm" 
+                                                        onClick={() => handlePrintSuratTugasBulk(activePembimbingStudents)}
+                                                        className={cn("h-9 w-full text-xs font-bold text-blue-600 border-blue-200 hover:bg-blue-50", isLowVision && "border-2 border-black text-black")}
                                                     >
-                                                        <div className="flex flex-col min-w-0">
-                                                            <span className="font-bold text-xs">Semua Dosen Pembimbing</span>
-                                                            <span className="text-[9px] text-slate-400 font-medium truncate mt-0.5">
-                                                                Tampilkan bimbingan dari seluruh dosen
-                                                            </span>
-                                                        </div>
-                                                        {selectedPembimbingId === "all" && <span className="shrink-0 text-[#119DA4] font-black text-xs">✓</span>}
-                                                    </button>
-                                                    {dosenList
-                                                        .filter(d => d.nama.toLowerCase().includes(dropdownSearch.toLowerCase()))
-                                                        .map(d => {
-                                                            const pembimbingStudents = data.filter(item => item.pembimbingId === d.id || item.pembimbingNama === d.nama);
-                                                            const firstPengujiNama = pembimbingStudents.find(item => item.pengujiNama)?.pengujiNama;
-                                                            
-                                                            return (
+                                                        <Printer size={14} className="mr-2" /> Cetak Surat Tugas
+                                                    </Button>
+                                                    <div className="flex flex-row gap-1.5">
+                                                        <Button 
+                                                            variant="outline" 
+                                                            size="sm" 
+                                                            onClick={() => setIsEditingBulk(true)}
+                                                            className={cn("h-9 flex-1 text-xs font-bold text-orange-600 border-orange-200 hover:bg-orange-50", isLowVision && "border-2 border-black text-black")}
+                                                        >
+                                                            <Edit3 size={14} className="mr-1.5" /> Ubah
+                                                        </Button>
+                                                        <Button 
+                                                            variant="outline" 
+                                                            size="sm" 
+                                                            onClick={() => handleCancelPengujiBulk(activePembimbingId!)}
+                                                            className={cn("h-9 flex-1 text-xs font-bold text-red-600 border-red-200 hover:bg-red-50", isLowVision && "border-2 border-black text-black")}
+                                                        >
+                                                            <Trash2 size={14} className="mr-1.5" /> Batal
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="relative custom-dropdown-container">
+                                                <Button
+                                                    variant="outline"
+                                                    type="button"
+                                                    disabled={selectedPembimbingId === "all" || !activePembimbingId}
+                                                    onClick={() => {
+                                                        setOpenDropdownId(openDropdownId === "-20" ? null : "-20");
+                                                        setDropdownSearch("");
+                                                    }}
+                                                className={cn(
+                                                    "text-sm bg-slate-50 border rounded-xl px-3.5 py-2.5 font-bold text-slate-700 flex items-center justify-between w-full h-11 shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed",
+                                                    openDropdownId === "-20" ? "border-orange-500" : "border-slate-100",
+                                                    isLowVision && "bg-white border-2 border-black font-black text-base text-black h-12"
+                                                )}
+                                            >
+                                                <span className="truncate">
+                                                    {selectedPembimbingId === "all" ? "Pilih pembimbing dulu" : "Pilih Penguji"}
+                                                </span>
+                                                <span className="text-slate-400 font-normal">▼</span>
+                                            </Button>
+                                            {openDropdownId === "-20" && (
+                                                <div className={cn(
+                                                    "absolute left-0 mt-1 w-full bg-white border rounded-xl shadow-xl z-50 p-2 animate-in fade-in slide-in-from-top-1 duration-150 origin-top-left",
+                                                    isLowVision ? "border-3 border-black text-black" : "border-slate-200"
+                                                )}>
+                                                    <div className="relative mb-2">
+                                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Cari Penguji..."
+                                                            value={dropdownSearch}
+                                                            onChange={(e) => setDropdownSearch(e.target.value)}
+                                                            className={cn(
+                                                                "w-full pl-8 pr-2.5 py-1.5 text-sm border rounded-lg focus:outline-none focus:border-orange-500",
+                                                                isLowVision ? "border-2 border-black text-black font-bold" : "border-slate-200"
+                                                            )}
+                                                        />
+                                                    </div>
+                                                    <div className="max-h-[220px] overflow-y-auto flex flex-col gap-0.5">
+                                                        {dosenList
+                                                            .filter(d => d.nama.toLowerCase().includes(dropdownSearch.toLowerCase()) && d.id !== activePembimbingId)
+                                                            .map(d => (
                                                                 <button
                                                                     key={d.id}
                                                                     type="button"
                                                                     onClick={() => {
-                                                                        setSelectedPembimbingId(d.id);
-                                                                        setOpenDropdownId(null);
-                                                                        setIsEditingPenguji(false);
+                                                                        handleAssignPengujiBulk(activePembimbingId!, d.id);
                                                                     }}
                                                                     className={cn(
-                                                                        "w-full text-left px-2.5 py-2.5 text-sm rounded-md transition-colors flex items-center justify-between gap-4 border-b border-slate-50",
-                                                                        d.id === activePembimbingId ? "bg-slate-100 text-[#119DA4] font-extrabold" : "text-slate-700 hover:bg-slate-50/50",
+                                                                        "w-full text-left px-3 py-2 text-sm rounded-md transition-colors border-b border-slate-50 font-bold",
+                                                                        "text-slate-700 hover:bg-orange-50 hover:text-orange-700",
                                                                         isLowVision && "text-sm text-black font-black hover:bg-slate-200 border-b border-black"
                                                                     )}
                                                                 >
-                                                                    <div className="flex flex-col min-w-0">
-                                                                        <span className="truncate font-bold text-xs">{d.nama}</span>
-                                                                        {pembimbingStudents.length > 0 ? (
-                                                                            firstPengujiNama ? (
-                                                                                <span className="text-[9px] text-emerald-600 font-extrabold truncate mt-0.5">
-                                                                                    Penguji: {firstPengujiNama}
-                                                                                </span>
-                                                                            ) : (
-                                                                                <span className="text-[9px] text-amber-600 font-black truncate mt-0.5">
-                                                                                    Belum ada Penguji ⚠️
-                                                                                </span>
-                                                                            )
-                                                                        ) : (
-                                                                            <span className="text-[9px] text-slate-400 font-medium truncate mt-0.5">
-                                                                                Tidak ada bimbingan
-                                                                            </span>
-                                                                        )}
-                                                                    </div>
-                                                                    {d.id === activePembimbingId && <span className="shrink-0 text-[#119DA4] font-black text-xs">✓</span>}
+                                                                    {d.nama}
                                                                 </button>
-                                                            );
-                                                        })
-                                                    }
+                                                            ))}
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            )}
+                                        </div>
                                         )}
                                     </div>
                                 </div>
@@ -498,144 +679,7 @@ export function PenilaianMobile({ title }: { title?: string }) {
                                 </div>
                             )}
 
-                            {/* 2. Bulk Dosen Penguji Selector */}
-                            {activePembimbingId !== "all" && (
-                                <div className="flex flex-col gap-2">
-                                    <label className={cn("text-xs font-black uppercase tracking-wider text-slate-500", isLowVision ? "text-sm text-black font-black" : "text-slate-400")}>
-                                        Dosen Penguji (Tugaskan Khusus Mahasiswa yang Dibimbing)
-                                    </label>
-                                    {canAssign ? (
-                                        activePenguji && !isEditingPenguji ? (
-                                            <div className={cn(
-                                                "flex items-center justify-between gap-3 h-11 border px-3 rounded-xl bg-slate-50 border-slate-200/80 shadow-sm",
-                                                isLowVision && "border-2 border-black bg-white h-12"
-                                            )}>
-                                                <span className={cn("text-sm font-bold text-slate-700 truncate flex items-center gap-1.5", isLowVision && "text-black font-black text-sm")}>
-                                                    🔒 {activePenguji.nama}
-                                                </span>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => setIsEditingPenguji(true)}
-                                                    className={cn(
-                                                        "h-8 text-[11px] font-black text-[#119DA4] bg-[#119DA4]/5 border border-[#119DA4]/20 hover:bg-[#119DA4]/10 rounded-lg px-2 flex items-center gap-1 shrink-0 transition-all",
-                                                        isLowVision && "border-2 border-black text-black font-black text-xs hover:bg-slate-200 h-9"
-                                                    )}
-                                                >
-                                                    Ubah Penguji
-                                                </Button>
-                                            </div>
-                                        ) : (
-                                            <div className="relative custom-dropdown-container">
-                                                <div className="flex gap-1.5">
-                                                    <Button
-                                                        variant="outline"
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setOpenDropdownId(openDropdownId === -20 ? null : -20);
-                                                            setDropdownSearch("");
-                                                        }}
-                                                        disabled={assigningId !== null}
-                                                        className={cn(
-                                                            "text-sm bg-slate-50 border rounded-xl px-3 py-2.5 font-bold text-slate-700 flex items-center justify-between flex-1 h-11 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#119DA4] hover:bg-slate-100",
-                                                            openDropdownId === -20 ? "border-[#119DA4]" : "border-slate-100",
-                                                            isLowVision && "bg-white border-2 border-black font-black text-sm text-black h-12"
-                                                        )}
-                                                    >
-                                                        <span className="truncate">
-                                                            {activePenguji?.nama || "Belum Ditugaskan"}
-                                                        </span>
-                                                        <span className="text-slate-400 font-normal">▼</span>
-                                                    </Button>
-                                                    {activePenguji && (
-                                                        <Button
-                                                            variant="outline"
-                                                            onClick={() => {
-                                                                setIsEditingPenguji(false);
-                                                                setOpenDropdownId(null);
-                                                            }}
-                                                            className={cn("h-11 px-3 border border-slate-200 hover:bg-slate-50 rounded-xl text-slate-500 text-xs font-bold", isLowVision && "border-2 border-black text-black h-12 font-black")}
-                                                            title="Batalkan Pengeditan"
-                                                        >
-                                                            Batal
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                                {openDropdownId === -20 && (
-                                                    <div className={cn(
-                                                        "absolute left-0 mt-1 w-full bg-white border rounded-xl shadow-xl z-50 p-2 animate-in fade-in slide-in-from-top-1 duration-150 origin-top-left",
-                                                        isLowVision ? "border-3 border-black text-black" : "border-slate-200"
-                                                    )}>
-                                                        <div className="relative mb-2">
-                                                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Cari Penguji..."
-                                                                value={dropdownSearch}
-                                                                onChange={(e) => setDropdownSearch(e.target.value)}
-                                                                className={cn(
-                                                                    "w-full pl-8 pr-2 py-1.5 text-sm border rounded-lg focus:outline-none focus:border-[#119DA4]",
-                                                                    isLowVision ? "border-2 border-black text-black font-bold" : "border-slate-200"
-                                                                )}
-                                                            />
-                                                        </div>
-                                                        <div className="max-h-[160px] overflow-y-auto flex flex-col gap-0.5">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setConfirmAssignPenguji({
-                                                                        pembimbingId: activePembimbingId!,
-                                                                        pengujiId: null,
-                                                                        pengujiNama: null
-                                                                    });
-                                                                    setOpenDropdownId(null);
-                                                                    setIsEditingPenguji(false);
-                                                                }}
-                                                                className={cn(
-                                                                    "w-full text-left px-2.5 py-2 text-sm rounded-md font-bold text-red-600 hover:bg-red-50 transition-colors flex items-center gap-1.5",
-                                                                    isLowVision && "text-sm border-b border-black"
-                                                                )}
-                                                            >
-                                                                ✕ Kosongkan Penguji
-                                                            </button>
-                                                            {dosenList
-                                                                .filter(d => d.id !== activePembimbingId && d.nama.toLowerCase().includes(dropdownSearch.toLowerCase()))
-                                                                .map(d => (
-                                                                    <button
-                                                                        key={d.id}
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            setConfirmAssignPenguji({
-                                                                                pembimbingId: activePembimbingId!,
-                                                                                pengujiId: d.id,
-                                                                                pengujiNama: d.nama
-                                                                            });
-                                                                            setOpenDropdownId(null);
-                                                                            setIsEditingPenguji(false);
-                                                                        }}
-                                                                        className={cn(
-                                                                            "w-full text-left px-2.5 py-2 text-sm rounded-md transition-colors flex items-center justify-between",
-                                                                            d.id === activePengujiId ? "bg-slate-100 text-[#119DA4] font-extrabold" : "text-slate-700 hover:bg-slate-50",
-                                                                            isLowVision && "text-sm text-black font-black hover:bg-slate-200 border-b border-black"
-                                                                        )}
-                                                                    >
-                                                                        <span className="truncate">{d.nama}</span>
-                                                                        {d.id === activePengujiId && <span>✓</span>}
-                                                                    </button>
-                                                                ))
-                                                            }
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )
-                                    ) : (
-                                        <span className={cn("text-sm font-bold text-slate-600", isLowVision && "text-sm text-black font-black")}>
-                                            {activePenguji?.nama || "Belum Ditugaskan"}
-                                        </span>
-                                    )}
-                                </div>
-                            )}
+
 
                             <div className="flex items-center justify-between border-t border-slate-100 pt-3">
                                 <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
@@ -712,9 +756,25 @@ export function PenilaianMobile({ title }: { title?: string }) {
                                 <span className="font-semibold">Pembimbing:</span>
                                 <span className={cn("font-bold truncate text-slate-700", isLowVision && "text-black")}>{item.pembimbingNama}</span>
                             </div>
-                            <div className="flex justify-between items-center gap-2">
+                            <div className="flex justify-between items-start gap-2 flex-col mt-2 pt-2 border-t border-slate-200/50">
                                 <span className="font-semibold">Penguji:</span>
-                                <span className={cn("font-bold truncate text-slate-700", isLowVision && "text-black")}>{item.pengujiNama || "Belum Ditugaskan"}</span>
+                                {isKoordinator ? (
+                                    <div className="w-full">
+                                        {item.pengujiNama ? (
+                                            <div className="flex flex-col gap-2 w-full">
+                                                <div className={cn("flex items-center gap-2 p-2 rounded-lg bg-slate-50 border border-slate-200", isLowVision && "border-2 border-black bg-white")}>
+                                                    <span className={cn("text-xs font-bold text-slate-700 truncate", isLowVision && "text-black font-black")}>
+                                                        🔒 {item.pengujiNama}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <span className="text-xs text-slate-400 italic font-medium">Belum ada penguji</span>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <span className={cn("font-bold truncate text-slate-700", isLowVision && "text-black")}>{item.pengujiNama || "Belum Ditugaskan"}</span>
+                                )}
                             </div>
                         </div>
 
@@ -971,63 +1031,11 @@ export function PenilaianMobile({ title }: { title?: string }) {
                 </div>
             )}
 
-            {/* ===== CONFIRM ASSIGN PENGUJI MOBILE ===== */}
-            {confirmAssignPenguji && (
-                <div className="fixed inset-0 z-[210] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-                    <div className={cn("rounded-2xl shadow-2xl p-6 max-w-sm w-full text-center animate-in zoom-in-95 duration-200", isLowVision ? "bg-white border-4 border-black text-black" : "bg-white")}>
-                        <div className="w-14 h-14 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary mx-auto mb-4 font-bold shrink-0">
-                            <AlertCircle size={28} />
-                        </div>
-                        <h3 className={cn("font-bold mb-1", isLowVision ? "text-xl text-black font-black" : "text-lg text-slate-900")}>Konfirmasi Penugasan Dosen Penguji</h3>
-                        <p className={cn("text-xs mb-6 leading-relaxed", isLowVision ? "text-sm text-black font-bold" : "text-slate-500")}>
-                            {confirmAssignPenguji.pengujiId ? (
-                                (() => {
-                                    const currentPengujiNama = activePembimbingStudents.find(item => item.pengujiNama)?.pengujiNama || null;
-                                    if (currentPengujiNama && currentPengujiNama !== "Belum Ditugaskan" && currentPengujiNama !== confirmAssignPenguji.pengujiNama) {
-                                        return (
-                                            <>
-                                                Apakah Anda yakin ingin <strong>MENGUBAH</strong> Dosen Penguji khusus mahasiswa bimbingan <strong>{activePembimbing?.nama}</strong> dari <strong>{currentPengujiNama}</strong> menjadi <strong>{confirmAssignPenguji.pengujiNama}</strong>?
-                                            </>
-                                        );
-                                    }
-                                    return (
-                                        <>
-                                            Apakah Anda yakin ingin menugaskan <strong>{confirmAssignPenguji.pengujiNama}</strong> sebagai Dosen Penguji khusus untuk mahasiswa yang dibimbing oleh <strong>{activePembimbing?.nama}</strong>?
-                                        </>
-                                    );
-                                })()
-                            ) : (
-                                <>
-                                    Apakah Anda yakin ingin mengosongkan Dosen Penguji untuk mahasiswa yang dibimbing oleh <strong>{activePembimbing?.nama}</strong>?
-                                </>
-                            )}
-                        </p>
-                        <div className="flex gap-3">
-                            <Button 
-                                variant="outline" 
-                                onClick={() => setConfirmAssignPenguji(null)} 
-                                className={cn("flex-1 py-4.5 rounded-xl font-bold text-xs", isLowVision && "border-2 border-black text-black font-black")}
-                            >
-                                Batal
-                            </Button>
-                            <Button 
-                                onClick={() => {
-                                    handleAssignPengujiBulk(confirmAssignPenguji.pembimbingId, confirmAssignPenguji.pengujiId);
-                                    setConfirmAssignPenguji(null);
-                                }} 
-                                className={cn("flex-1 py-4.5 rounded-xl text-white font-bold text-xs bg-brand-primary hover:bg-brand-primary/90", isLowVision && "bg-black text-white hover:bg-slate-800 border-2 border-black font-black")}
-                            >
-                                Ya, Konfirmasi
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* ===== DELETE CONFIRM MOBILE ===== */}
             {deleteConfirm && (
                 <div className="fixed inset-0 z-[210] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-                    <div className={cn("rounded-2xl shadow-2xl p-6 max-w-sm w-full text-center animate-in zoom-in-95 duration-200", isLowVision ? "bg-white border-4 border-black text-black" : "bg-white")}>
+                    <div className={cn("rounded-2xl shadow-2xl p-6 min-w-[320px] w-[90vw] max-w-sm shrink-0 text-center max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200", isLowVision ? "bg-white border-4 border-black text-black" : "bg-white")}>
                         <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center text-red-500 mx-auto mb-4 font-bold shrink-0">
                             <Trash2 size={28} />
                         </div>
@@ -1042,6 +1050,99 @@ export function PenilaianMobile({ title }: { title?: string }) {
             )}
 
             {/* Toast Mobile */}
+            {/* ===== CONFIRM MODAL (ASSIGN/CANCEL/BULK) ===== */}
+            {confirmModal && (
+                <div className="fixed inset-0 z-[1010] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-5 animate-in fade-in duration-300">
+                    <div className={cn("rounded-2xl shadow-2xl p-6 min-w-[320px] w-[90vw] max-w-sm shrink-0 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200", isLowVision ? "bg-white border-4 border-black text-black" : "bg-white")}>
+                        {confirmModal.type === 'bulk' && (
+                            <div className="text-center">
+                                <div className="w-16 h-16 rounded-full bg-orange-50 flex items-center justify-center text-orange-600 mx-auto mb-4 font-bold shrink-0">
+                                    <Users size={32} />
+                                </div>
+                                <h3 className={cn("font-bold mb-2", isLowVision ? "text-2xl text-black font-black" : "text-lg text-slate-900")}>Tugaskan Penguji?</h3>
+                                <p className={cn("text-xs mb-6 leading-relaxed", isLowVision ? "text-black font-bold text-sm" : "text-slate-500")}>
+                                    Anda akan menugaskan <strong>{confirmModal.pengujiName}</strong> sebagai Dosen Penguji untuk seluruh mahasiswa bimbingan <strong>{confirmModal.pembimbingName}</strong>.
+                                </p>
+                                
+                                <div className="mb-6 text-left bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                    <label className={cn("text-[10px] font-bold uppercase tracking-wider text-slate-700 block mb-2", isLowVision && "text-sm text-black font-black")}>
+                                        Lampirkan Surat Tugas (Wajib)
+                                    </label>
+                                    <input 
+                                        type="file" 
+                                        accept=".pdf,.png,.jpg,.jpeg"
+                                        onChange={(e) => setSuratTugasFile(e.target.files?.[0] || null)}
+                                        className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                                    />
+                                </div>
+
+                                <div className="flex gap-3">
+                                    <button onClick={() => { setConfirmModal(null); setSuratTugasFile(null); }} className={cn("flex-1 py-3 rounded-xl font-bold text-sm transition-colors", isLowVision ? "bg-slate-200 text-black border-2 border-black" : "bg-slate-100 text-slate-600 hover:bg-slate-200")}>Batal</button>
+                                    <button onClick={() => handleAssignPengujiBulk(confirmModal.pembimbingId!, confirmModal.pengujiId!, suratTugasFile)} disabled={isSaving || !suratTugasFile} className={cn("flex-1 py-3 rounded-xl text-white font-bold text-sm transition-colors", isLowVision ? "bg-black text-white hover:bg-slate-800 shadow-none border-2 border-black" : "bg-orange-600 hover:bg-orange-700 shadow-lg shadow-orange-200 disabled:opacity-50")}>{isSaving ? "Tunggu..." : "Tugaskan"}</button>
+                                </div>
+                            </div>
+                        )}
+                        {confirmModal.type === 'row' && (
+                            <div>
+                                <div className="w-16 h-16 rounded-full bg-orange-50 flex items-center justify-center text-orange-600 mx-auto mb-4 font-bold shrink-0">
+                                    <Edit3 size={32} />
+                                </div>
+                                <h3 className={cn("font-bold mb-2 text-center", isLowVision ? "text-2xl text-black font-black" : "text-lg text-slate-900")}>Ubah Dosen Penguji</h3>
+                                <p className={cn("text-xs mb-4 leading-relaxed text-center", isLowVision ? "text-black font-bold text-sm" : "text-slate-500")}>
+                                    Pilih dosen penguji baru untuk mahasiswa <strong>{confirmModal.studentName}</strong>.
+                                </p>
+                                <div className="mb-4">
+                                    <select
+                                        className={cn("w-full h-12 px-3 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500", isLowVision ? "border-2 border-black text-black font-bold" : "border-slate-200")}
+                                        onChange={(e) => setConfirmModal({ ...confirmModal, pengujiId: e.target.value })}
+                                        value={confirmModal.pengujiId || ""}
+                                    >
+                                        <option value="" disabled>Pilih Dosen Penguji...</option>
+                                        {dosenList.map(d => (
+                                            <option key={d.id} value={d.id}>{d.nama}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {confirmModal.pengujiId && (
+                                    <div className="mb-6 text-left bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                        <label className={cn("text-[10px] font-bold uppercase tracking-wider text-slate-700 block mb-2", isLowVision && "text-sm text-black font-black")}>
+                                            Lampirkan Surat Tugas (Wajib)
+                                        </label>
+                                        <input 
+                                            type="file" 
+                                            accept=".pdf,.png,.jpg,.jpeg"
+                                            onChange={(e) => setSuratTugasFile(e.target.files?.[0] || null)}
+                                            className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="flex gap-3">
+                                    <button onClick={() => { setConfirmModal(null); setSuratTugasFile(null); }} className={cn("flex-1 py-3 rounded-xl font-bold text-sm transition-colors", isLowVision ? "bg-slate-200 text-black border-2 border-black" : "bg-slate-100 text-slate-600 hover:bg-slate-200")}>Batal</button>
+                                    <button onClick={() => { if(confirmModal.pengujiId) handleAssignPenguji(confirmModal.mahasiswaId!, confirmModal.pengujiId, suratTugasFile) }} disabled={!confirmModal.pengujiId || isSaving || !suratTugasFile} className={cn("flex-1 py-3 rounded-xl text-white font-bold text-sm transition-colors", isLowVision ? "bg-black text-white hover:bg-slate-800 shadow-none border-2 border-black" : "bg-orange-600 hover:bg-orange-700 shadow-lg shadow-orange-200 disabled:opacity-50")}>{isSaving ? "Menyimpan..." : "Simpan"}</button>
+                                </div>
+                            </div>
+                        )}
+                        {confirmModal.type === 'cancel' && (
+                            <div className="text-center">
+                                <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center text-red-500 mx-auto mb-4 font-bold shrink-0">
+                                    <Trash2 size={32} />
+                                </div>
+                                <h3 className={cn("font-bold mb-2", isLowVision ? "text-2xl text-black font-black" : "text-lg text-slate-900")}>Batalkan Penugasan?</h3>
+                                <p className={cn("text-xs mb-6 leading-relaxed", isLowVision ? "text-black font-bold text-sm" : "text-slate-500")}>
+                                    Anda akan membatalkan penugasan dosen penguji untuk mahasiswa <strong>{confirmModal.studentName}</strong>.
+                                </p>
+                                <div className="flex gap-3">
+                                    <button onClick={() => setConfirmModal(null)} className={cn("flex-1 py-3 rounded-xl font-bold text-sm transition-colors", isLowVision ? "bg-slate-200 text-black border-2 border-black" : "bg-slate-100 text-slate-600 hover:bg-slate-200")}>Batal</button>
+                                    <button onClick={() => handleCancelPenguji(confirmModal.mahasiswaId!)} disabled={isSaving} className={cn("flex-1 py-3 rounded-xl text-white font-bold text-sm transition-colors", isLowVision ? "bg-black text-white hover:bg-slate-800 shadow-none border-2 border-black" : "bg-red-500 hover:bg-red-600 shadow-lg shadow-red-200 disabled:opacity-50")}>{isSaving ? "Menyimpan..." : "Batalkan"}</button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {toast && (
                 <div className={cn(
                     "fixed top-4 left-4 right-4 z-[200] p-4 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300 shadow-xl",

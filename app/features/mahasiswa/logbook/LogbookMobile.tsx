@@ -20,7 +20,7 @@ interface LogbookEntry {
 }
 
 interface LogbookProps {
-    mahasiswaId?: number;
+    mahasiswaId?: string;
 }
 
 export function LogbookMobile({ mahasiswaId }: LogbookProps) {
@@ -162,11 +162,8 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                 next.delete(id);
             } else {
                 next.add(id);
-                // Menghapus paraf pembimbing jika mengedit baris yang sudah sah
-                setEntries(current => current.map(e => 
-                    e.id === id ? { ...e, pembimbingParaf: null, catatan: "" } : e
-                ));
-                showToast("Peringatan: Mengedit baris ini akan menghapus paraf pembimbing.", "default");
+                // Removed clearing of pembimbingParaf and catatan when editing
+                // so users don't lose them when editing other fields
             }
             return next;
         });
@@ -176,13 +173,7 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
     const handleSave = async () => {
         setSaving(true);
         try {
-            // Validasi input uraian
-            const hasEmpty = entries.some(e => !e.uraian.trim());
-            if (hasEmpty) {
-                showToast("Harap isi semua uraian kegiatan", "destructive");
-                setSaving(false);
-                return;
-            }
+            // Save all entries regardless of empty uraian
 
             await logbookApi.updateInfo({
                 namaPerusahaan: headerInfo.namaPerusahaan,
@@ -253,13 +244,9 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                     </div>
                 </div>
                 <div className="bg-white/10 rounded-xl p-4 text-sm space-y-2">
-                    <div className="flex justify-between border-b border-white/10 pb-2">
+                    <div className="flex justify-between pb-1">
                         <span className="text-gray-300">{isViewingStudent ? "Nama Mahasiswa" : isDosen ? "Nama Dosen" : "Nama Mahasiswa"}</span>
                         <span className="font-medium text-right line-clamp-1 max-w-[150px]">{profile?.nama || "-"}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-gray-300">{isViewingStudent ? "NIM" : isDosen ? "NIDN / NIP" : "NIM"}</span>
-                        <span className="font-medium">{(isViewingStudent ? profile?.nim : isDosen ? profile?.nidn : profile?.nim) || "-"}</span>
                     </div>
                 </div>
             </div>
@@ -352,7 +339,6 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                                                                 const timePart = entry.tanggalPukul.split('T')[1] || "09:00";
                                                                 const newDateTime = `${format(d, "yyyy-MM-dd")}T${timePart}`;
                                                                 handleEntryChange(entry.id, 'tanggalPukul', newDateTime);
-                                                                handleEntryChange(entry.id, 'pembimbingParaf', null);
                                                             }
                                                         }}
                                                         showLabel={false}
@@ -375,7 +361,6 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                                                         onChange={(e) => {
                                                             const datePart = entry.tanggalPukul.split('T')[0];
                                                             handleEntryChange(entry.id, 'tanggalPukul', `${datePart}T${e.target.value}`);
-                                                            handleEntryChange(entry.id, 'pembimbingParaf', null);
                                                         }}
                                                         className="outline-none text-lg font-black w-full bg-transparent text-gray-800 disabled:text-gray-400 tracking-widest text-center"
                                                     />
@@ -408,7 +393,6 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                                                 disabled={isViewingStudent || (!editingRowIds.has(entry.id) && !!entry.pembimbingParaf)}
                                                 onChange={(e) => {
                                                     handleEntryChange(entry.id, 'uraian', e.target.value);
-                                                    handleEntryChange(entry.id, 'pembimbingParaf', null);
                                                 }}
                                                 placeholder="Deskripsikan aktivitas harian Anda..."
                                                 className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-[#D25026] focus:ring-1 focus:ring-[#D25026] text-sm min-h-[80px] disabled:text-gray-500 disabled:bg-gray-100/50"
@@ -462,11 +446,12 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                                                     </div>
                                                 ) : (
                                                     <button 
-                                                        disabled={true}
-                                                        className={cn("h-12 border border-dashed border-gray-300 rounded-lg flex items-center justify-center gap-1 text-gray-400 transition-colors opacity-50")}
+                                                        disabled={isViewingStudent}
+                                                        onClick={() => setActiveSignature({ id: entry.id, type: 'pembimbingParaf' })}
+                                                        className={cn("h-12 border border-dashed border-gray-300 rounded-lg flex items-center justify-center gap-1 text-gray-400 transition-colors", isViewingStudent ? "opacity-50 cursor-not-allowed" : "hover:border-[#D25026] hover:text-[#D25026]")}
                                                     >
                                                         <Plus size={14} />
-                                                        <span className="text-[10px]">Paraf</span>
+                                                        <span className="text-[10px]">{isViewingStudent ? "Belum TTD" : "Klik TTD"}</span>
                                                     </button>
                                                 )}
                                             </div>
@@ -476,8 +461,10 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Catatan Pembimbing</label>
                                             <textarea 
                                                 value={entry.catatan}
-                                                readOnly={true}
-                                                disabled={true}
+                                                onChange={(e) => {
+                                                    handleEntryChange(entry.id, 'catatan', e.target.value);
+                                                }}
+                                                disabled={isViewingStudent || (!editingRowIds.has(entry.id) && !!entry.pembimbingParaf)}
                                                 placeholder={isViewingStudent ? "Tidak ada catatan." : "Catatan dari pembimbing..."}
                                                 className="w-full px-3 py-2 bg-white border border-gray-100 rounded-lg outline-none focus:border-blue-400 text-xs min-h-[50px] italic text-gray-500 disabled:opacity-70"
                                             />
@@ -492,8 +479,8 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
 
             {/* Floating Save Button */}
 
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-gray-200 z-[40] flex gap-3 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-                {!isViewingStudent && (
+            {!isViewingStudent && (
+                <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-gray-200 z-[40] flex gap-3 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
                     <button 
                         onClick={addEntry}
                         className="flex-1 py-3 px-4 bg-gray-100 text-gray-700 font-bold rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all"
@@ -501,19 +488,18 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                         <Plus size={20} />
                         Tambah
                     </button>
-                )}
-                <button 
-                    onClick={handleSave}
-                    disabled={saving}
-                    className={cn(
-                        "py-3 px-4 bg-[#D25026] text-white font-bold rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-[#D25026]/20 disabled:opacity-70",
-                        isViewingStudent ? "w-full" : "flex-[2]"
-                    )}
-                >
-                    {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-                    {saving ? 'Menyimpan...' : 'Simpan Logbook'}
-                </button>
-            </div>
+                    <button 
+                        onClick={handleSave}
+                        disabled={saving}
+                        className={cn(
+                            "py-3 px-4 bg-[#D25026] text-white font-bold rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-[#D25026]/20 disabled:opacity-70 flex-[2]"
+                        )}
+                    >
+                        {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+                        {saving ? 'Menyimpan...' : 'Simpan Logbook'}
+                    </button>
+                </div>
+            )}
 
             <SignatureModal 
                 isOpen={!!activeSignature}

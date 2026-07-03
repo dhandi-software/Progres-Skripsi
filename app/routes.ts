@@ -71,6 +71,9 @@ export default [
         ...prefix("staf", [
             index("routes/staf/dashboard.tsx"),
             route("sidang", "routes/staf/sidang.tsx"),
+            route("jadwal", "routes/staf/jadwal.tsx"),
+            route("jadwal/create", "routes/staf/jadwal.create.tsx"),
+            route("jadwal/edit/:id", "routes/staf/jadwal.edit.$id.tsx"),
             // Acara Staf
             route("acara", "routes/staf/acara.tsx"),
             route("acara/create", "routes/staf/acara.create.tsx"),

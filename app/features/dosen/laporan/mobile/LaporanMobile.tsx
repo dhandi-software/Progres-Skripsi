@@ -31,7 +31,7 @@ interface BimbinganDetailItem {
 }
 
 interface LaporanItem {
-    id: number;
+    id: string;
     nama: string;
     nim: string;
     judulSkripsi: string;

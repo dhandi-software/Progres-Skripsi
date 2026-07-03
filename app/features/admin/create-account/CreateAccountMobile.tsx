@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useSidebar } from "~/components/ui/sidebar";
 import { Toast } from "~/components/ui/toast";
 import { CustomSelect } from "~/components/ui/custom-select";
+import { MultipleCombobox, type ComboboxOption } from "~/components/ui/Multiple-combobox";
 
 export const CreateAccountMobile = () => {
   const { setOpenMobile } = useSidebar();
@@ -30,6 +31,19 @@ export const CreateAccountMobile = () => {
   } = useCreateAccount();
 
   const [isRoleOpen, setIsRoleOpen] = useState(false);
+
+  const [peminatanOptions, setPeminatanOptions] = useState<ComboboxOption[]>([
+    { id: "ds", label: "Data Science", checked: false },
+    { id: "ai", label: "Artificial Intelligence", checked: false },
+    { id: "se", label: "Software Engineering", checked: false },
+    { id: "ncs", label: "Network and Cyber Security", checked: false },
+  ]);
+
+  const handlePeminatanChange = (newOptions: ComboboxOption[]) => {
+    setPeminatanOptions(newOptions);
+    const selected = newOptions.filter(opt => opt.checked).map(opt => opt.label);
+    handleInputChange({ target: { name: 'peminatan', value: selected } } as any);
+  };
 
   return (
     <div className="w-full min-h-screen pt-4 pb-12 bg-white flex flex-col font-geist">
@@ -102,6 +116,97 @@ export const CreateAccountMobile = () => {
 
         {registrationMode === 'manual' ? (
             <>
+        {/* Conditional Fields: Mahasiswa */}
+        {formData.role === 'mahasiswa' && (
+            <>
+                <div className="flex flex-col gap-2">
+                    <label className="text-[0.875rem] font-medium text-[#18181B]">NIM</label>
+                    <input
+                        type="text"
+                        name="nim"
+                        value={formData.nim}
+                        onChange={handleInputChange}
+                        placeholder="NPM"
+                        disabled={isLoading}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50"
+                    />
+                </div>
+
+                 <div className="flex flex-col gap-2">
+                    <label className="text-[0.875rem] font-medium text-[#18181B]">Tahun Masuk</label>
+                    <input
+                        type="text"
+                        name="tahunMasuk"
+                        value={formData.tahunMasuk}
+                        onChange={handleInputChange}
+                        placeholder="Tahun"
+                        disabled={isLoading}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50"
+                    />
+                </div>
+            </>
+        )}
+
+        {/* Conditional Fields: Dosen */}
+        {formData.role === 'dosen' && (
+            <>
+                <div className="flex flex-col gap-2">
+                    <label className="text-[0.875rem] font-medium text-[#18181B]">NIDN / NIP</label>
+                    <input
+                        type="text"
+                        name="nidn"
+                        value={formData.nidn}
+                        onChange={handleInputChange}
+                        placeholder="NIDN / NIP"
+                        disabled={isLoading}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50"
+                    />
+                </div>
+                 <div className="flex flex-col gap-2">
+                    <label className="text-[0.875rem] font-medium text-[#18181B]">Jabatan</label>
+                     <CustomSelect
+                        value={formData.jabatan}
+                        onChange={(value) => handleInputChange({ target: { name: "jabatan", value } } as any)}
+                        options={[
+                            { label: "Dosen Reguler", value: "Dosen Reguler" },
+                            { label: "Pejabat Prodi (Masekpro)", value: "Pejabat Prodi" },
+                            { label: "Koordinator KP", value: "Koordinator KP" },
+                            { label: "Dosen Pembimbing", value: "Dosen Pembimbing" },
+                        ]}
+                        placeholder="Select Jabatan"
+                        className="w-full px-4 py-3 h-auto"
+                    />
+                </div>
+                 <div className="flex flex-col gap-2">
+                    <label className="text-[0.875rem] font-medium text-[#18181B]">Peminatan</label>
+                    <MultipleCombobox
+                        options={peminatanOptions}
+                        onOptionsChange={handlePeminatanChange}
+                        placeholder="Pilih Peminatan"
+                        className="w-full"
+                    />
+                </div>
+            </>
+        )}
+
+        {/* Conditional Fields: Staf */}
+        {formData.role === 'staf' && (
+            <>
+                <div className="flex flex-col gap-2">
+                    <label className="text-[0.875rem] font-medium text-[#18181B]">NIP</label>
+                    <input
+                        type="text"
+                        name="nip"
+                        value={formData.nip}
+                        onChange={handleInputChange}
+                        placeholder="NIP"
+                        disabled={isLoading}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50"
+                    />
+                </div>
+            </>
+        )}
+
         {/* Name Field */}
         <div className="flex flex-col gap-2">
           <label className="text-[0.875rem] font-medium text-[#18181B]">Name</label>
@@ -129,81 +234,6 @@ export const CreateAccountMobile = () => {
             className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50"
           />
         </div>
-
-        {/* Conditional Fields: Mahasiswa */}
-        {formData.role === 'mahasiswa' && (
-            <>
-                <div className="flex flex-col gap-2">
-                    <label className="text-[0.875rem] font-medium text-[#18181B]">NIM</label>
-                    <input
-                        type="text"
-                        name="nim"
-                        value={formData.nim}
-                        onChange={handleInputChange}
-                        placeholder="NPM"
-                        disabled={isLoading}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50"
-                    />
-                </div>
-                 <div className="flex flex-col gap-2">
-                    <label className="text-[0.875rem] font-medium text-[#18181B]">Jurusan</label>
-                    <input
-                        type="text"
-                        name="jurusan"
-                        value={formData.jurusan}
-                        onChange={handleInputChange}
-                        placeholder="Jurusan"
-                        disabled={isLoading}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50"
-                    />
-                </div>
-                 <div className="flex flex-col gap-2">
-                    <label className="text-[0.875rem] font-medium text-[#18181B]">Tahun Masuk</label>
-                    <input
-                        type="text"
-                        name="tahunMasuk"
-                        value={formData.tahunMasuk}
-                        onChange={handleInputChange}
-                        placeholder="Tahun"
-                        disabled={isLoading}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50"
-                    />
-                </div>
-            </>
-        )}
-
-        {/* Conditional Fields: Dosen */}
-        {formData.role === 'dosen' && (
-            <>
-                <div className="flex flex-col gap-2">
-                    <label className="text-[0.875rem] font-medium text-[#18181B]">NIDN</label>
-                    <input
-                        type="text"
-                        name="nidn"
-                        value={formData.nidn}
-                        onChange={handleInputChange}
-                        placeholder="NIDN"
-                        disabled={isLoading}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50"
-                    />
-                </div>
-                 <div className="flex flex-col gap-2">
-                    <label className="text-[0.875rem] font-medium text-[#18181B]">Jabatan</label>
-                     <CustomSelect
-                        value={formData.jabatan}
-                        onChange={(value) => handleInputChange({ target: { name: "jabatan", value } } as any)}
-                        options={[
-                            { label: "Dosen Reguler", value: "Dosen Reguler" },
-                            { label: "Pejabat Prodi (Masekpro)", value: "Pejabat Prodi" },
-                            { label: "Koordinator KP", value: "Koordinator KP" },
-                            { label: "Dosen Pembimbing", value: "Dosen Pembimbing" },
-                        ]}
-                        placeholder="Select Jabatan"
-                        className="w-full px-4 py-3 h-auto"
-                    />
-                </div>
-            </>
-        )}
 
         {/* Password Field */}
         <div className="flex flex-col gap-2">

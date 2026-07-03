@@ -6,7 +6,7 @@ export const bimbinganApi = {
         return response.data;
     },
 
-    getBimbinganByMahasiswa: async (mahasiswaId: number) => {
+    getBimbinganByMahasiswa: async (mahasiswaId: number | string) => {
         const response = await client.get(`/bimbingan/mahasiswa/${mahasiswaId}`);
         return response.data;
     },
@@ -21,10 +21,10 @@ export const bimbinganApi = {
         const params = new URLSearchParams();
         if (search) params.append('search', search);
         if (status) params.append('status', status);
-        
+
         const queryString = params.toString();
         const url = `/bimbingan/dosen-students${queryString ? `?${queryString}` : ''}`;
-        
+
         const response = await client.get(url);
         return response.data;
     },
@@ -36,9 +36,9 @@ export const bimbinganApi = {
     },
 
     // New Dosen endpoint for assigning tasks
-    assignBimbinganTask: async (mahasiswaId: number, topik: string, jadwalBimbingan?: Date) => {
-        const response = await client.post("/bimbingan/assign-task", { 
-            mahasiswaId, 
+    assignBimbinganTask: async (mahasiswaId: string, topik: string, jadwalBimbingan?: Date) => {
+        const response = await client.post("/bimbingan/assign-task", {
+            mahasiswaId,
             topik,
             jadwalBimbingan: jadwalBimbingan ? jadwalBimbingan.toISOString() : undefined
         });
@@ -77,7 +77,7 @@ export const bimbinganApi = {
         const formData = new FormData();
         formData.append("file", file);
         if (keteranganProgres) formData.append("keteranganProgres", keteranganProgres);
-        
+
         const response = await client.post(`/bimbingan/upload-mahasiswa/${id}`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
@@ -97,7 +97,7 @@ export const bimbinganApi = {
     },
 
     // Get History of Bimbingan Versions
-    getBimbinganHistory: async (mahasiswaId: number, topik: string) => {
+    getBimbinganHistory: async (mahasiswaId: string, topik: string) => {
         const response = await client.get(`/bimbingan/history/${mahasiswaId}/${encodeURIComponent(topik)}`);
         return response.data;
     },
@@ -111,6 +111,10 @@ export const bimbinganApi = {
         const response = await client.get(`/bimbingan/annotations/${bimbinganId}`);
         return response.data;
     },
+    getPreviousAnnotations: async (bimbinganId: number) => {
+        const response = await client.get(`/bimbingan/annotations/previous/${bimbinganId}`);
+        return response.data;
+    },
     deleteAnnotation: async (id: number) => {
         const response = await client.delete(`/bimbingan/annotations/${id}`);
         return response.data;
@@ -119,8 +123,8 @@ export const bimbinganApi = {
         const response = await client.get("/bimbingan/all-prodi");
         return response.data;
     },
-    checkAllTasksCompleted: async (mahasiswaId: number) => {
-        const response = await client.get(`/bimbingan/check-all-completed/${mahasiswaId}`);
+    checkAllTasksCompleted: async (mahasiswaNim: string) => {
+        const response = await client.get(`/bimbingan/check-all-completed/${mahasiswaNim}`);
         return response.data;
     }
 };
