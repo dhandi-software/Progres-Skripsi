@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { pengajuanApi } from "~/api/pengajuan";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { chatService } from "~/services/chatService";
@@ -106,7 +106,7 @@ export function DashboardDesktop({ title }: { title: string }) {
                 const jadwalData = await jadwalKpApi.getAllJadwalKp();
                 if (jadwalData && Array.isArray(jadwalData)) {
                     const now = new Date();
-                    const upcoming = jadwalData.filter(j => new Date(j.tanggalSelesai) >= now && j.tipe === 'PENGARAHAN_KP').sort((a, b) => new Date(a.tanggalSelesai).getTime() - new Date(b.tanggalSelesai).getTime());
+                    const upcoming = jadwalData.filter(j => new Date(j.tanggal) >= now && j.tipe === 'PENGARAHAN_KP').sort((a, b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime());
                     setUpcomingJadwal(upcoming);
                 }
 
@@ -235,7 +235,7 @@ export function DashboardDesktop({ title }: { title: string }) {
                         <div>
                             <h3 className="text-emerald-800 font-bold text-lg">{jadwal.judul}</h3>
                             <p className="text-emerald-600 text-sm mt-1 mb-0">
-                                Jadwal {jadwal.tipe === 'PENGARAHAN_KP' ? 'Pengarahan KP' : 'Pengumpulan Sidang'}: {new Date(jadwal.tanggalSelesai).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                Jadwal {jadwal.tipe === 'PENGARAHAN_KP' ? 'Pengarahan KP' : 'Pengumpulan Sidang'}: {new Date(jadwal.tanggal).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             </p>
                             {jadwal.deskripsi && <p className="text-emerald-700 text-xs mt-2 italic">"{jadwal.deskripsi}"</p>}
                         </div>
@@ -311,7 +311,7 @@ export function DashboardDesktop({ title }: { title: string }) {
                                         <span className="text-xs text-gray-400 mt-2 flex items-center gap-1">
                                             <Clock className="w-3 h-3" />{" "}
                                             {new Date(item.tanggal).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })} 
-                                            <span className="mx-1">•</span>
+                                            <span className="mx-1">â€¢</span>
                                             {getStatusText(item.status, item.type)}
                                         </span>
                                     </div>
@@ -405,7 +405,7 @@ export function DashboardDesktop({ title }: { title: string }) {
                                         <span className="text-xs text-gray-400 mt-2 flex items-center gap-1">
                                             <Clock className="w-3.5 h-3.5" />{" "}
                                             {new Date(item.tanggal).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })} 
-                                            <span className="mx-1">•</span>
+                                            <span className="mx-1">â€¢</span>
                                             {getStatusText(item.status, item.type)}
                                         </span>
                                     </div>
@@ -418,3 +418,4 @@ export function DashboardDesktop({ title }: { title: string }) {
         </div>
     );
 }
+

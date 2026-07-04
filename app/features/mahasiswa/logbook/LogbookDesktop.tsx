@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "~/hooks/useAuth";
 import { pengajuanApi } from "~/api/pengajuan";
 import { logbookApi } from "~/api/logbookApi";
-import { Loader2, Plus, Trash2, Save, CheckCircle, Clock } from "lucide-react";
+import { Loader2, Plus, Trash2, Save, CheckCircle, Clock, Search, ChevronDown } from "lucide-react";
 import { Toast } from "~/components/ui/toast";
 import { MonthYearFilter } from "~/components/ui/calendar";
 import { format } from "date-fns";
@@ -43,6 +43,29 @@ export function LogbookDesktop({ mahasiswaId }: LogbookProps) {
         alamatPerusahaan: "",
         kontakPembimbing: ""
     });
+
+    const [isManualInput, setIsManualInput] = useState(false);
+    const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [companies, setCompanies] = useState<{namaPerusahaan: string, tlpFaxPerusahaan: string, alamatPerusahaan: string, kontakPembimbing: string}[]>([]);
+
+    useEffect(() => {
+        if (!isViewingStudent && companies.length === 0) {
+            logbookApi.getCompanies().then((res) => {
+                setCompanies(res);
+            }).catch(console.error);
+        }
+    }, [isViewingStudent, companies.length]);
+
+    // Jika sudah ada data perusahaan dari backend yang tidak ada di list, otomatis mode manual
+    useEffect(() => {
+        if (companies.length > 0 && headerInfo.namaPerusahaan && !isManualInput) {
+            const exists = companies.some(c => c.namaPerusahaan === headerInfo.namaPerusahaan);
+            if (!exists) {
+                setIsManualInput(true);
+            }
+        }
+    }, [companies, headerInfo.namaPerusahaan]);
 
     const [entries, setEntries] = useState<LogbookEntry[]>([]);
     const [editingRowIds, setEditingRowIds] = useState<Set<string>>(new Set());
@@ -118,7 +141,7 @@ export function LogbookDesktop({ mahasiswaId }: LogbookProps) {
         fetchData();
     }, [user, mahasiswaId]);
 
-    const handleHeaderChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const handleHeaderChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setHeaderInfo(prev => ({ ...prev, [name]: value }));
     };
@@ -278,15 +301,110 @@ export function LogbookDesktop({ mahasiswaId }: LogbookProps) {
                             <div className="grid grid-cols-[140px_10px_1fr] items-center">
                                 <span className="font-semibold text-gray-700">Nama Perusahaan</span>
                                 <span>:</span>
-                                <input 
-                                    type="text" 
-                                    name="namaPerusahaan"
-                                    value={headerInfo.namaPerusahaan}
-                                    onChange={handleHeaderChange}
-                                    className="px-2 py-1 border-b border-gray-300 focus:border-[#D25026] outline-none bg-transparent w-full disabled:opacity-70"
-                                    placeholder="Nama Perusahaan..."
-                                    readOnly={isViewingStudent}
-                                />
+                                {isViewingStudent ? (
+                                    <input 
+                                        type="text" 
+                                        name="namaPerusahaan"
+                                        value={headerInfo.namaPerusahaan}
+                                        className="px-2 py-1 border-b border-gray-300 outline-none bg-transparent w-full opacity-70"
+                                        readOnly
+                                    />
+                                ) : isManualInput ? (
+                                    <div className="flex w-full items-center gap-2">
+                                        <input 
+                                            type="text" 
+                                            name="namaPerusahaan"
+                                            value={headerInfo.namaPerusahaan}
+                                            onChange={handleHeaderChange}
+                                            className="px-2 py-1 border-b border-gray-300 focus:border-[#D25026] outline-none bg-transparent w-full"
+                                            placeholder="Ketik nama perusahaan baru..."
+                                        />
+                                        <button 
+                                            type="button"
+                                            onClick={() => {
+                                                setIsManualInput(false);
+                                            }}
+                                            className="text-[10px] text-gray-500 hover:text-red-500 whitespace-nowrap px-2 py-1 bg-gray-100 rounded border border-gray-200 transition-colors"
+                                        >
+                                            Batal Manual
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="relative w-full">
+                                        <button 
+                                            type="button"
+                                            onClick={() => setCompanyDropdownOpen(!companyDropdownOpen)}
+                                            className="flex w-full items-center justify-between px-2 py-1 border-b border-gray-300 focus:border-[#D25026] text-left transition-colors bg-transparent"
+                                        >
+                                            <span className={headerInfo.namaPerusahaan ? "text-gray-900" : "text-gray-500"}>
+                                                {headerInfo.namaPerusahaan || "-- Pilih Perusahaan Terdaftar --"}
+                                            </span>
+                                            <ChevronDown size={16} className="text-gray-400" />
+                                        </button>
+                                        
+                                        {companyDropdownOpen && (
+                                            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 flex flex-col overflow-hidden">
+                                                <div className="p-2 border-b border-gray-100 flex items-center gap-2 bg-gray-50">
+                                                    <Search size={14} className="text-gray-400" />
+                                                    <input 
+                                                        type="text"
+                                                        className="w-full outline-none text-sm bg-transparent"
+                                                        placeholder="Cari perusahaan..."
+                                                        value={searchQuery}
+                                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                                        autoFocus
+                                                    />
+                                                </div>
+                                                
+                                                <div className="max-h-60 overflow-y-auto custom-scrollbar flex-1">
+                                                    {companies
+                                                        .filter(c => c.namaPerusahaan.toLowerCase().includes(searchQuery.toLowerCase()))
+                                                        .map((c, i) => (
+                                                            <div 
+                                                                key={i}
+                                                                className="px-4 py-2 hover:bg-blue-100 cursor-pointer transition-colors border-b border-gray-50 last:border-b-0"
+                                                                onClick={() => {
+                                                                    setHeaderInfo(prev => ({
+                                                                        ...prev,
+                                                                        namaPerusahaan: c.namaPerusahaan || "",
+                                                                        tlpFaxPerusahaan: c.tlpFaxPerusahaan || "",
+                                                                        alamatPerusahaan: c.alamatPerusahaan || "",
+                                                                        kontakPembimbing: c.kontakPembimbing || ""
+                                                                    }));
+                                                                    setSearchQuery("");
+                                                                    setCompanyDropdownOpen(false);
+                                                                }}
+                                                            >
+                                                                <div className="font-medium text-gray-800 text-sm">{c.namaPerusahaan}</div>
+                                                                {(c.alamatPerusahaan || c.tlpFaxPerusahaan) && (
+                                                                    <div className="text-[11px] text-gray-500 truncate mt-0.5">
+                                                                        {c.alamatPerusahaan} {c.tlpFaxPerusahaan && `• ${c.tlpFaxPerusahaan}`}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                    ))}
+                                                    
+                                                    {companies.filter(c => c.namaPerusahaan.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                                                        <div className="px-4 py-3 text-sm text-gray-500 text-center italic">
+                                                            Perusahaan tidak ditemukan.
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                
+                                                <div 
+                                                    className="sticky bottom-0 text-red-600 font-semibold bg-red-50 hover:bg-red-100 px-4 py-2 cursor-pointer border-t border-red-100 transition-colors mt-auto text-sm shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]"
+                                                    onClick={() => {
+                                                        setIsManualInput(true);
+                                                        setSearchQuery("");
+                                                        setCompanyDropdownOpen(false);
+                                                    }}
+                                                >
+                                                    + Input Manual (Perusahaan Baru)
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                             <div className="grid grid-cols-[140px_10px_1fr] items-center">
                                 <span className="font-semibold text-gray-700">Tlp / Fax Perusahaan</span>

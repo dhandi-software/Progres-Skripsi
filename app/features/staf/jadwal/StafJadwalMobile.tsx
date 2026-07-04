@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Edit2, Trash2 } from 'lucide-react';
 import { jadwalKpApi } from '~/api/jadwalKpApi';
 import type { JadwalKp } from '~/api/jadwalKpApi';
@@ -76,10 +76,9 @@ const StafJadwalMobile = ({ filterTipe = "PENGARAHAN_KP" }: Props) => {
                     <div className="flex flex-col gap-4 mt-4">
                         {jadwals.map((jadwal) => {
                             const now = new Date();
-                            const start = new Date(jadwal.tanggalMulai);
-                            const end = new Date(jadwal.tanggalSelesai);
-                            const isActive = now >= start && now <= end;
-                            const isPast = now > end;
+                            const eventDate = new Date(jadwal.tanggal);
+                            const isActive = now.toDateString() === eventDate.toDateString();
+                            const isPast = now > eventDate && !isActive;
 
                             return (
                                 <div key={jadwal.id} className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 relative overflow-hidden group">
@@ -122,8 +121,7 @@ const StafJadwalMobile = ({ filterTipe = "PENGARAHAN_KP" }: Props) => {
                                                 <div className="flex flex-col">
                                                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tanggal</span>
                                                     <span className="text-xs font-bold text-slate-700">
-                                                        {start.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} - 
-                                                        {end.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                                                        {eventDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                                                     </span>
                                                 </div>
                                             </div>
@@ -134,8 +132,7 @@ const StafJadwalMobile = ({ filterTipe = "PENGARAHAN_KP" }: Props) => {
                                                 <div className="flex flex-col">
                                                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Waktu</span>
                                                     <span className="text-xs font-bold text-slate-700">
-                                                        {start.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} - 
-                                                        {end.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                                        {eventDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                                                     </span>
                                                 </div>
                                             </div>
@@ -167,3 +164,5 @@ const StafJadwalMobile = ({ filterTipe = "PENGARAHAN_KP" }: Props) => {
 };
 
 export default StafJadwalMobile;
+
+

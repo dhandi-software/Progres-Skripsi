@@ -23,6 +23,11 @@ export const logbookApi = {
         const response = await apiClient.get(url);
         return response.data;
     },
+
+    getCompanies: async (): Promise<TempatKP[]> => {
+        const response = await apiClient.get('/logbook/companies');
+        return response.data;
+    },
     
     updateInfo: async (data: TempatKP, mahasiswaId?: string): Promise<TempatKP> => {
         const url = mahasiswaId ? `/logbook/info?mahasiswaId=${mahasiswaId}` : '/logbook/info';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Calendar, UploadCloud, AlertCircle } from 'lucide-react';
 import { jadwalKpApi } from '~/api/jadwalKpApi';
 import type { JadwalKp } from '~/api/jadwalKpApi';
@@ -71,7 +71,7 @@ export function ApplySidangForm({ onApplied }: { onApplied: () => void }) {
                                 <p className="text-slate-600 text-sm mb-2">{jadwal.deskripsi}</p>
                                 <div className="flex items-center gap-2 text-xs font-bold text-blue-800 bg-blue-100/50 w-fit px-3 py-1.5 rounded-lg">
                                     <Calendar size={14} />
-                                    {new Date(jadwal.tanggalMulai).toLocaleDateString('id-ID')} - {new Date(jadwal.tanggalSelesai).toLocaleDateString('id-ID')}
+                                    {new Date(jadwal.tanggal).toLocaleDateString('id-ID')}
                                 </div>
                             </div>
                         ))}
@@ -104,7 +104,7 @@ export function ApplySidangForm({ onApplied }: { onApplied: () => void }) {
                             <p className="text-slate-600 text-sm mb-2">{jadwal.deskripsi}</p>
                             <div className="flex items-center gap-2 text-xs font-bold text-blue-800 bg-blue-100/50 w-fit px-3 py-1.5 rounded-lg">
                                 <Calendar size={14} />
-                                {new Date(jadwal.tanggalMulai).toLocaleDateString('id-ID')} - {new Date(jadwal.tanggalSelesai).toLocaleDateString('id-ID')}
+                                {new Date(jadwal.tanggal).toLocaleDateString('id-ID')}
                             </div>
                         </div>
                     ))}
@@ -121,7 +121,7 @@ export function ApplySidangForm({ onApplied }: { onApplied: () => void }) {
                 <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 flex gap-3 items-start">
                     <AlertCircle className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
                     <div className="text-sm text-orange-800">
-                        <strong>Batas Waktu:</strong> {new Date(activeJadwal.tanggalSelesai).toLocaleString('id-ID')}
+                        <strong>Batas Waktu:</strong> {new Date(activeJadwal.tanggal).toLocaleString('id-ID')}
                     </div>
                 </div>
             </div>
@@ -175,3 +175,4 @@ export function ApplySidangForm({ onApplied }: { onApplied: () => void }) {
         </div>
     );
 }
+

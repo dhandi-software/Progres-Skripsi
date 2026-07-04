@@ -1,12 +1,11 @@
-import { client } from './client';
+﻿import { client } from './client';
 
 export interface JadwalKp {
     id: number;
     tipe: string; // PENGARAHAN_KP, PENGAJUAN_SIDANG
     judul: string;
     deskripsi?: string;
-    tanggalMulai: string;
-    tanggalSelesai: string;
+    tanggal: string;
     stafNip: string;
 }
 
@@ -36,3 +35,4 @@ export const jadwalKpApi = {
         return response.data;
     }
 };
+

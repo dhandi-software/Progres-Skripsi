@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Edit2, Trash2, AlertCircle } from 'lucide-react';
 import { jadwalKpApi } from '~/api/jadwalKpApi';
 import type { JadwalKp } from '~/api/jadwalKpApi';
@@ -75,10 +75,9 @@ const StafJadwalDesktop = ({ filterTipe = "PENGARAHAN_KP" }: Props) => {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
                         {jadwals.map((j) => {
                             const now = new Date();
-                            const start = new Date(j.tanggalMulai);
-                            const end = new Date(j.tanggalSelesai);
-                            const isActive = now >= start && now <= end;
-                            const isPast = now > end;
+                            const eventDate = new Date(j.tanggal);
+                            const isActive = now.toDateString() === eventDate.toDateString();
+                            const isPast = now > eventDate && !isActive;
 
                             return (
                                 <div key={j.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
@@ -102,13 +101,11 @@ const StafJadwalDesktop = ({ filterTipe = "PENGARAHAN_KP" }: Props) => {
                                         <div className="space-y-2">
                                             <div className="flex items-center text-sm text-gray-600">
                                                 <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-                                                {start.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} - 
-                                                {end.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                {eventDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                                             </div>
                                             <div className="flex items-center text-sm text-gray-600">
                                                 <Clock className="w-4 h-4 mr-2 text-gray-400" />
-                                                {start.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} - 
-                                                {end.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                                {eventDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                                             </div>
                                         </div>
                                     </div>
@@ -137,3 +134,5 @@ const StafJadwalDesktop = ({ filterTipe = "PENGARAHAN_KP" }: Props) => {
 };
 
 export default StafJadwalDesktop;
+
+

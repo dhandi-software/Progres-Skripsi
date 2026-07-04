@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "~/hooks/useAuth";
 import { pengajuanApi } from "~/api/pengajuan";
@@ -58,7 +58,7 @@ export function DashboardMobile() {
             jadwalKpApi.getAllJadwalKp()
                 .then((data: JadwalKp[]) => {
                     const now = new Date();
-                    const upcoming = data.filter(j => new Date(j.tanggalSelesai) >= now && j.tipe !== 'JADWAL_SIDANG').sort((a, b) => new Date(a.tanggalSelesai).getTime() - new Date(b.tanggalSelesai).getTime());
+                    const upcoming = data.filter(j => new Date(j.tanggal) >= now && j.tipe !== 'JADWAL_SIDANG').sort((a, b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime());
                     setUpcomingJadwal(upcoming);
                 })
                 .catch(console.error);
@@ -215,10 +215,10 @@ export function DashboardMobile() {
                             <h3 className="text-emerald-800 font-bold text-sm">{jadwal.judul}</h3>
                             <div className="mt-3 flex flex-wrap gap-2">
                                 <span className="bg-emerald-600 text-white font-black text-sm px-3 py-1 rounded-lg shadow-sm">
-                                    {new Date(jadwal.tanggalSelesai).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                    {new Date(jadwal.tanggal).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                                 </span>
                                 <span className="bg-emerald-100 text-emerald-800 font-black text-sm px-3 py-1 rounded-lg border border-emerald-200">
-                                    {new Date(jadwal.tanggalSelesai).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                    {new Date(jadwal.tanggal).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                             </div>
                             {jadwal.deskripsi && <p className="text-emerald-700 text-[10px] mt-2 pr-2 leading-relaxed italic">"{jadwal.deskripsi}"</p>}
@@ -482,3 +482,4 @@ export function DashboardMobile() {
         </div>
     );
 }
+

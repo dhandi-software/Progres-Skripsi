@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useAuth } from "~/hooks/useAuth";
 import { useNavigate } from "react-router";
 import { pengajuanApi } from "~/api/pengajuan";
@@ -91,7 +91,7 @@ export function DashboardMobile() {
                 const jadwalData = await jadwalKpApi.getAllJadwalKp();
                 if (jadwalData && Array.isArray(jadwalData)) {
                     const now = new Date();
-                    const upcoming = jadwalData.filter(j => new Date(j.tanggalSelesai) >= now && j.tipe === 'PENGARAHAN_KP').sort((a, b) => new Date(a.tanggalSelesai).getTime() - new Date(b.tanggalSelesai).getTime());
+                    const upcoming = jadwalData.filter(j => new Date(j.tanggal) >= now && j.tipe === 'PENGARAHAN_KP').sort((a, b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime());
                     setUpcomingJadwal(upcoming);
                 }
 
@@ -172,7 +172,7 @@ export function DashboardMobile() {
                         <div className="flex-1">
                             <h3 className="text-emerald-800 font-bold text-sm">{jadwal.judul}</h3>
                             <p className="text-emerald-600 text-[10px] mt-1 pr-2 leading-relaxed font-semibold">
-                                Jadwal {jadwal.tipe === 'PENGARAHAN_KP' ? 'Pengarahan KP' : 'Pengumpulan Sidang'}: {new Date(jadwal.tanggalSelesai).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                Jadwal {jadwal.tipe === 'PENGARAHAN_KP' ? 'Pengarahan KP' : 'Pengumpulan Sidang'}: {new Date(jadwal.tanggal).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             </p>
                             {jadwal.deskripsi && <p className="text-emerald-700 text-[10px] mt-2 pr-2 leading-relaxed italic">"{jadwal.deskripsi}"</p>}
                         </div>
@@ -306,3 +306,4 @@ export function DashboardMobile() {
         </div>
     );
 }
+

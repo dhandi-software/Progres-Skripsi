@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { ArrowLeft, Save, CalendarIcon } from 'lucide-react';
 import { Button } from '~/components/ui/button';
@@ -49,7 +49,7 @@ export function EditJadwalMobile() {
                         deskripsi: jadwal.deskripsi || '',
                     });
                     
-                    const endDt = new Date(jadwal.tanggalSelesai);
+                    const endDt = new Date(jadwal.tanggal);
                     setEndDate(format(endDt, "yyyy-MM-dd"));
                     setEndTime(format(endDt, "HH:mm"));
                 } else {
@@ -227,3 +227,5 @@ export function EditJadwalMobile() {
         </div>
     );
 }
+
+
