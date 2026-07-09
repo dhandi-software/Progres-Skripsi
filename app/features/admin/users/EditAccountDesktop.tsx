@@ -2,6 +2,7 @@ import { useNavigate, useParams } from "react-router"; // Keep for types if need
 import { ArrowLeft, ChevronDown, Eye, EyeOff, Save } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { CustomSelect } from "~/components/ui/custom-select";
+import { MultipleCombobox } from "~/components/ui/Multiple-combobox";
 import { useEditAccount } from "./UseEditAccount";
 
 export function EditAccountDesktop() {
@@ -195,6 +196,26 @@ export function EditAccountDesktop() {
                                     className="w-full px-5 py-3 h-auto"
                                 />
                             </div>
+                        </div>
+                        <div className="flex flex-col gap-3">
+                            <label className="text-base font-semibold text-[#18181B]">
+                                Peminatan
+                            </label>
+                            <MultipleCombobox
+                                options={[
+                                    { label: "Software Engineering", id: "Software Engineering", checked: formData.peminatan.includes("Software Engineering") },
+                                    { label: "Artificial Intelligence", id: "Artificial Intelligence", checked: formData.peminatan.includes("Artificial Intelligence") },
+                                    { label: "Cyber Security", id: "Cyber Security", checked: formData.peminatan.includes("Cyber Security") },
+                                    { label: "Data Science", id: "Data Science", checked: formData.peminatan.includes("Data Science") },
+                                ]}
+                                onOptionsChange={(newOptions) => {
+                                    const selected = newOptions.filter(o => o.checked).map(o => o.id);
+                                    handleInputChange({
+                                        target: { name: "peminatan", value: selected },
+                                    } as any);
+                                }}
+                                placeholder="Select peminatan..."
+                            />
                         </div>
                     </div>
                 )}

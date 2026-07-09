@@ -352,6 +352,26 @@ export function ProdiSidang() {
                                                         >
                                                             <CheckCircle2 size={18} /> Jadwal Terkonfirmasi
                                                         </Button>
+                                                        
+                                                        {(!isKaprodi || isProdi) && (
+                                                            <Button 
+                                                                onClick={() => {
+                                                                    setIsScheduling(sidang);
+                                                                    setSchedData({
+                                                                        tanggalSidang: sidang.tanggalSidang || "",
+                                                                        waktuSidang: sidang.waktuSidang || "09:00",
+                                                                        lokasi: sidang.lokasi || "Ruang Sidang Lt. 3",
+                                                                        catatan: sidang.catatan || ""
+                                                                    });
+                                                                    if (sidang.tanggalSidang) setSelectedDate(new Date(sidang.tanggalSidang));
+                                                                }}
+                                                                variant="outline"
+                                                                className="h-14 px-6 rounded-2xl font-black text-slate-600 border-2 border-slate-100 hover:bg-slate-50 transition-all"
+                                                                title="Ubah Jadwal"
+                                                            >
+                                                                <Edit3 size={20} />
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                 )}
 

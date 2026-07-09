@@ -226,7 +226,7 @@ export function AppSidebar() {
         if (data && Array.isArray(data)) {
             // Advisor badge: status MENUNGGU_PERSETUJUAN_PEMBIMBING
             const advisorCount = data.filter((item: any) => 
-                item.status === 'MENUNGGU_PERSETUJUAN_PEMBIMBING' && item.dosenId === user?.dosenId
+                item.status === 'MENUNGGU_PERSETUJUAN_PEMBIMBING' && item.dosenNidn === user?.dosenNidn
             ).length;
             setSidangBadgeCount(advisorCount);
 
@@ -294,7 +294,8 @@ export function AppSidebar() {
                 const jabatan = (user?.jabatan || "").toLowerCase().trim();
                 const isAuthorized = jabatan === "pejabat prodi" || 
                                    jabatan === "penjabat prodi" || 
-                                   jabatan === "dosen reguler";
+                                   jabatan === "dosen reguler" ||
+                                   jabatan.includes("koordinator");
                 
                 const isDosenReguler = jabatan === "dosen reguler";
                 

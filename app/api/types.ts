@@ -94,7 +94,7 @@ export interface UserAccount {
     id: string;
     email: string;
     name: string;
-    role: "admin" | "writer" | "editor";
+    role: "admin" | "writer" | "editor" | "mahasiswa" | "dosen" | "staf";
     created_at: string;
     updated_at: string;
     avatar?: string;
@@ -102,6 +102,9 @@ export interface UserAccount {
     username?: string;
     password?: string;
     bio?: string;
+    mahasiswa?: any;
+    dosen?: any;
+    staf?: any;
 }
 
 export interface UserAccountResponse {

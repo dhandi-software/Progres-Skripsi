@@ -121,7 +121,7 @@ export default function SidangManagement() {
         switch (status) {
             case "MENUNGGU_PERSETUJUAN_PEMBIMBING":
                 return { label: "Menunggu ACC Pembimbing", color: "text-amber-600 bg-amber-50" };
-            case "MENUNGGU_PENJADWALAN_PRODI":
+            case "MENUNGGU_PENJADWALAN_KOORDINATOR":
                 return { label: "Menunggu Jadwal Prodi", color: "text-blue-600 bg-blue-50" };
             case "TERJADWAL":
                 return { label: "Terjadwal", color: "text-emerald-600 bg-emerald-50" };
@@ -236,7 +236,7 @@ export default function SidangManagement() {
                                 )}
 
                                 {/* Action for Prodi */}
-                                {isProdi && item.status === "MENUNGGU_PENJADWALAN_PRODI" && (
+                                {isProdi && item.status === "MENUNGGU_PENJADWALAN_KOORDINATOR" && (
                                     <Button 
                                         onClick={() => setIsScheduling(item)}
                                         className="bg-brand-primary hover:bg-brand-primary/90 text-white rounded-xl h-10 px-4 font-bold text-xs gap-2 shadow-lg shadow-brand-primary/20"

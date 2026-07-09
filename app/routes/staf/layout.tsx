@@ -250,7 +250,7 @@ export default function StafLayout() {
   const { isMobile } = useRouteLoaderData<ContextType>("root") as ContextType;
   return (
     <ProtectedRoute>
-      <RoleGuard allowedRoles={["staf"]}>
+      <RoleGuard allowedRoles={["staf", "staf_univ"]}>
         <SidebarProvider isMobile={isMobile}>
           <div className="flex w-full h-screen overflow-hidden bg-neutral-50 print:h-auto print:overflow-visible print:bg-white">
             <AppSidebar />

@@ -21,6 +21,7 @@ export const useEditAccount = () => {
         tahunMasuk: "",
         nidn: "",
         jabatan: "",
+        peminatan: [] as string[],
     });
 
     const [initialLoading, setInitialLoading] = useState(true);
@@ -57,6 +58,7 @@ export const useEditAccount = () => {
                 tahunMasuk: user.tahunMasuk || "",
                 nidn: user.nidn || "",
                 jabatan: user.jabatan || "",
+                peminatan: user.peminatan || [],
             });
         } catch (error) {
             console.error("Failed to fetch user", error);
@@ -154,6 +156,7 @@ export const useEditAccount = () => {
         togglePasswordVisibility,
         generatePassword,
         handleSubmit,
-        navigate
+        navigate,
+        setFormData
     };
 };

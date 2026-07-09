@@ -135,7 +135,10 @@ export function AcaraDesktop({ title }: { title: string }) {
         const transformed = content
             .replace(/src="\/uploads\//g, `src="${baseUploads}/uploads/`)
             .replace(/href="\/uploads\//g, `href="${baseUploads}/uploads/`)
-            .replace(/<img /g, '<img class="max-w-[800px] w-full h-auto max-h-[600px] mx-auto block rounded-[32px] my-12 shadow-2xl border border-slate-100 object-contain bg-slate-50/30" ');
+            .replace(/<img([^>]*)src="([^">]+)"([^>]*)>/g, (match, p1, src, p2) => {
+                const updatedImg = `<img${p1}src="${src}"${p2}`.replace(/<img /g, '<img class="max-w-[800px] w-full h-auto max-h-[600px] mx-auto block rounded-[32px] my-12 shadow-2xl border border-slate-100 object-contain bg-slate-50/30 hover:scale-[1.01] transition-transform cursor-pointer" ');
+                return `<a href="${src}" target="_blank" rel="noopener noreferrer">${updatedImg}</a>`;
+            });
         
         return sanitizeHtml(transformed);
     };
@@ -179,7 +182,7 @@ export function AcaraDesktop({ title }: { title: string }) {
                     <div className="flex-1">
                         <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-tight">{selectedAcara.title}</h1>
                         <div className="flex items-center gap-3 mt-2.5 flex-wrap">
-                            <span className="text-sm font-bold text-slate-800">{selectedAcara.user?.mahasiswa?.nama || selectedAcara.user?.dosen?.nama || selectedAcara.user?.username || selectedAcara.dosen.nama || "Sistem"}</span>
+                            <span className="text-sm font-bold text-slate-800">{selectedAcara.user?.role === 'admin' ? 'Admin' : (selectedAcara.user?.mahasiswa?.nama || selectedAcara.user?.dosen?.nama || selectedAcara.user?.username || selectedAcara.dosen.nama || "Sistem")}</span>
                             <span className={cn(
                                 "text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider leading-none",
                                 (selectedAcara.user?.role || "DOSEN").toUpperCase() === "MAHASISWA" 
@@ -322,7 +325,7 @@ export function AcaraDesktop({ title }: { title: string }) {
                         </div>
                     ) : (
                         acaras.map(item => {
-                            const publisherName = item.user?.mahasiswa?.nama || item.user?.dosen?.nama || item.user?.username || item.dosen?.nama || "Sistem";
+                            const publisherName = item.user?.role === 'admin' ? 'Admin' : (item.user?.mahasiswa?.nama || item.user?.dosen?.nama || item.user?.username || item.dosen?.nama || "Sistem");
                             const publisherRole = item.user?.role || "DOSEN";
                             return (
                                 <div 

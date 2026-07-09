@@ -207,7 +207,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                                                     <p className="text-[11px] text-blue-700/70 mb-4 leading-relaxed">Unggah dokumen yang sudah Anda beri komentar/coretan secara offline.</p>
                                                     <input
                                                         type="file"
-                                                        accept=".doc,.docx,.pdf"
+                                                        accept="application/pdf"
                                                         onChange={(e) => {
                                                             if (e.target.files && e.target.files[0]) {
                                                                 setReviewFile(e.target.files[0]);

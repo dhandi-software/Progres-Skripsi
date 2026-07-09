@@ -148,7 +148,7 @@ export function SidangMobile() {
         switch (status) {
             case "MENUNGGU_PERSETUJUAN_PEMBIMBING":
                 return { label: "Menunggu ACC Pembimbing", color: "text-amber-600 bg-amber-50" };
-            case "MENUNGGU_PENJADWALAN_PRODI":
+            case "MENUNGGU_PENJADWALAN_KOORDINATOR":
                 return { label: "Menunggu Jadwal Prodi", color: "text-blue-600 bg-blue-50" };
             case "TERJADWAL":
                 return { label: "Terjadwal", color: "text-emerald-600 bg-emerald-50" };
@@ -231,7 +231,7 @@ export function SidangMobile() {
                                             </div>
                                         </div>
                                         <span className={cn("text-[9px] font-black uppercase px-2 py-1 rounded-full shrink-0", getStatusInfo(item.status).color)}>
-                                            {item.status === 'TERJADWAL' ? 'Terjadwal' : item.status === 'MENUNGGU_PENJADWALAN_PRODI' ? 'Menunggu Prodi' : 'Menunggu ACC'}
+                                            {item.status === 'TERJADWAL' ? 'Terjadwal' : item.status === 'MENUNGGU_PENJADWALAN_KOORDINATOR' ? 'Menunggu Prodi' : 'Menunggu ACC'}
                                         </span>
                                     </div>
                                     <p className="text-[11px] text-slate-500 italic mt-3 line-clamp-1">"{item.judul}"</p>
@@ -275,7 +275,7 @@ export function SidangMobile() {
                                     )}
 
                                     {/* Action for Prodi - Hanya muncul untuk Koordinator, bukan Kaprodi */}
-                                    {isProdi && !isKaprodi && item.status === "MENUNGGU_PENJADWALAN_PRODI" && (
+                                    {isProdi && !isKaprodi && item.status === "MENUNGGU_PENJADWALAN_KOORDINATOR" && (
                                         <Button 
                                             onClick={() => {
                                                 setIsScheduling(item);

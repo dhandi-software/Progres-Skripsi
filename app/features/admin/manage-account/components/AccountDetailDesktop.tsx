@@ -5,11 +5,12 @@ import { useManageAccount, type UserAccount } from "../UseManageAccount";
 import { cn } from "~/lib/utils";
 import { Toast } from "~/components/ui/toast";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
+import { MultipleCombobox, type ComboboxOption } from "~/components/ui/Multiple-combobox";
 
 export const AccountDetailDesktop = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { getUserById, updateUserRole, deleteAccount } = useManageAccount();
+  const { getUserById, updateUserRole, updateUser, deleteAccount } = useManageAccount();
   const [user, setUser] = useState<UserAccount | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -19,6 +20,17 @@ export const AccountDetailDesktop = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
 
+  const [peminatanOptions, setPeminatanOptions] = useState<ComboboxOption[]>([
+    { id: "ds", label: "Data Science", checked: false },
+    { id: "ai", label: "Artificial Intelligence", checked: false },
+    { id: "se", label: "Software Engineering", checked: false },
+    { id: "ncs", label: "Network and Cyber Security", checked: false },
+  ]);
+
+  const handlePeminatanChange = (newOptions: ComboboxOption[]) => {
+    setPeminatanOptions(newOptions);
+  };
+
   useEffect(() => {
     const fetchUser = async () => {
       if (id) {
@@ -27,6 +39,12 @@ export const AccountDetailDesktop = () => {
         if (data) {
           setUser(data);
           setSelectedRole(data.role);
+          if (data.peminatan) {
+            setPeminatanOptions(prev => prev.map(opt => ({
+              ...opt,
+              checked: data.peminatan.includes(opt.label)
+            })));
+          }
         }
         setIsLoading(false);
       }
@@ -68,10 +86,28 @@ export const AccountDetailDesktop = () => {
   };
 
   const handleConfirmChange = async () => {
-    if (selectedRole && id) {
-      const success = await updateUserRole(id, selectedRole);
-      if (success) {
-        setShowToast(true);
+    if (id) {
+      let dataToUpdate: any = {};
+      if (selectedRole !== user.role) {
+        dataToUpdate.role = selectedRole;
+      }
+      
+      const selectedPeminatan = peminatanOptions.filter(opt => opt.checked).map(opt => opt.label);
+      
+      let isPeminatanChanged = false;
+      if (user.role === 'dosen') {
+        const initialPeminatan = (user as any).peminatan || [];
+        isPeminatanChanged = JSON.stringify(selectedPeminatan.sort()) !== JSON.stringify(initialPeminatan.sort());
+        if (isPeminatanChanged) {
+          dataToUpdate.peminatan = selectedPeminatan;
+        }
+      }
+
+      if (Object.keys(dataToUpdate).length > 0) {
+        const success = await updateUser(id, dataToUpdate);
+        if (success) {
+          setShowToast(true);
+        }
       }
     }
   };
@@ -188,6 +224,18 @@ export const AccountDetailDesktop = () => {
             </div>
           ))}
 
+          {user.role === "dosen" && (
+            <div className="flex flex-col gap-2.5">
+              <label className="text-[1.125rem] font-medium text-[#18181B]">Peminatan</label>
+              <MultipleCombobox
+                options={peminatanOptions}
+                onOptionsChange={handlePeminatanChange}
+                placeholder="Pilih Peminatan"
+                className="w-full"
+              />
+            </div>
+          )}
+
           <div className="flex flex-col gap-2.5">
             <label className="text-[1.125rem] font-medium text-[#18181B]">Bio</label>
             <div className="w-full px-5 py-4 rounded-xl border border-[#F4F4F5] bg-[#FAFAFA] text-[#18181B] text-[1rem] leading-relaxed min-h-[7.5rem]">
@@ -214,9 +262,12 @@ export const AccountDetailDesktop = () => {
           <button
             onClick={handleConfirmChange}
             className="px-8 py-3.5 rounded-xl bg-[#FDBC74] text-white text-[1rem] font-semibold hover:bg-[#FDB15A] transition-all active:scale-95 shadow-sm disabled:opacity-50"
-            disabled={selectedRole === user.role}
+            disabled={
+              selectedRole === user.role && 
+              (user.role !== 'dosen' || JSON.stringify(peminatanOptions.filter(opt => opt.checked).map(opt => opt.label).sort()) === JSON.stringify(((user as any).peminatan || []).sort()))
+            }
           >
-            Confirmation of Role Change
+            Save Changes
           </button>
         </div>
       </div>

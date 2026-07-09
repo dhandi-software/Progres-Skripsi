@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 import { pengajuanApi } from "~/api/pengajuan";
 import { ChevronLeft, Check, X, Loader2, RotateCcw } from "lucide-react";
 import { Toast } from "~/components/ui/toast";
@@ -28,6 +28,7 @@ interface PengajuanDetail {
 
 export function PeninjauanDetailDesktop({ id }: { id: string }) {
     const navigate = useNavigate();
+    const location = useLocation();
     const [detail, setDetail] = useState<PengajuanDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [remarks, setRemarks] = useState("");
@@ -48,7 +49,7 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
             } catch (error) {
                 console.error("Failed to fetch detail", error);
                 alert("Gagal memuat detail pengajuan.");
-                navigate("/dosen/peninjauan");
+                navigate(`/dosen/peninjauan${location.search}`);
             } finally {
                 setLoading(false);
             }
@@ -64,7 +65,7 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
             const label = status === 'APPROVED' ? 'disetujui' : status === 'REJECTED' ? 'ditolak' : 'diminta revisi';
             showToast(`Pengajuan berhasil ${label}.`, "success");
             setIsRevisionModalOpen(false);
-            setTimeout(() => navigate("/dosen/peninjauan"), 1800);
+            setTimeout(() => navigate(`/dosen/peninjauan${location.search}`), 1800);
         } catch (error: any) {
             showToast("Gagal memproses aksi: " + (error.response?.data?.message || error.message), "destructive");
         } finally {
@@ -96,7 +97,7 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
                 </div>
             )}
             <button 
-                onClick={() => navigate("/dosen/peninjauan")}
+                onClick={() => navigate(`/dosen/peninjauan${location.search}`)}
                 className="flex items-center text-gray-600 hover:text-gray-900 mb-6 transition-colors font-medium"
             >
                 <ChevronLeft className="w-5 h-5 mr-1" />

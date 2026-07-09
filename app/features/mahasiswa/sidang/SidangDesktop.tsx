@@ -9,6 +9,7 @@ import {
 import { cn } from "~/lib/utils";
 import { format } from "date-fns";
 import { id } from "date-fns/locale/id";
+import { Toast } from "~/components/ui/toast";
 
 interface SidangItem {
     id: number;
@@ -42,6 +43,7 @@ export function SidangDesktop({ title }: { title: string }) {
     const navigate = useNavigate();
     const [sidangs, setSidangs] = useState<SidangItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [toastProps, setToastProps] = useState<{ title: string, variant: 'success' | 'destructive' } | null>(null);
 
     const fetchData = async () => {
         try {
@@ -157,7 +159,10 @@ export function SidangDesktop({ title }: { title: string }) {
                 </div>
                 
                 <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
-                    <ApplySidangForm onApplied={() => fetchData()} />
+                    <ApplySidangForm onApplied={() => {
+                        fetchData();
+                        setToastProps({ title: "Berhasil mengajukan laporan sidang!", variant: "success" });
+                    }} />
                 </div>
             </div>
         );
@@ -381,6 +386,17 @@ export function SidangDesktop({ title }: { title: string }) {
                     </div>
                 </div>
             </div>
+
+            {/* Toast Notification */}
+            {toastProps && (
+                <div className="fixed bottom-4 right-4 z-50">
+                    <Toast
+                        title={toastProps.title}
+                        variant={toastProps.variant}
+                        onClose={() => setToastProps(null)}
+                    />
+                </div>
+            )}
         </div>
     );
 }

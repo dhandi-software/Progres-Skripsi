@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { sanksiApi, type SanksiAdministrasi } from "~/api/sanksiApi";
-import { FileText, Printer, CheckCircle, ArrowLeft } from "lucide-react";
+import { FileText, Printer, CheckCircle, ArrowLeft, Clock, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 
@@ -35,8 +35,21 @@ export function SanksiMobile({ title }: { title: string }) {
         window.print();
     };
 
+    const calculateWeeksLate = (tenggat?: string) => {
+        if (!tenggat) return 0;
+        const now = new Date();
+        const tglTenggat = new Date(tenggat);
+        if (now <= tglTenggat) return 0;
+        const diffMs = now.getTime() - tglTenggat.getTime();
+        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+        return Math.ceil(diffDays / 7);
+    };
+
     return (
         <div className="flex flex-col min-h-full bg-slate-50 p-4 font-sans print:p-0 print:bg-white">
+            <style type="text/css" media="print">
+                {`@page { margin: 0; } body { margin: 1cm; }`}
+            </style>
             {/* Back header for detail view */}
             {viewMode === "detail" && selectedSanksi && (
                 <div className="flex items-center gap-3 mb-6 print:hidden">
@@ -89,8 +102,24 @@ export function SanksiMobile({ title }: { title: string }) {
                             </div>
                             <div className="flex-1 min-w-0">
                                 <h4 className="font-bold text-slate-800 text-sm truncate">Surat Pernyataan</h4>
-                                <p className="text-xs text-slate-500 mt-0.5">Sidang: {item.tanggalSidang}</p>
-                                <p className="text-[10px] text-slate-400 mt-0.5">Oleh: {item.dosen?.nama}</p>
+                                <p className="text-xs text-slate-500 mt-0.5 mb-2">Sidang: {item.tanggalSidang}</p>
+                                
+                                {/* Status Badge */}
+                                {item.status === 'Selesai/Lunas' && (
+                                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
+                                        <CheckCircle2 size={12} /> Lunas
+                                    </div>
+                                )}
+                                {item.status === 'Terlambat' && (
+                                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-50 text-red-700 text-[10px] font-bold border border-red-200">
+                                        <AlertCircle size={12} /> Telat {calculateWeeksLate(item.tenggatWaktu)} Minggu
+                                    </div>
+                                )}
+                                {(!item.status || item.status === 'Menunggu Hardcover') && (
+                                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 text-[10px] font-bold border border-amber-200">
+                                        <Clock size={12} /> Menunggu
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ))}

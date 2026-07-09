@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { pengajuanApi } from "~/api/pengajuan";
 import { CustomSelect } from "~/components/ui/custom-select";
 import { useNavigate } from "react-router";
-import { Loader2, Send, MessageSquare, RotateCcw, AlertTriangle, Calendar } from "lucide-react";
+import { Loader2, Send, MessageSquare, RotateCcw, AlertTriangle, Calendar, Clock } from "lucide-react";
 import { Toast } from "~/components/ui/toast";
 import { DeleteConfirmationModal } from "~/components/ui/delete-confirmation-modal";
 import { useAuth } from "~/hooks/useAuth";
@@ -211,6 +211,19 @@ export function PengajuanDesktop() {
                 </div>
             )}
             <div className="w-full mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                {/* Pending Status Banner */}
+                {profile?.pengajuanJudul?.[0]?.status === 'PENDING' && (
+                    <div className="mx-8 mt-8 p-4 bg-blue-50 border border-blue-300 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-4 duration-500">
+                        <div className="p-2 bg-blue-100 rounded-full text-blue-700 shrink-0">
+                            <Clock className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-blue-800 font-bold text-sm">Status Pengajuan: Menunggu Persetujuan</h3>
+                            <p className="text-blue-700 text-xs mt-1">Pengajuan Anda telah berhasil dikirim dan sedang menunggu proses persetujuan oleh Dosen / Koordinator.</p>
+                        </div>
+                    </div>
+                )}
+
                 {/* Revision Feedback Banner */}
                 {profile?.pengajuanJudul?.[0]?.status === 'REVISION' && (
                     <div className="mx-8 mt-8 p-4 bg-yellow-50 border border-yellow-300 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-4 duration-500">
@@ -385,7 +398,11 @@ export function PengajuanDesktop() {
                                 options={[...dosenList]
                                     .filter(d => {
                                         if (!formData.peminatan) return true;
-                                        return d.peminatan && Array.isArray(d.peminatan) && d.peminatan.includes(formData.peminatan);
+                                        let isMatch = d.peminatan && Array.isArray(d.peminatan) && d.peminatan.includes(formData.peminatan);
+                                        if (!isMatch && formData.peminatan === "Network and Cyber Security") {
+                                            isMatch = d.peminatan && Array.isArray(d.peminatan) && d.peminatan.includes("Cyber Security");
+                                        }
+                                        return isMatch;
                                     })
                                     .sort((a, b) => {
                                         const aSelectable = (a.jabatan || '').toLowerCase().includes('pembimbing') || (a.jabatan || '').toLowerCase().includes('koordinator');
@@ -454,9 +471,27 @@ export function PengajuanDesktop() {
                                 <input 
                                     type="number" 
                                     step="0.01"
+                                    min="0.00"
+                                    max="4.00"
                                     name="ipk"
                                     value={formData.ipk}
                                     onChange={handleInputChange}
+                                    onBlur={(e) => {
+                                        let val = parseFloat(e.target.value);
+                                        if (!isNaN(val)) {
+                                            if (val > 4) {
+                                                if (val >= 10 && val <= 40) {
+                                                    val = val / 10;
+                                                } else if (val >= 100 && val <= 400) {
+                                                    val = val / 100;
+                                                } else {
+                                                    val = 4;
+                                                }
+                                            }
+                                            if (val < 0) val = 0;
+                                            setFormData(prev => ({ ...prev, ipk: val.toFixed(2) }));
+                                        }
+                                    }}
                                     disabled={isReadOnly}
                                     placeholder="e.g. 3.50"
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all"

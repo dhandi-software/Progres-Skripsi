@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { sanksiApi, type SanksiAdministrasi, type SupervisedStudent } from "~/api/sanksiApi";
-import { Plus, Edit3, Trash2, X, Save, AlertCircle, FileText, Printer, Check, ChevronDown, User, ArrowLeft } from "lucide-react";
+import { Plus, Edit3, Trash2, X, Save, AlertCircle, FileText, Printer, Check, ChevronDown, User, ArrowLeft, Clock, CheckCircle2 } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import { useAuth } from "~/context/AuthContext";
 
 interface FormState {
     id?: number;
@@ -14,6 +15,8 @@ interface FormState {
     tanggalSidang: string;
     hariTenggat: string;
     tanggalSurat: string;
+    rawTanggalSidang?: string;
+    durasiTenggat?: 1 | 2;
 }
 
 export function SanksiMobile({ title }: { title: string }) {
@@ -21,6 +24,7 @@ export function SanksiMobile({ title }: { title: string }) {
     const [studentList, setStudentList] = useState<SupervisedStudent[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const { user } = useAuth();
     
     // Navigation / views
     const [viewMode, setViewMode] = useState<"list" | "form" | "preview">("list");
@@ -71,6 +75,8 @@ export function SanksiMobile({ title }: { title: string }) {
         const dayName = days[today.getDay()];
         const dateString = today.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
         
+        const rawDate = today.toISOString().split("T")[0];
+        
         setForm({
             mahasiswaId: "",
             nama: "",
@@ -78,9 +84,35 @@ export function SanksiMobile({ title }: { title: string }) {
             hariSidang: dayName,
             tanggalSidang: dateString,
             hariTenggat: "Senin",
-            tanggalSurat: dateString
+            tanggalSurat: dateString,
+            rawTanggalSidang: rawDate,
+            durasiTenggat: 1
         });
+        updateTenggat(rawDate, 1);
         setViewMode("form");
+    };
+
+    const updateTenggat = (dateStr: string, durasi: 1 | 2) => {
+        if (!dateStr) return;
+        const dateObj = new Date(dateStr);
+        if (isNaN(dateObj.getTime())) return;
+
+        const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+        const hariSidang = days[dateObj.getDay()];
+        const tanggalSidang = dateObj.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+        
+        const tenggatObj = new Date(dateStr);
+        tenggatObj.setDate(tenggatObj.getDate() + (durasi * 7));
+        const hariTenggat = `${days[tenggatObj.getDay()]}, ${tenggatObj.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}`;
+        
+        setForm(prev => ({
+            ...prev,
+            rawTanggalSidang: dateStr,
+            durasiTenggat: durasi,
+            hariSidang,
+            tanggalSidang,
+            hariTenggat
+        }));
     };
 
     const handleOpenEdit = (item: SanksiAdministrasi, e: React.MouseEvent) => {
@@ -93,7 +125,9 @@ export function SanksiMobile({ title }: { title: string }) {
             hariSidang: item.hariSidang,
             tanggalSidang: item.tanggalSidang,
             hariTenggat: item.hariTenggat,
-            tanggalSurat: item.tanggalSurat
+            tanggalSurat: item.tanggalSurat,
+            rawTanggalSidang: "",
+            durasiTenggat: 1
         });
         setViewMode("form");
     };
@@ -104,12 +138,23 @@ export function SanksiMobile({ title }: { title: string }) {
     };
 
     const handleSelectStudent = (student: SupervisedStudent) => {
+        let rawDate = form.rawTanggalSidang || new Date().toISOString().split("T")[0];
+        if (student.tanggalSidang) {
+            const sidDate = new Date(student.tanggalSidang);
+            if (!isNaN(sidDate.getTime())) {
+                rawDate = sidDate.toISOString().split("T")[0];
+            }
+        }
+
         setForm(prev => ({
             ...prev,
             mahasiswaId: String(student.id),
             nama: student.nama,
-            nim: student.nim
+            nim: student.nim,
+            rawTanggalSidang: rawDate
         }));
+        
+        updateTenggat(rawDate, form.durasiTenggat || 1);
         setIsDropdownOpen(false);
     };
 
@@ -122,7 +167,7 @@ export function SanksiMobile({ title }: { title: string }) {
         try {
             setIsSaving(true);
             const payload = {
-                mahasiswaId: parseInt(form.mahasiswaId),
+                mahasiswaId: form.mahasiswaId,
                 nama: form.nama,
                 nim: form.nim,
                 hariSidang: form.hariSidang,
@@ -140,8 +185,9 @@ export function SanksiMobile({ title }: { title: string }) {
             }
             setViewMode("list");
             fetchData();
-        } catch (error) {
-            showToast("error", "Gagal menyimpan sanksi.");
+        } catch (error: any) {
+            const msg = error.response?.data?.error || "Gagal menyimpan sanksi.";
+            showToast("error", msg);
         } finally {
             setIsSaving(false);
         }
@@ -164,14 +210,38 @@ export function SanksiMobile({ title }: { title: string }) {
         }
     };
 
+    const handleTerimaHardcover = async (id: number, e: React.MouseEvent) => {
+        e.stopPropagation();
+        try {
+            await sanksiApi.terimaHardcover(id);
+            showToast("success", "Hardcover telah diterima.");
+            fetchData();
+        } catch (error) {
+            showToast("error", "Gagal memperbarui status hardcover.");
+        }
+    };
+
     const handlePrint = () => {
         window.print();
+    };
+
+    const calculateWeeksLate = (tenggat?: string) => {
+        if (!tenggat) return 0;
+        const now = new Date();
+        const tglTenggat = new Date(tenggat);
+        if (now <= tglTenggat) return 0;
+        const diffMs = now.getTime() - tglTenggat.getTime();
+        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+        return Math.ceil(diffDays / 7);
     };
 
     const selectedStudent = studentList.find(s => String(s.id) === form.mahasiswaId);
 
     return (
         <div className="flex flex-col min-h-full bg-slate-50 p-4 font-sans print:p-0 print:bg-white">
+            <style type="text/css" media="print">
+                {`@page { margin: 0; } body { margin: 1cm; }`}
+            </style>
 
             {/* Toast feedback */}
             {toast && (
@@ -246,22 +316,49 @@ export function SanksiMobile({ title }: { title: string }) {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <h4 className="font-bold text-slate-800 text-sm truncate">{item.nama}</h4>
-                                        <p className="text-xs text-slate-500">NIM: {item.nim}</p>
-                                        <p className="text-[10px] text-slate-400 mt-0.5">Sidang: {item.tanggalSidang}</p>
+                                        <p className="text-xs text-slate-500 mb-1">NIM: {item.nim}</p>
+                                        <p className="text-[10px] text-slate-400 mt-0.5 mb-2">Sidang: {item.tanggalSidang}</p>
+                                        
+                                        {/* Status Badge */}
+                                        {item.status === 'Selesai/Lunas' && (
+                                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200 w-fit">
+                                                <CheckCircle2 size={12} /> Lunas
+                                            </div>
+                                        )}
+                                        {item.status === 'Terlambat' && (
+                                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-50 text-red-700 text-[10px] font-bold border border-red-200 w-fit">
+                                                <AlertCircle size={12} /> Telat {calculateWeeksLate(item.tenggatWaktu)} Minggu
+                                            </div>
+                                        )}
+                                        {(!item.status || item.status === 'Menunggu Hardcover') && (
+                                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 text-[10px] font-bold border border-amber-200 w-fit">
+                                                <Clock size={12} /> Menunggu
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className="flex gap-1">
-                                        <button
-                                            onClick={(e) => handleOpenEdit(item, e)}
-                                            className="p-2 bg-slate-50 text-slate-600 rounded-lg active:bg-slate-200 transition-colors"
-                                        >
-                                            <Edit3 size={14} />
-                                        </button>
-                                        <button
-                                            onClick={(e) => handleDelete(item.id, e)}
-                                            className="p-2 bg-red-50 text-red-500 rounded-lg active:bg-red-200 transition-colors"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
+                                    <div className="flex flex-col gap-1 items-end">
+                                        {user?.role?.toUpperCase() === 'STAF' && item.status !== 'Selesai/Lunas' && (
+                                            <button
+                                                onClick={(e) => handleTerimaHardcover(item.id, e)}
+                                                className="p-2 mb-1 bg-emerald-50 text-emerald-600 rounded-lg active:bg-emerald-200 transition-colors border border-emerald-100"
+                                            >
+                                                <Check size={14} />
+                                            </button>
+                                        )}
+                                        <div className="flex gap-1">
+                                            <button
+                                                onClick={(e) => handleOpenEdit(item, e)}
+                                                className="p-2 bg-slate-50 text-slate-600 rounded-lg active:bg-slate-200 transition-colors"
+                                            >
+                                                <Edit3 size={14} />
+                                            </button>
+                                            <button
+                                                onClick={(e) => handleDelete(item.id, e)}
+                                                className="p-2 bg-red-50 text-red-500 rounded-lg active:bg-red-200 transition-colors"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -333,43 +430,80 @@ export function SanksiMobile({ title }: { title: string }) {
                     )}
 
                     {/* Sidang Details */}
-                    <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Hari Sidang</label>
-                        <Input
-                            placeholder="Contoh: Senin"
-                            value={form.hariSidang}
-                            onChange={e => setForm({ ...form, hariSidang: e.target.value })}
-                            className="bg-white border-slate-200 h-10 text-xs font-semibold rounded-xl"
-                        />
-                    </div>
-                    <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Tanggal Sidang</label>
-                        <Input
-                            placeholder="Contoh: 15 Juni 2026"
-                            value={form.tanggalSidang}
-                            onChange={e => setForm({ ...form, tanggalSidang: e.target.value })}
-                            className="bg-white border-slate-200 h-10 text-xs font-semibold rounded-xl"
-                        />
+                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 mb-4">
+                        <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Informasi Sidang</h3>
+                        <div className="space-y-3">
+                            <div>
+                                <label className="text-xs font-bold text-slate-700 block mb-2">Pilih Tanggal Sidang</label>
+                                <Input
+                                    type="date"
+                                    value={form.rawTanggalSidang || ""}
+                                    onChange={e => updateTenggat(e.target.value, form.durasiTenggat || 1)}
+                                    readOnly={true}
+                                    className="bg-slate-50 border-slate-200 h-10 text-xs font-semibold rounded-xl text-slate-500 cursor-not-allowed focus-visible:ring-0 opacity-70"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-slate-700 block mb-2">Teks Tanggal Sidang (Otomatis)</label>
+                                <Input
+                                    placeholder="Contoh: 15 Juni 2026"
+                                    value={form.tanggalSidang}
+                                    readOnly={true}
+                                    className="bg-slate-50 border-slate-200 h-10 text-xs font-semibold rounded-xl text-slate-500 cursor-not-allowed focus-visible:ring-0 opacity-70"
+                                />
+                            </div>
+                        </div>
                     </div>
 
                     {/* Deadline hardcover */}
-                    <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Tenggat Hardcover (Hari/Tanggal)</label>
-                        <Input
-                            placeholder="Contoh: Senin"
-                            value={form.hariTenggat}
-                            onChange={e => setForm({ ...form, hariTenggat: e.target.value })}
-                            className="bg-white border-slate-200 h-10 text-xs font-semibold rounded-xl"
-                        />
-                    </div>
-                    <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Tanggal Surat</label>
-                        <Input
-                            placeholder="Contoh: 15/06/2026"
-                            value={form.tanggalSurat}
-                            onChange={e => setForm({ ...form, tanggalSurat: e.target.value })}
-                            className="bg-white border-slate-200 h-10 text-xs font-semibold rounded-xl"
-                        />
+                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
+                        <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Tenggat Waktu & Surat</h3>
+                        <div className="space-y-3">
+                            <div>
+                                <label className="text-xs font-bold text-slate-700 block mb-2">Tenggat Hardcover (+1 / +2 Minggu)</label>
+                                <div className="flex gap-2 mb-2">
+                                    <button 
+                                        onClick={() => {
+                                            if (!form.rawTanggalSidang) {
+                                                alert("Silakan isi 'Pilih Tanggal Sidang' terlebih dahulu!");
+                                                return;
+                                            }
+                                            updateTenggat(form.rawTanggalSidang, 1);
+                                        }}
+                                        className={cn("flex-1 py-1.5 text-[10px] font-bold rounded-lg border", form.durasiTenggat === 1 ? "bg-brand-primary text-white border-brand-primary" : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50")}
+                                    >
+                                        +1 Minggu
+                                    </button>
+                                    <button 
+                                        onClick={() => {
+                                            if (!form.rawTanggalSidang) {
+                                                alert("Silakan isi 'Pilih Tanggal Sidang' terlebih dahulu!");
+                                                return;
+                                            }
+                                            updateTenggat(form.rawTanggalSidang, 2);
+                                        }}
+                                        className={cn("flex-1 py-1.5 text-[10px] font-bold rounded-lg border", form.durasiTenggat === 2 ? "bg-brand-primary text-white border-brand-primary" : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50")}
+                                    >
+                                        +2 Minggu
+                                    </button>
+                                </div>
+                                <Input
+                                    placeholder="Contoh: Senin atau Senin, 22 Juni 2026"
+                                    value={form.hariTenggat}
+                                    onChange={e => setForm({ ...form, hariTenggat: e.target.value })}
+                                    className="bg-white border-slate-200 h-10 text-xs font-semibold rounded-xl"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-slate-700 block mb-2">Tanggal Surat</label>
+                                <Input
+                                    placeholder="Contoh: 15/06/2026"
+                                    value={form.tanggalSurat}
+                                    onChange={e => setForm({ ...form, tanggalSurat: e.target.value })}
+                                    className="bg-white border-slate-200 h-10 text-xs font-semibold rounded-xl"
+                                />
+                            </div>
+                        </div>
                     </div>
 
                     <div className="flex gap-2 justify-end mt-4">

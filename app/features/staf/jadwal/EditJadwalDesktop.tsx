@@ -1,6 +1,7 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { ArrowLeft, Save, CalendarIcon } from 'lucide-react';
+import { ArrowLeft, Save, CalendarIcon, Bold, Italic, Underline, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Strikethrough, Undo2, Redo2, Indent, Outdent } from 'lucide-react';
+import { cn } from '~/lib/utils';
 import { Button } from '~/components/ui/button';
 import { jadwalKpApi } from '~/api/jadwalKpApi';
 import type { JadwalKp } from '~/api/jadwalKpApi';
@@ -36,6 +37,44 @@ export function EditJadwalDesktop() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Editor Logic
+    const editorRef = useRef<HTMLDivElement>(null);
+    const [activeStyles, setActiveStyles] = useState({
+        bold: false, italic: false, underline: false, strikeThrough: false,
+        insertUnorderedList: false, insertOrderedList: false,
+        justifyLeft: false, justifyCenter: false, justifyRight: false,
+    });
+
+    const formatText = (command: string, value: string = "") => {
+        if (editorRef.current) {
+            editorRef.current.focus();
+            document.execCommand(command, false, value);
+            updateActiveStyles();
+        }
+    };
+
+    const updateActiveStyles = () => {
+        if (typeof document !== "undefined") {
+            setActiveStyles({
+                bold: document.queryCommandState("bold"),
+                italic: document.queryCommandState("italic"),
+                underline: document.queryCommandState("underline"),
+                strikeThrough: document.queryCommandState("strikeThrough"),
+                insertUnorderedList: document.queryCommandState("insertUnorderedList"),
+                insertOrderedList: document.queryCommandState("insertOrderedList"),
+                justifyLeft: document.queryCommandState("justifyLeft"),
+                justifyCenter: document.queryCommandState("justifyCenter"),
+                justifyRight: document.queryCommandState("justifyRight"),
+            });
+        }
+    };
+
+    const handleEditorFocus = () => {
+        if (editorRef.current) {
+            document.execCommand("defaultParagraphSeparator", false, "p");
+        }
+    };
+
     useEffect(() => {
         const fetchJadwal = async () => {
             if (!id) return;
@@ -67,13 +106,21 @@ export function EditJadwalDesktop() {
         fetchJadwal();
     }, [id, navigate]);
 
+    useEffect(() => {
+        if (!isLoading && editorRef.current && formData.deskripsi) {
+            editorRef.current.innerHTML = formData.deskripsi;
+        }
+    }, [isLoading, formData.deskripsi]);
+
     const handleSubmit = async () => {
         if (!id) return;
         
         setIsSubmitting(true);
+        const content = editorRef.current?.innerHTML || "";
         try {
             await jadwalKpApi.updateJadwalKp(parseInt(id), {
                 ...formData,
+                deskripsi: content,
                 tanggal: endDate,
                 waktu: endTime,
             } as any);
@@ -138,13 +185,111 @@ export function EditJadwalDesktop() {
                         
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-2">Deskripsi Informasi</label>
-                            <textarea
-                                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-[#119DA4] outline-none text-gray-900 resize-none"
-                                rows={4}
-                                value={formData.deskripsi}
-                                onChange={(e) => setFormData({ ...formData, deskripsi: e.target.value })}
-                                placeholder="Informasi tambahan (opsional)"
-                            />
+                            
+                            {/* Rich Text Editor Container */}
+                            <div className="border border-gray-300 rounded-xl overflow-hidden focus-within:border-[#119DA4] focus-within:ring-1 focus-within:ring-[#119DA4] transition-all group shadow-sm bg-white">
+                                {/* Toolbar */}
+                                <div className="flex flex-wrap items-center gap-1.5 p-3 bg-gray-50 border-b border-gray-200 transition-colors group-focus-within:bg-white overflow-x-auto no-scrollbar">
+                                    <div className="flex items-center gap-1 border-r border-gray-300 pr-1.5">
+                                        <button type="button" onClick={() => formatText("undo")} className="p-2 rounded-lg hover:bg-gray-200 text-gray-600 transition-all"><Undo2 size={16} /></button>
+                                        <button type="button" onClick={() => formatText("redo")} className="p-2 rounded-lg hover:bg-gray-200 text-gray-600 transition-all"><Redo2 size={16} /></button>
+                                    </div>
+                                    <div className="flex items-center gap-1 border-r border-gray-300 pr-1.5">
+                                        <button 
+                                            type="button" 
+                                            onClick={() => formatText("bold")} 
+                                            className={cn("p-2 rounded-lg transition-all", activeStyles.bold ? "bg-[#119DA4]/10 text-[#119DA4] shadow-inner" : "hover:bg-gray-200 text-gray-600")}
+                                        >
+                                            <Bold size={16} />
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => formatText("italic")} 
+                                            className={cn("p-2 rounded-lg transition-all", activeStyles.italic ? "bg-[#119DA4]/10 text-[#119DA4] shadow-inner" : "hover:bg-gray-200 text-gray-600")}
+                                        >
+                                            <Italic size={16} />
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => formatText("underline")} 
+                                            className={cn("p-2 rounded-lg transition-all", activeStyles.underline ? "bg-[#119DA4]/10 text-[#119DA4] shadow-inner" : "hover:bg-gray-200 text-gray-600")}
+                                        >
+                                            <Underline size={16} />
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => formatText("strikeThrough")} 
+                                            className={cn("p-2 rounded-lg transition-all", activeStyles.strikeThrough ? "bg-[#119DA4]/10 text-[#119DA4] shadow-inner" : "hover:bg-gray-200 text-gray-600")}
+                                        >
+                                            <Strikethrough size={16} />
+                                        </button>
+                                    </div>
+                                    <div className="flex items-center gap-1 border-r border-gray-300 pr-1.5">
+                                        <button 
+                                            type="button" 
+                                            onClick={() => formatText("insertUnorderedList")} 
+                                            className={cn("p-2 rounded-lg transition-all", activeStyles.insertUnorderedList ? "bg-[#119DA4]/10 text-[#119DA4] shadow-inner" : "hover:bg-gray-200 text-gray-600")}
+                                        >
+                                            <List size={16} />
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => formatText("insertOrderedList")} 
+                                            className={cn("p-2 rounded-lg transition-all", activeStyles.insertOrderedList ? "bg-[#119DA4]/10 text-[#119DA4] shadow-inner" : "hover:bg-gray-200 text-gray-600")}
+                                        >
+                                            <ListOrdered size={16} />
+                                        </button>
+                                    </div>
+                                    <div className="flex items-center gap-1 border-r border-gray-300 pr-1.5">
+                                        <button type="button" onClick={() => formatText("outdent")} className="p-2 rounded-lg hover:bg-gray-200 text-gray-600 transition-all"><Outdent size={16} /></button>
+                                        <button type="button" onClick={() => formatText("indent")} className="p-2 rounded-lg hover:bg-gray-200 text-gray-600 transition-all"><Indent size={16} /></button>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <button 
+                                            type="button" 
+                                            onClick={() => formatText("justifyLeft")} 
+                                            className={cn("p-2 rounded-lg transition-all", activeStyles.justifyLeft ? "bg-[#119DA4]/10 text-[#119DA4] shadow-inner" : "hover:bg-gray-200 text-gray-600")}
+                                        >
+                                            <AlignLeft size={16} />
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => formatText("justifyCenter")} 
+                                            className={cn("p-2 rounded-lg transition-all", activeStyles.justifyCenter ? "bg-[#119DA4]/10 text-[#119DA4] shadow-inner" : "hover:bg-gray-200 text-gray-600")}
+                                        >
+                                            <AlignCenter size={16} />
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => formatText("justifyRight")} 
+                                            className={cn("p-2 rounded-lg transition-all", activeStyles.justifyRight ? "bg-[#119DA4]/10 text-[#119DA4] shadow-inner" : "hover:bg-gray-200 text-gray-600")}
+                                        >
+                                            <AlignRight size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* ContentEditable Editor */}
+                                <div 
+                                    ref={editorRef}
+                                    contentEditable
+                                    onFocus={handleEditorFocus}
+                                    onKeyUp={updateActiveStyles}
+                                    onMouseUp={updateActiveStyles}
+                                    onInput={updateActiveStyles}
+                                    className="p-5 max-h-[400px] min-h-[250px] overflow-y-auto outline-none text-gray-900 bg-white leading-relaxed prose prose-slate max-w-none content-editor custom-scrollbar"
+                                    data-placeholder="Tulis informasi jadwal secara lengkap di sini..."
+                                />
+                                
+                                <style dangerouslySetInnerHTML={{ __html: `
+                                    [contenteditable]:empty:before {
+                                        content: attr(data-placeholder);
+                                        color: #9ca3af;
+                                        pointer-events: none;
+                                        font-style: italic;
+                                    }
+                                `}} />
+                            </div>
                         </div>
                         
                         <div className="grid grid-cols-2 gap-6">

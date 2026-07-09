@@ -275,7 +275,7 @@ export function BimbinganDesktop() {
                                                 </div>
                                                 <input 
                                                     type="file" 
-                                                    accept=".pdf,application/pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
+                                                    accept="application/pdf"
                                                     onChange={handleFileChange}
                                                     disabled={getTimeRemaining(activeTask.jadwalBimbingan).isLate}
                                                     className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-[#e6f4f5] file:text-[#119DA4] hover:file:bg-[#d0ebed] cursor-pointer disabled:opacity-50 mb-4 bg-white border border-gray-200 p-2 rounded-lg"

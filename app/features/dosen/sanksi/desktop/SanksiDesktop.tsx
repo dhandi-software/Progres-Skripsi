@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { sanksiApi, type SanksiAdministrasi, type SupervisedStudent } from "~/api/sanksiApi";
-import { Plus, Edit3, Trash2, X, Save, AlertCircle, FileText, Printer, Check, ChevronDown, User, Calendar } from "lucide-react";
+import { Plus, Edit3, Trash2, X, Save, AlertCircle, FileText, Printer, Check, ChevronDown, User, Calendar, Clock, CheckCircle2 } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import { useAuth } from "~/context/AuthContext";
 
 interface FormState {
     id?: number;
@@ -14,6 +15,8 @@ interface FormState {
     tanggalSidang: string;
     hariTenggat: string;
     tanggalSurat: string;
+    rawTanggalSidang?: string;
+    durasiTenggat?: 1 | 2;
 }
 
 export function SanksiDesktop({ title }: { title: string }) {
@@ -21,6 +24,7 @@ export function SanksiDesktop({ title }: { title: string }) {
     const [studentList, setStudentList] = useState<SupervisedStudent[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const { user } = useAuth();
 
     // Modal & Form states
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -73,6 +77,8 @@ export function SanksiDesktop({ title }: { title: string }) {
         const dayName = days[today.getDay()];
         const dateString = today.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
 
+        const rawDate = today.toISOString().split("T")[0];
+        
         setForm({
             mahasiswaId: "",
             nama: "",
@@ -80,9 +86,35 @@ export function SanksiDesktop({ title }: { title: string }) {
             hariSidang: dayName,
             tanggalSidang: dateString,
             hariTenggat: "Senin",
-            tanggalSurat: dateString
+            tanggalSurat: dateString,
+            rawTanggalSidang: rawDate,
+            durasiTenggat: 1
         });
+        updateTenggat(rawDate, 1);
         setIsFormOpen(true);
+    };
+
+    const updateTenggat = (dateStr: string, durasi: 1 | 2) => {
+        if (!dateStr) return;
+        const dateObj = new Date(dateStr);
+        if (isNaN(dateObj.getTime())) return;
+
+        const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+        const hariSidang = days[dateObj.getDay()];
+        const tanggalSidang = dateObj.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+        
+        const tenggatObj = new Date(dateStr);
+        tenggatObj.setDate(tenggatObj.getDate() + (durasi * 7));
+        const hariTenggat = `${days[tenggatObj.getDay()]}, ${tenggatObj.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}`;
+        
+        setForm(prev => ({
+            ...prev,
+            rawTanggalSidang: dateStr,
+            durasiTenggat: durasi,
+            hariSidang,
+            tanggalSidang,
+            hariTenggat
+        }));
     };
 
     const handleOpenEdit = (item: SanksiAdministrasi) => {
@@ -94,18 +126,31 @@ export function SanksiDesktop({ title }: { title: string }) {
             hariSidang: item.hariSidang,
             tanggalSidang: item.tanggalSidang,
             hariTenggat: item.hariTenggat,
-            tanggalSurat: item.tanggalSurat
+            tanggalSurat: item.tanggalSurat,
+            rawTanggalSidang: "",
+            durasiTenggat: 1
         });
         setIsFormOpen(true);
     };
 
     const handleSelectStudent = (student: SupervisedStudent) => {
+        let rawDate = form.rawTanggalSidang || new Date().toISOString().split("T")[0];
+        if (student.tanggalSidang) {
+            const sidDate = new Date(student.tanggalSidang);
+            if (!isNaN(sidDate.getTime())) {
+                rawDate = sidDate.toISOString().split("T")[0];
+            }
+        }
+        
         setForm(prev => ({
             ...prev,
             mahasiswaId: String(student.id),
             nama: student.nama,
-            nim: student.nim
+            nim: student.nim,
+            rawTanggalSidang: rawDate
         }));
+        
+        updateTenggat(rawDate, form.durasiTenggat || 1);
         setIsDropdownOpen(false);
     };
 
@@ -118,7 +163,7 @@ export function SanksiDesktop({ title }: { title: string }) {
         try {
             setIsSaving(true);
             const payload = {
-                mahasiswaId: parseInt(form.mahasiswaId),
+                mahasiswaId: form.mahasiswaId,
                 nama: form.nama,
                 nim: form.nim,
                 hariSidang: form.hariSidang,
@@ -136,8 +181,9 @@ export function SanksiDesktop({ title }: { title: string }) {
             }
             setIsFormOpen(false);
             fetchData();
-        } catch (error) {
-            showToast("error", "Gagal menyimpan sanksi administrasi.");
+        } catch (error: any) {
+            const msg = error.response?.data?.error || "Gagal menyimpan sanksi administrasi.";
+            showToast("error", msg);
         } finally {
             setIsSaving(false);
         }
@@ -158,11 +204,33 @@ export function SanksiDesktop({ title }: { title: string }) {
         window.print();
     };
 
+    const handleTerimaHardcover = async (id: number) => {
+        try {
+            await sanksiApi.terimaHardcover(id);
+            showToast("success", "Hardcover telah diterima, status diperbarui.");
+            fetchData();
+        } catch (error) {
+            showToast("error", "Gagal memperbarui status hardcover.");
+        }
+    };
+
     const selectedStudent = studentList.find(s => String(s.id) === form.mahasiswaId);
+
+    const calculateWeeksLate = (tenggat?: string) => {
+        if (!tenggat) return 0;
+        const now = new Date();
+        const tglTenggat = new Date(tenggat);
+        if (now <= tglTenggat) return 0;
+        const diffMs = now.getTime() - tglTenggat.getTime();
+        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+        return Math.ceil(diffDays / 7);
+    };
 
     return (
         <div className="flex flex-col min-h-full bg-slate-50 p-8 font-sans print:p-0 print:bg-white">
-
+            <style type="text/css" media="print">
+                {`@page { margin: 0; } body { margin: 1.6cm; }`}
+            </style>
             {/* Toast feedback */}
             {toast && (
                 <div className={cn(
@@ -209,6 +277,7 @@ export function SanksiDesktop({ title }: { title: string }) {
                                 <th className="px-6 py-4">Tanggal Sidang</th>
                                 <th className="px-6 py-4">Tenggat Hardcover</th>
                                 <th className="px-6 py-4">Tanggal Surat</th>
+                                <th className="px-6 py-4">Status</th>
                                 <th className="px-6 py-4 text-right">Aksi</th>
                             </tr>
                         </thead>
@@ -226,8 +295,40 @@ export function SanksiDesktop({ title }: { title: string }) {
                                     </td>
                                     <td className="px-6 py-4 text-slate-600 font-medium">{item.hariTenggat}</td>
                                     <td className="px-6 py-4 text-slate-600 font-medium">{item.tanggalSurat}</td>
+                                    <td className="px-6 py-4">
+                                        {item.status === 'Selesai/Lunas' && (
+                                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 whitespace-nowrap">
+                                                <CheckCircle2 size={14} /> Lunas / Diterima
+                                            </div>
+                                        )}
+                                        {item.status === 'Terlambat' && (
+                                            <div className="flex flex-col gap-1">
+                                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 text-red-700 text-xs font-bold border border-red-200 whitespace-nowrap w-fit">
+                                                    <AlertCircle size={14} /> Terlambat
+                                                </div>
+                                                <span className="text-xs text-red-600 font-semibold pl-1">
+                                                    Telat {calculateWeeksLate(item.tenggatWaktu)} Minggu
+                                                </span>
+                                            </div>
+                                        )}
+                                        {(!item.status || item.status === 'Menunggu Hardcover') && (
+                                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-bold border border-amber-200 whitespace-nowrap">
+                                                <Clock size={14} /> Menunggu
+                                            </div>
+                                        )}
+                                    </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex justify-end items-center gap-2">
+                                            {user?.role?.toUpperCase() === 'STAF' && item.status !== 'Selesai/Lunas' && (
+                                                <Button
+                                                    onClick={() => handleTerimaHardcover(item.id)}
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl font-bold bg-emerald-50/50"
+                                                >
+                                                    <Check size={14} className="mr-1.5" /> Terima Hardcover
+                                                </Button>
+                                            )}
                                             <Button
                                                 onClick={() => setPreviewItem(item)}
                                                 variant="outline"
@@ -353,21 +454,22 @@ export function SanksiDesktop({ title }: { title: string }) {
                             {/* Sidang Details */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Hari Sidang</label>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Pilih Tanggal Sidang</label>
                                     <Input
-                                        placeholder="Contoh: Senin"
-                                        value={form.hariSidang}
-                                        onChange={e => setForm({ ...form, hariSidang: e.target.value })}
-                                        className="bg-white border-slate-200 h-11 text-sm font-semibold rounded-xl"
+                                        type="date"
+                                        value={form.rawTanggalSidang || ""}
+                                        onChange={e => updateTenggat(e.target.value, form.durasiTenggat || 1)}
+                                        readOnly={true}
+                                        className="bg-slate-50 border-slate-200 h-11 text-sm font-semibold rounded-xl text-slate-500 cursor-not-allowed focus-visible:ring-0 opacity-70"
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Tanggal Sidang</label>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Teks Tanggal Sidang (Otomatis)</label>
                                     <Input
                                         placeholder="Contoh: 15 Juni 2026"
                                         value={form.tanggalSidang}
-                                        onChange={e => setForm({ ...form, tanggalSidang: e.target.value })}
-                                        className="bg-white border-slate-200 h-11 text-sm font-semibold rounded-xl"
+                                        readOnly={true}
+                                        className="bg-slate-50 border-slate-200 h-11 text-sm font-semibold rounded-xl text-slate-500 cursor-not-allowed focus-visible:ring-0 opacity-70"
                                     />
                                 </div>
                             </div>
@@ -375,7 +477,33 @@ export function SanksiDesktop({ title }: { title: string }) {
                             {/* Deadline Hardcover */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Tenggat Hardcover (Hari/Tanggal)</label>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Tenggat Hardcover (+1 / +2 Minggu)</label>
+                                    <div className="flex gap-2 mb-2">
+                                        <button 
+                                            onClick={() => {
+                                                if (!form.rawTanggalSidang) {
+                                                    alert("Silakan isi 'Pilih Tanggal Sidang' terlebih dahulu!");
+                                                    return;
+                                                }
+                                                updateTenggat(form.rawTanggalSidang, 1);
+                                            }}
+                                            className={cn("flex-1 py-1.5 text-xs font-bold rounded-lg border", form.durasiTenggat === 1 ? "bg-brand-primary text-white border-brand-primary" : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50")}
+                                        >
+                                            +1 Minggu
+                                        </button>
+                                        <button 
+                                            onClick={() => {
+                                                if (!form.rawTanggalSidang) {
+                                                    alert("Silakan isi 'Pilih Tanggal Sidang' terlebih dahulu!");
+                                                    return;
+                                                }
+                                                updateTenggat(form.rawTanggalSidang, 2);
+                                            }}
+                                            className={cn("flex-1 py-1.5 text-xs font-bold rounded-lg border", form.durasiTenggat === 2 ? "bg-brand-primary text-white border-brand-primary" : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50")}
+                                        >
+                                            +2 Minggu (Maks)
+                                        </button>
+                                    </div>
                                     <Input
                                         placeholder="Contoh: Senin atau Senin, 22 Juni 2026"
                                         value={form.hariTenggat}

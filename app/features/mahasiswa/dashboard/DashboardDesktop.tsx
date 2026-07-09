@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "~/hooks/useAuth";
 import { pengajuanApi } from "~/api/pengajuan";
@@ -6,6 +6,7 @@ import { bimbinganApi } from "~/api/bimbinganApi";
 import { acaraApi } from "~/api/acaraApi";
 import { jadwalKpApi } from "~/api/jadwalKpApi";
 import type { JadwalKp } from "~/api/jadwalKpApi";
+import { sanksiApi } from "~/api/sanksiApi";
 import {
     BookOpen,
     Calendar,
@@ -28,6 +29,7 @@ export function DashboardDesktop() {
     const [acaras, setAcaras] = useState<any[]>([]);
     const [unreadAcaraCount, setUnreadAcaraCount] = useState(0);
     const [upcomingJadwal, setUpcomingJadwal] = useState<JadwalKp[]>([]);
+    const [sanksiList, setSanksiList] = useState<any[]>([]);
     const [showAllActivities, setShowAllActivities] = useState(false);
 
     const fetchAcaraData = () => {
@@ -63,6 +65,8 @@ export function DashboardDesktop() {
                     setUpcomingJadwal(upcoming);
                 })
                 .catch(console.error);
+
+            sanksiApi.getAllSanksi().then(setSanksiList).catch(console.error);
         }
     }, [user?.id]);
 
@@ -185,6 +189,19 @@ export function DashboardDesktop() {
             });
         });
 
+        // 5. Sanksi Administrasi
+        sanksiList.forEach(s => {
+            activities.push({
+                title: "Peringatan Sanksi Administrasi",
+                desc: `Peringatan pengumpulan hardcover untuk sidang tanggal ${s.tanggalSidang}.`,
+                time: new Date(s.createdAt).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric' }),
+                icon: AlertCircle,
+                color: "text-red-600",
+                rawDate: new Date(s.createdAt),
+                onClick: () => navigate("/mahasiswa/sanksi")
+            });
+        });
+
         // Sort by rawDate descending
         return activities.sort((a, b) => b.rawDate.getTime() - a.rawDate.getTime());
     };
@@ -208,6 +225,27 @@ export function DashboardDesktop() {
                 <div className="absolute right-20 bottom-0 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
             </div>
 
+            {/* Notification Banner for Sanksi Administrasi */}
+            {sanksiList.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-red-100 rounded-full text-red-600 shrink-0">
+                            <AlertCircle className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="text-red-800 font-bold text-lg">Peringatan Administrasi!</h3>
+                            <p className="text-red-700 text-sm mt-1">Anda memiliki <span className="font-bold">{sanksiList.length} peringatan</span> terkait pengumpulan Hardcover Laporan KP.</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => navigate("/mahasiswa/sanksi")}
+                        className="w-full sm:w-auto px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-colors shadow-sm whitespace-nowrap"
+                    >
+                        Lihat Detail
+                    </button>
+                </div>
+            )}
+
             {/* Notification Banner for Upcoming Jadwal */}
             {upcomingJadwal.map((jadwal, index) => (
                 <div key={`jadwal-${index}`} className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
@@ -230,7 +268,12 @@ export function DashboardDesktop() {
                                     {new Date(jadwal.tanggal).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                             </div>
-                            {jadwal.deskripsi && <p className="text-emerald-700 text-xs mt-3 italic">"{jadwal.deskripsi}"</p>}
+                            {jadwal.deskripsi && (
+                                <div 
+                                    className="text-emerald-700 text-xs mt-3 italic prose prose-sm max-w-none prose-emerald"
+                                    dangerouslySetInnerHTML={{ __html: jadwal.deskripsi }} 
+                                />
+                            )}
                         </div>
                     </div>
                     {jadwal.tipe === 'PENGARAHAN_SIDANG' && (

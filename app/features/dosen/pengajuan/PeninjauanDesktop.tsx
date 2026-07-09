@@ -186,7 +186,7 @@ export function PeninjauanDesktop({
                                         <Button 
                                             variant="ghost" 
                                             size="icon"
-                                            onClick={() => navigate(`/dosen/peninjauan/${item.id}`)}
+                                            onClick={() => navigate(`/dosen/peninjauan/${item.id}${window.location.search}`)}
                                             title="Tinjau Formulir"
                                             className="text-gray-500 hover:text-brand-primary hover:bg-brand-primary/10 bg-white border border-gray-200 rounded-full shadow-sm w-9 h-9 flex justify-center items-center mx-auto transition-transform hover:scale-105"
                                         >

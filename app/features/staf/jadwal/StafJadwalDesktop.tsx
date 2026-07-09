@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Edit2, Trash2, AlertCircle } from 'lucide-react';
 import { jadwalKpApi } from '~/api/jadwalKpApi';
 import type { JadwalKp } from '~/api/jadwalKpApi';
@@ -96,7 +96,10 @@ const StafJadwalDesktop = ({ filterTipe = "PENGARAHAN_KP" }: Props) => {
                                             )}
                                         </div>
                                         <h3 className="font-bold text-gray-900 text-lg mb-1">{j.judul}</h3>
-                                        <p className="text-sm text-gray-500 mb-4 line-clamp-2">{j.deskripsi || '-'}</p>
+                                        <div 
+                                            className="text-sm text-gray-500 mb-4 line-clamp-2 prose prose-sm max-w-none prose-gray"
+                                            dangerouslySetInnerHTML={{ __html: j.deskripsi || '-' }} 
+                                        />
 
                                         <div className="space-y-2">
                                             <div className="flex items-center text-sm text-gray-600">

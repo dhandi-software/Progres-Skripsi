@@ -1,8 +1,10 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, UploadCloud, AlertCircle } from 'lucide-react';
 import { jadwalKpApi } from '~/api/jadwalKpApi';
 import type { JadwalKp } from '~/api/jadwalKpApi';
 import { sidangApi } from '~/api/sidangApi';
+import { pengajuanApi } from '~/api/pengajuan';
+import { Toast } from '~/components/ui/toast';
 
 export function ApplySidangForm({ onApplied }: { onApplied: () => void }) {
     const [activeJadwal, setActiveJadwal] = useState<JadwalKp | null>(null);
@@ -11,6 +13,7 @@ export function ApplySidangForm({ onApplied }: { onApplied: () => void }) {
     const [judul, setJudul] = useState('');
     const [file, setFile] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [toastProps, setToastProps] = useState<{ title: string, variant: 'success' | 'destructive' } | null>(null);
 
     useEffect(() => {
         const fetchSchedules = async () => {
@@ -24,8 +27,17 @@ export function ApplySidangForm({ onApplied }: { onApplied: () => void }) {
                 } else {
                     setPengarahanJadwals([]);
                 }
+
+                // Fetch profile for approved judul
+                const profile = await pengajuanApi.getProfile();
+                if (profile && profile.pengajuanJudul) {
+                    const approved = profile.pengajuanJudul.find((p: any) => p.status === 'APPROVED');
+                    if (approved) {
+                        setJudul(approved.judul);
+                    }
+                }
             } catch (error) {
-                console.error("Failed to fetch schedules", error);
+                console.error("Failed to fetch schedules or profile", error);
             } finally {
                 setLoading(false);
             }
@@ -35,7 +47,10 @@ export function ApplySidangForm({ onApplied }: { onApplied: () => void }) {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!file) return alert("Mohon unggah laporan akhir Anda.");
+        if (!file) {
+            setToastProps({ title: "Mohon unggah laporan akhir Anda.", variant: "destructive" });
+            return;
+        }
         
         setIsSubmitting(true);
         try {
@@ -47,7 +62,10 @@ export function ApplySidangForm({ onApplied }: { onApplied: () => void }) {
             onApplied();
         } catch (error: any) {
             console.error(error);
-            alert(error.response?.data?.message || "Gagal mengajukan sidang.");
+            setToastProps({ 
+                title: error.response?.data?.message || "Gagal mengajukan sidang.", 
+                variant: "destructive" 
+            });
         } finally {
             setIsSubmitting(false);
         }
@@ -68,7 +86,10 @@ export function ApplySidangForm({ onApplied }: { onApplied: () => void }) {
                         {pengarahanJadwals.map((jadwal) => (
                             <div key={jadwal.id} className="mb-4 last:mb-0">
                                 <h3 className="text-lg font-black text-slate-900 mb-1">{jadwal.judul}</h3>
-                                <p className="text-slate-600 text-sm mb-2">{jadwal.deskripsi}</p>
+                                <div 
+                                    className="text-slate-600 text-sm mb-2 prose prose-sm max-w-none prose-slate"
+                                    dangerouslySetInnerHTML={{ __html: jadwal.deskripsi || '' }} 
+                                />
                                 <div className="flex items-center gap-2 text-xs font-bold text-blue-800 bg-blue-100/50 w-fit px-3 py-1.5 rounded-lg">
                                     <Calendar size={14} />
                                     {new Date(jadwal.tanggal).toLocaleDateString('id-ID')}
@@ -101,7 +122,10 @@ export function ApplySidangForm({ onApplied }: { onApplied: () => void }) {
                     {pengarahanJadwals.map((jadwal) => (
                         <div key={jadwal.id} className="mb-4 last:mb-0">
                             <h3 className="text-lg font-black text-slate-900 mb-1">{jadwal.judul}</h3>
-                            <p className="text-slate-600 text-sm mb-2">{jadwal.deskripsi}</p>
+                            <div 
+                                className="text-slate-600 text-sm mb-2 prose prose-sm max-w-none prose-slate"
+                                dangerouslySetInnerHTML={{ __html: jadwal.deskripsi || '' }} 
+                            />
                             <div className="flex items-center gap-2 text-xs font-bold text-blue-800 bg-blue-100/50 w-fit px-3 py-1.5 rounded-lg">
                                 <Calendar size={14} />
                                 {new Date(jadwal.tanggal).toLocaleDateString('id-ID')}
@@ -117,7 +141,10 @@ export function ApplySidangForm({ onApplied }: { onApplied: () => void }) {
                         Jadwal Aktif
                     </div>
                 <h3 className="text-2xl font-black text-slate-900 mb-2">{activeJadwal.judul}</h3>
-                <p className="text-slate-600 mb-4">{activeJadwal.deskripsi}</p>
+                <div 
+                    className="text-slate-600 mb-4 prose prose-sm max-w-none prose-slate"
+                    dangerouslySetInnerHTML={{ __html: activeJadwal.deskripsi || '' }} 
+                />
                 <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 flex gap-3 items-start">
                     <AlertCircle className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
                     <div className="text-sm text-orange-800">
@@ -161,6 +188,28 @@ export function ApplySidangForm({ onApplied }: { onApplied: () => void }) {
                             }}
                         />
                     </label>
+                    
+                    {file && (
+                        <div className="mt-4 border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                            <div className="bg-slate-100 px-4 py-2 border-b border-slate-200 flex justify-between items-center">
+                                <span className="text-sm font-bold text-slate-700">Preview Dokumen</span>
+                                <button 
+                                    type="button" 
+                                    onClick={() => setFile(null)}
+                                    className="text-red-500 hover:text-red-700 text-xs font-bold"
+                                >
+                                    Hapus File
+                                </button>
+                            </div>
+                            <object
+                                data={URL.createObjectURL(file)}
+                                type="application/pdf"
+                                className="w-full h-[400px]"
+                            >
+                                <p className="p-4 text-sm text-slate-500">Browser Anda tidak mendukung preview PDF. <a href={URL.createObjectURL(file)} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Download file</a></p>
+                            </object>
+                        </div>
+                    )}
                 </div>
 
                 <button 
@@ -172,6 +221,17 @@ export function ApplySidangForm({ onApplied }: { onApplied: () => void }) {
                 </button>
             </form>
             </div>
+
+            {/* Toast Component */}
+            {toastProps && (
+                <div className="fixed bottom-4 right-4 z-50">
+                    <Toast
+                        title={toastProps.title}
+                        variant={toastProps.variant}
+                        onClose={() => setToastProps(null)}
+                    />
+                </div>
+            )}
         </div>
     );
 }

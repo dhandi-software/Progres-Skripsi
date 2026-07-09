@@ -116,18 +116,18 @@ export const useCreateAccount = () => {
                   
                   // ID detection (NIM/NPM or NIDN/NIP)
                   if (isMahasiswa) {
-                      if (cellText === 'npm' || cellText === 'nim') {
+                      if (cellText.includes('npm') || cellText.includes('nim') || cellText.includes('n p m') || cellText.includes('n.p.m') || cellText.includes('n.i.m') || cellText.includes('no mhs') || cellText.includes('no mahasiswa') || cellText.includes('nomor mahasiswa') || cellText === 'no') {
                           idColIdx = j;
                           headerRowIdx = i;
                       }
                   } else {
-                      if (cellText === 'nidn' || cellText === 'nip') {
+                      if (cellText.includes('nidn') || cellText.includes('nip') || cellText.includes('n.i.d.n') || cellText.includes('n.i.p') || cellText.includes('no dosen')) {
                           idColIdx = j;
                           headerRowIdx = i;
                       }
                   }
 
-                  if (cellText === 'nama' || cellText === 'name') {
+                  if (cellText.includes('nama') || cellText.includes('name')) {
                        namaColIdx = j;
                   }
                   if (cellText === 'email') {

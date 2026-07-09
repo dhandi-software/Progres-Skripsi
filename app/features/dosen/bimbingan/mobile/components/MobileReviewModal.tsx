@@ -204,7 +204,7 @@ export const MobileReviewModal: React.FC<MobileReviewModalProps> = ({
                                             <label className="block text-[11px] font-bold text-blue-900 uppercase tracking-wider">Upload Hasil Reviu</label>
                                             <input
                                                 type="file"
-                                                accept=".doc,.docx,.pdf"
+                                                accept="application/pdf"
                                                 onChange={(e) => {
                                                     if (e.target.files && e.target.files[0]) {
                                                         setReviewFile(e.target.files[0]);

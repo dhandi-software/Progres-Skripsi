@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { pengajuanApi } from "~/api/pengajuan";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { chatService } from "~/services/chatService";
@@ -237,7 +237,12 @@ export function DashboardDesktop({ title }: { title: string }) {
                             <p className="text-emerald-600 text-sm mt-1 mb-0">
                                 Jadwal {jadwal.tipe === 'PENGARAHAN_KP' ? 'Pengarahan KP' : 'Pengumpulan Sidang'}: {new Date(jadwal.tanggal).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             </p>
-                            {jadwal.deskripsi && <p className="text-emerald-700 text-xs mt-2 italic">"{jadwal.deskripsi}"</p>}
+                            {jadwal.deskripsi && (
+                                <div 
+                                    className="text-emerald-700 text-xs mt-2 italic prose prose-sm max-w-none prose-emerald"
+                                    dangerouslySetInnerHTML={{ __html: jadwal.deskripsi }} 
+                                />
+                            )}
                         </div>
                     </div>
                 </div>

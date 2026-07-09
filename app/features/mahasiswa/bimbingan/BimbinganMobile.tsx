@@ -265,7 +265,7 @@ export function BimbinganMobile() {
                                                 </div>
                                                 <input 
                                                     type="file" 
-                                                    accept=".pdf,application/pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
+                                                    accept="application/pdf" 
                                                     onChange={handleFileChange}
                                                     disabled={getTimeRemaining(activeTask.jadwalBimbingan).isLate}
                                                     className="w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:bg-[#e6f4f5] file:text-[#119DA4] hover:file:bg-[#d0ebed] cursor-pointer disabled:opacity-50 mb-3 bg-white border border-gray-200 p-1.5 rounded-lg"

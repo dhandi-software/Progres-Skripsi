@@ -102,6 +102,17 @@ export const useManageAccount = () => {
     }
   };
 
+  const updateUser = async (id: string, data: any) => {
+    try {
+      await userApi.updateUser(id, data);
+      fetchUsers();
+      return true;
+    } catch (err: any) {
+      console.error("Update user failed:", err);
+      throw err;
+    }
+  };
+
   return {
     users, // raw list
     filteredUsers, // displayed list
@@ -114,6 +125,7 @@ export const useManageAccount = () => {
     handleRoleFilterChange,
     getUserById,
     updateUserRole,
+    updateUser,
     deleteAccount,
     refreshUsers: fetchUsers,
   };

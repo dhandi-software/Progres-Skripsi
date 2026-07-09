@@ -280,7 +280,7 @@ export function SidangDesktop() {
                                    Hanya muncul untuk Tim Prodi / Koordinator (bukan Kaprodi) 
                                    saat status sedang Menunggu Penjadwalan Prodi.
                                 */}
-                                {item.status === "MENUNGGU_PENJADWALAN_PRODI" && isProdi && !isKaprodi && (
+                                {item.status === "MENUNGGU_PENJADWALAN_KOORDINATOR" && isProdi && !isKaprodi && (
                                     <Button 
                                         onClick={() => {
                                             setIsScheduling(item);

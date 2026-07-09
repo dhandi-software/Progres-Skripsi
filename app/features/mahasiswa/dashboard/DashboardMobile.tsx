@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "~/hooks/useAuth";
 import { pengajuanApi } from "~/api/pengajuan";
@@ -18,6 +18,7 @@ import { bimbinganApi } from "~/api/bimbinganApi";
 import { acaraApi } from "~/api/acaraApi";
 import { jadwalKpApi } from "~/api/jadwalKpApi";
 import type { JadwalKp } from "~/api/jadwalKpApi";
+import { sanksiApi } from "~/api/sanksiApi";
 
 export function DashboardMobile() {
     const { user } = useAuth();
@@ -27,6 +28,7 @@ export function DashboardMobile() {
     const [acaras, setAcaras] = useState<any[]>([]);
     const [unreadAcaraCount, setUnreadAcaraCount] = useState(0);
     const [upcomingJadwal, setUpcomingJadwal] = useState<JadwalKp[]>([]);
+    const [sanksiList, setSanksiList] = useState<any[]>([]);
     const [showAllActivities, setShowAllActivities] = useState(false);
 
     const fetchAcaraData = () => {
@@ -62,6 +64,8 @@ export function DashboardMobile() {
                     setUpcomingJadwal(upcoming);
                 })
                 .catch(console.error);
+
+            sanksiApi.getAllSanksi().then(setSanksiList).catch(console.error);
         }
     }, [user?.id]);
 
@@ -170,6 +174,19 @@ export function DashboardMobile() {
             });
         });
 
+        // 5. Sanksi Administrasi
+        sanksiList.forEach(s => {
+            activities.push({
+                title: "Peringatan Sanksi Administrasi",
+                desc: `Peringatan pengumpulan hardcover untuk sidang tanggal ${s.tanggalSidang}.`,
+                time: new Date(s.createdAt).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric' }),
+                icon: AlertCircle,
+                color: "text-red-600",
+                rawDate: new Date(s.createdAt),
+                onClick: () => navigate("/mahasiswa/sanksi")
+            });
+        });
+
         return activities.sort((a, b) => b.rawDate.getTime() - a.rawDate.getTime());
     };
 
@@ -199,6 +216,29 @@ export function DashboardMobile() {
                 </div>
             </div>
 
+            {/* Notification Banner for Sanksi Administrasi Mobile */}
+            {sanksiList.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 shadow-sm relative overflow-hidden animate-in fade-in slide-in-from-top-2 duration-500">
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 bg-red-100 rounded-full text-red-600 shrink-0">
+                            <AlertCircle className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-red-800 font-bold text-sm">Peringatan Administrasi!</h3>
+                            <p className="text-red-700 text-[10px] mt-1 pr-2 leading-relaxed">
+                                Anda memiliki <span className="font-bold">{sanksiList.length} peringatan</span> terkait pengumpulan Hardcover Laporan KP.
+                            </p>
+                            <button 
+                                onClick={() => navigate("/mahasiswa/sanksi")}
+                                className="mt-3 px-4 py-2 bg-red-600 hover:bg-red-700 active:bg-red-800 transition-colors text-white text-xs font-bold rounded-lg shadow-sm w-full"
+                            >
+                                Lihat Detail
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Notification Banner for Upcoming Jadwal Mobile */}
             {upcomingJadwal.map((jadwal, index) => (
                 <div key={`jadwal-${index}`} className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 shadow-sm relative overflow-hidden animate-in fade-in slide-in-from-top-2 duration-500">
@@ -221,7 +261,12 @@ export function DashboardMobile() {
                                     {new Date(jadwal.tanggal).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                             </div>
-                            {jadwal.deskripsi && <p className="text-emerald-700 text-[10px] mt-2 pr-2 leading-relaxed italic">"{jadwal.deskripsi}"</p>}
+                            {jadwal.deskripsi && (
+                                <div 
+                                    className="text-emerald-700 text-[10px] mt-2 pr-2 leading-relaxed italic prose prose-sm max-w-none prose-emerald"
+                                    dangerouslySetInnerHTML={{ __html: jadwal.deskripsi }} 
+                                />
+                            )}
                             {jadwal.tipe === 'PENGARAHAN_SIDANG' && (
                                 <button 
                                     onClick={() => navigate("/mahasiswa/sidang")}

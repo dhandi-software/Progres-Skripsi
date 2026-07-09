@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 import { pengajuanApi } from "~/api/pengajuan";
 import { ChevronLeft, Check, X, Loader2, RotateCcw } from "lucide-react";
 import { Link } from "react-router";
@@ -29,6 +29,7 @@ interface PengajuanDetail {
 
 export function PeninjauanDetailMobile({ id }: { id: string }) {
     const navigate = useNavigate();
+    const location = useLocation();
     const [detail, setDetail] = useState<PengajuanDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [remarks, setRemarks] = useState("");
@@ -49,7 +50,7 @@ export function PeninjauanDetailMobile({ id }: { id: string }) {
             } catch (error) {
                 console.error("Failed to fetch detail", error);
                 alert("Gagal memuat detail pengajuan.");
-                navigate("/dosen/peninjauan");
+                navigate(`/dosen/peninjauan${location.search}`);
             } finally {
                 setLoading(false);
             }
@@ -65,7 +66,7 @@ export function PeninjauanDetailMobile({ id }: { id: string }) {
             const label = status === 'APPROVED' ? 'disetujui' : status === 'REJECTED' ? 'ditolak' : 'diminta revisi';
             showToast(`Pengajuan berhasil ${label}.`, "success");
             setIsRevisionModalOpen(false);
-            setTimeout(() => navigate("/dosen/peninjauan"), 1800);
+            setTimeout(() => navigate(`/dosen/peninjauan${location.search}`), 1800);
         } catch (error: any) {
             showToast("Gagal memproses aksi: " + (error.response?.data?.message || error.message), "destructive");
         } finally {
@@ -98,7 +99,7 @@ export function PeninjauanDetailMobile({ id }: { id: string }) {
             )}
             {/* Mobile Header */}
             <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 flex items-center gap-3">
-                 <Link to="/dosen/peninjauan" className="p-2 -ml-2 text-gray-600">
+                 <Link to={`/dosen/peninjauan${location.search}`} className="p-2 -ml-2 text-gray-600">
                     <ChevronLeft size={24} />
                  </Link>
                  <h1 className="text-lg font-bold text-gray-900 flex-1">Peninjauan Judul</h1>

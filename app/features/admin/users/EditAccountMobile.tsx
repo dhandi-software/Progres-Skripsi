@@ -1,6 +1,7 @@
 import { ArrowLeft, ChevronDown, Eye, EyeOff, Loader2, Save } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { CustomSelect } from "~/components/ui/custom-select";
+import { MultipleCombobox } from "~/components/ui/Multiple-combobox";
 import { useEditAccount } from "./UseEditAccount";
 
 export function EditAccountMobile() {
@@ -140,6 +141,24 @@ export function EditAccountMobile() {
                                     placeholder="Select Jabatan"
                                     className="w-full px-4 py-2.5 h-auto text-sm"
                                 />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm font-medium text-gray-700">Peminatan</label>
+                            <MultipleCombobox
+                                options={[
+                                    { label: "Software Engineering", id: "Software Engineering", checked: formData.peminatan.includes("Software Engineering") },
+                                    { label: "Artificial Intelligence", id: "Artificial Intelligence", checked: formData.peminatan.includes("Artificial Intelligence") },
+                                    { label: "Cyber Security", id: "Cyber Security", checked: formData.peminatan.includes("Cyber Security") },
+                                    { label: "Data Science", id: "Data Science", checked: formData.peminatan.includes("Data Science") },
+                                ]}
+                                onOptionsChange={(newOptions) => {
+                                    const selected = newOptions.filter(o => o.checked).map(o => o.id);
+                                    handleInputChange({
+                                        target: { name: "peminatan", value: selected },
+                                    } as any);
+                                }}
+                                placeholder="Select peminatan..."
+                            />
                         </div>
                      </>
                  )}

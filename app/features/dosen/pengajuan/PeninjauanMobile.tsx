@@ -174,7 +174,7 @@ export function PeninjauanMobile({
                             <Button 
                                 variant="outline" 
                                 className="w-full text-gray-700 border-gray-200 bg-white hover:bg-gray-50 text-sm font-bold h-11 shadow-sm rounded-xl"
-                                onClick={() => navigate(`/dosen/peninjauan/${item.id}`)}
+                                onClick={() => navigate(`/dosen/peninjauan/${item.id}${window.location.search}`)}
                             >
                                 <Pencil size={16} className="mr-2 text-gray-500" />
                                 Tinjau Formulir

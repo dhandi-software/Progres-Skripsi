@@ -146,7 +146,10 @@ export function AcaraMobile({ title }: { title: string }) {
         const transformed = content
             .replace(/src="\/uploads\//g, `src="${baseUploads}/uploads/`)
             .replace(/href="\/uploads\//g, `href="${baseUploads}/uploads/`)
-            .replace(/<img /g, '<img class="w-full h-auto max-h-[400px] rounded-2xl my-6 shadow-lg border border-slate-100 object-contain bg-slate-50/30" ');
+            .replace(/<img([^>]*)src="([^">]+)"([^>]*)>/g, (match, p1, src, p2) => {
+                const updatedImg = `<img${p1}src="${src}"${p2}`.replace(/<img /g, '<img class="w-full h-auto max-h-[400px] rounded-2xl my-6 shadow-lg border border-slate-100 object-contain bg-slate-50/30 hover:scale-[1.02] transition-transform cursor-pointer" ');
+                return `<a href="${src}" target="_blank" rel="noopener noreferrer">${updatedImg}</a>`;
+            });
         
         return sanitizeHtml(transformed);
     };
@@ -186,7 +189,7 @@ export function AcaraMobile({ title }: { title: string }) {
                     <div className="flex-1 min-w-0">
                         <h1 className="text-sm font-black text-slate-900 truncate tracking-tight">{selectedAcara.title}</h1>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1 flex items-center gap-1.5 flex-wrap">
-                            <span>{selectedAcara.user?.mahasiswa?.nama || selectedAcara.user?.dosen?.nama || selectedAcara.user?.username || selectedAcara.dosen?.nama || "Sistem"}</span>
+                            <span>{selectedAcara.user?.role === 'admin' ? 'Admin' : (selectedAcara.user?.mahasiswa?.nama || selectedAcara.user?.dosen?.nama || selectedAcara.user?.username || selectedAcara.dosen?.nama || "Sistem")}</span>
                             <span className={cn(
                                 "text-[7px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider leading-none",
                                 (selectedAcara.user?.role || "DOSEN").toUpperCase() === "MAHASISWA" 
@@ -350,7 +353,7 @@ export function AcaraMobile({ title }: { title: string }) {
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
                                     <span className="text-[10px] font-black text-slate-800 leading-none">
-                                        {item.user?.mahasiswa?.nama || item.user?.dosen?.nama || item.user?.username || item.dosen?.nama || "Sistem"}
+                                        {item.user?.role === 'admin' ? 'Admin' : (item.user?.mahasiswa?.nama || item.user?.dosen?.nama || item.user?.username || item.dosen?.nama || "Sistem")}
                                     </span>
                                     <span className={cn(
                                         "text-[7px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider leading-none scale-90 origin-left",

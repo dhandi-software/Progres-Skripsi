@@ -8,10 +8,10 @@ import {
   Users,
   MessageCircle,
   Calendar,
-  Award,
   Trophy,
   BookOpen,
-  Contact
+  Contact,
+  Clock
 } from "lucide-react";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
 import { RoleGuard } from "~/routes/RoleGuard";
@@ -23,6 +23,7 @@ import { acaraApi } from "~/api/acaraApi";
 import { sidangApi } from "~/api/sidangApi";
 import { sanksiApi } from "~/api/sanksiApi";
 import { jadwalKpApi } from "~/api/jadwalKpApi";
+import { pengajuanApi } from "~/api/pengajuan";
 import React from "react";
 import { io } from "socket.io-client";
 import { UPLOADS_URL } from "~/api/client";
@@ -145,6 +146,8 @@ export function AppSidebar() {
   const [sidangBadgeCount, setSidangBadgeCount] = React.useState(0);
   const [sanksiBadgeCount, setSanksiBadgeCount] = React.useState(0);
   const [dashboardBadgeCount, setDashboardBadgeCount] = React.useState(0);
+  const [sidangMenuTitle, setSidangMenuTitle] = React.useState("Pengumpulan Laporan Sidang");
+  const [isPengajuanPending, setIsPengajuanPending] = React.useState(false);
 
   React.useEffect(() => {
     if (!user) return;
@@ -153,6 +156,16 @@ export function AppSidebar() {
       chatService.getUnreadCount(user.id)
         .then(data => setUnreadCount(data.count || 0))
         .catch(err => console.error("Sidebar Chat Error:", err));
+
+      // Fetch Pengajuan Status
+      pengajuanApi.getProfile()
+        .then((profileRes: any) => {
+          if (profileRes.pengajuanJudul && profileRes.pengajuanJudul.length > 0) {
+            const latestPengajuan = profileRes.pengajuanJudul[0];
+            setIsPengajuanPending(latestPengajuan.status === 'PENDING');
+          }
+        })
+        .catch((err: any) => console.error("Sidebar Pengajuan Error:", err));
 
       // Fetch Bimbingan Tasks
       bimbinganApi.getMahasiswaAllTasks()
@@ -187,6 +200,14 @@ export function AppSidebar() {
             } else {
               setSidangBadgeCount(0);
             }
+
+            if (latest.status === 'TERJADWAL') {
+              setSidangMenuTitle("Jadwal Sidang");
+            } else {
+              setSidangMenuTitle("Pengumpulan Laporan Sidang");
+            }
+          } else {
+            setSidangMenuTitle("Pengumpulan Laporan Sidang");
           }
         })
         .catch(err => console.error("Sidebar Sidang Error:", err));
@@ -331,7 +352,7 @@ export function AppSidebar() {
                           isActive ? "text-[#D25026]" : "text-[#A1A1A1] group-hover:text-gray-600"
                         )}
                       >
-                        {item.title}
+                        {item.key === 'sidang' ? sidangMenuTitle : item.title}
                       </span>
                       {item.key === "dashboard" && dashboardBadgeCount > 0 && (
                         <div className="bg-[#D25026] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px] shadow-sm shadow-red-200">
@@ -341,6 +362,11 @@ export function AppSidebar() {
                       {item.key === "bimbingan" && bimbinganBadgeCount > 0 && (
                         <div className="bg-[#D25026] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
                           {bimbinganBadgeCount}
+                        </div>
+                      )}
+                      {item.key === "pengajuan" && isPengajuanPending && (
+                        <div className="bg-blue-500 text-white p-1 rounded-full flex items-center justify-center shrink-0 shadow-sm shadow-blue-200" title="Menunggu Persetujuan">
+                          <Clock className="w-3.5 h-3.5" />
                         </div>
                       )}
                       {item.key === "chat" && unreadCount > 0 && (

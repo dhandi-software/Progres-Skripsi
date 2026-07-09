@@ -2,18 +2,22 @@ import { client } from "./client";
 
 export interface SanksiAdministrasi {
     id: number;
-    mahasiswaId: number;
-    dosenId: number;
+    mahasiswaId?: string;
+    mahasiswaNim?: string;
+    dosenId?: string;
+    dosenNidn?: string;
     nama: string;
     nim: string;
     hariSidang: string;
     tanggalSidang: string;
     hariTenggat: string;
     tanggalSurat: string;
+    status?: string;
+    tenggatWaktu?: string;
     createdAt: string;
     updatedAt: string;
     mahasiswa?: {
-        id: number;
+        id: string | number;
         nama: string;
         nim: string;
     };
@@ -25,9 +29,10 @@ export interface SanksiAdministrasi {
 }
 
 export interface SupervisedStudent {
-    id: number;
+    id: string | number;
     nama: string;
     nim: string;
+    tanggalSidang?: string | null;
 }
 
 export const sanksiApi = {
@@ -53,6 +58,11 @@ export const sanksiApi = {
 
     deleteSanksi: async (id: number): Promise<{ message: string }> => {
         const response = await client.delete(`/sanksi/${id}`);
+        return response.data;
+    },
+
+    terimaHardcover: async (id: number): Promise<SanksiAdministrasi> => {
+        const response = await client.patch(`/sanksi/${id}/terima`);
         return response.data;
     }
 };
