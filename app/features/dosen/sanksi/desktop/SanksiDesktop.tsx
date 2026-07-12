@@ -134,12 +134,23 @@ export function SanksiDesktop({ title }: { title: string }) {
     };
 
     const handleSelectStudent = (student: SupervisedStudent) => {
-        let rawDate = form.rawTanggalSidang || new Date().toISOString().split("T")[0];
-        if (student.tanggalSidang) {
-            const sidDate = new Date(student.tanggalSidang);
-            if (!isNaN(sidDate.getTime())) {
-                rawDate = sidDate.toISOString().split("T")[0];
-            }
+        if (student.statusSidang !== 'TERJADWAL' || !student.tanggalSidang) {
+            setForm(prev => ({
+                ...prev,
+                mahasiswaId: String(student.id),
+                nama: student.nama,
+                nim: student.nim,
+                rawTanggalSidang: "",
+                tanggalSidang: "Tanggal sidang belum dijadwalkan"
+            }));
+            setIsDropdownOpen(false);
+            return;
+        }
+
+        let rawDate = new Date().toISOString().split("T")[0];
+        const sidDate = new Date(student.tanggalSidang);
+        if (!isNaN(sidDate.getTime())) {
+            rawDate = sidDate.toISOString().split("T")[0];
         }
         
         setForm(prev => ({
@@ -157,6 +168,11 @@ export function SanksiDesktop({ title }: { title: string }) {
     const handleSave = async () => {
         if (!form.mahasiswaId || !form.nama || !form.nim) {
             showToast("error", "Harap pilih mahasiswa dan lengkapi data.");
+            return;
+        }
+
+        if (!form.rawTanggalSidang || form.tanggalSidang === "Tanggal sidang belum dijadwalkan") {
+            showToast("error", "Sidang belum dijadwalkan. Sanksi administrasi tidak dapat diterbitkan.");
             return;
         }
 
@@ -286,7 +302,7 @@ export function SanksiDesktop({ title }: { title: string }) {
                                 <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="font-bold text-slate-800">{item.nama}</div>
-
+                                        <div className="text-[11px] text-slate-500 mt-0.5">Pembimbing: {item.dosen?.nama || "-"}</div>
                                     </td>
                                     <td className="px-6 py-4 text-slate-600 font-medium">{item.nim}</td>
                                     <td className="px-6 py-4 text-slate-600 font-medium">
@@ -308,6 +324,9 @@ export function SanksiDesktop({ title }: { title: string }) {
                                                 </div>
                                                 <span className="text-xs text-red-600 font-semibold pl-1">
                                                     Telat {calculateWeeksLate(item.tenggatWaktu)} Minggu
+                                                </span>
+                                                <span className="text-xs text-red-600 font-semibold pl-1">
+                                                    Denda: Rp {Math.min(calculateWeeksLate(item.tenggatWaktu) * 50000, 200000).toLocaleString('id-ID')}
                                                 </span>
                                             </div>
                                         )}
@@ -405,7 +424,7 @@ export function SanksiDesktop({ title }: { title: string }) {
                                         {isDropdownOpen && (
                                             <div className="absolute left-0 right-0 z-50 mt-1 bg-white border border-slate-200 shadow-xl rounded-2xl max-h-52 overflow-y-auto">
                                                 {studentList.length === 0 ? (
-                                                    <div className="p-4 text-xs text-slate-400 text-center">Tidak ada mahasiswa bimbingan yang memenuhi syarat.</div>
+                                                    <div className="p-4 text-xs text-slate-400 text-center">Tidak ada mahasiswa yang sidangnya sudah dijadwalkan.</div>
                                                 ) : (
                                                     studentList.map(s => (
                                                         <div

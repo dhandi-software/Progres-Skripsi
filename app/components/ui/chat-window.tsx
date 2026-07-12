@@ -68,6 +68,24 @@ export function ChatWindow({
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
+    const canAttachFiles = () => {
+        if (!currentUser || !activeContact) return false;
+        
+        // Allowed in all groups (isGroup or Public Room id 0)
+        const isGroup = activeContact.isGroup || Number(activeContact.id) === 0;
+        if (isGroup) return true;
+        
+        // For direct chats, if both are Mahasiswa, do not allow attachments
+        const currentRole = currentUser.role?.toUpperCase() || "";
+        const contactRole = activeContact.role?.toUpperCase() || "";
+        
+        if (currentRole === "MAHASISWA" && contactRole === "MAHASISWA") {
+            return false;
+        }
+        
+        return true;
+    };
+
     // Function to get Avatar Details (Consistent with Sidebar)
     const getAvatarDetails = (contact: ChatContact) => {
         const role = contact.role?.toLowerCase() || "";
@@ -395,22 +413,26 @@ export function ChatWindow({
 
             {/* Input Area */}
             <div className="px-4 py-2 bg-[#f0f2f5] flex items-center gap-2 z-20 border-t border-[#d1d7db]">
-                 <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    onChange={handleFileUpload}
-                />
-                
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="text-[#54656f] hover:text-[#111b21] hover:bg-[#d1d7db]" 
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isSending}
-                >
-                    <Paperclip size={20} />
-                </Button>
+                 {canAttachFiles() && (
+                    <>
+                        <input 
+                            type="file" 
+                            ref={fileInputRef}
+                            className="hidden"
+                            onChange={handleFileUpload}
+                        />
+                        
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="text-[#54656f] hover:text-[#111b21] hover:bg-[#d1d7db]" 
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isSending}
+                        >
+                            <Paperclip size={20} />
+                        </Button>
+                    </>
+                )}
                 
                 <div className="flex-1 bg-white rounded-lg px-2 flex items-center min-h-[40px] py-1 border border-[#fff]">
                     <Textarea

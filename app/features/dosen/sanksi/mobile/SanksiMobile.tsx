@@ -138,12 +138,23 @@ export function SanksiMobile({ title }: { title: string }) {
     };
 
     const handleSelectStudent = (student: SupervisedStudent) => {
-        let rawDate = form.rawTanggalSidang || new Date().toISOString().split("T")[0];
-        if (student.tanggalSidang) {
-            const sidDate = new Date(student.tanggalSidang);
-            if (!isNaN(sidDate.getTime())) {
-                rawDate = sidDate.toISOString().split("T")[0];
-            }
+        if (student.statusSidang !== 'TERJADWAL' || !student.tanggalSidang) {
+            setForm(prev => ({
+                ...prev,
+                mahasiswaId: String(student.id),
+                nama: student.nama,
+                nim: student.nim,
+                rawTanggalSidang: "",
+                tanggalSidang: "Tanggal sidang belum dijadwalkan"
+            }));
+            setIsDropdownOpen(false);
+            return;
+        }
+
+        let rawDate = new Date().toISOString().split("T")[0];
+        const sidDate = new Date(student.tanggalSidang);
+        if (!isNaN(sidDate.getTime())) {
+            rawDate = sidDate.toISOString().split("T")[0];
         }
 
         setForm(prev => ({
@@ -161,6 +172,11 @@ export function SanksiMobile({ title }: { title: string }) {
     const handleSave = async () => {
         if (!form.mahasiswaId || !form.nama || !form.nim) {
             showToast("error", "Pilih mahasiswa dan lengkapi data.");
+            return;
+        }
+
+        if (!form.rawTanggalSidang || form.tanggalSidang === "Tanggal sidang belum dijadwalkan") {
+            showToast("error", "Sidang belum dijadwalkan. Sanksi administrasi tidak dapat diterbitkan.");
             return;
         }
 
@@ -316,7 +332,8 @@ export function SanksiMobile({ title }: { title: string }) {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <h4 className="font-bold text-slate-800 text-sm truncate">{item.nama}</h4>
-                                        <p className="text-xs text-slate-500 mb-1">NIM: {item.nim}</p>
+                                        <p className="text-xs text-slate-500 mb-0.5">NIM: {item.nim}</p>
+                                        <p className="text-[10px] text-slate-500 mb-1">Pembimbing: {item.dosen?.nama || "-"}</p>
                                         <p className="text-[10px] text-slate-400 mt-0.5 mb-2">Sidang: {item.tanggalSidang}</p>
                                         
                                         {/* Status Badge */}
@@ -326,8 +343,13 @@ export function SanksiMobile({ title }: { title: string }) {
                                             </div>
                                         )}
                                         {item.status === 'Terlambat' && (
-                                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-50 text-red-700 text-[10px] font-bold border border-red-200 w-fit">
-                                                <AlertCircle size={12} /> Telat {calculateWeeksLate(item.tenggatWaktu)} Minggu
+                                            <div className="flex flex-col gap-1">
+                                                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-50 text-red-700 text-[10px] font-bold border border-red-200 w-fit">
+                                                    <AlertCircle size={12} /> Telat {calculateWeeksLate(item.tenggatWaktu)} Minggu
+                                                </div>
+                                                <div className="text-[10px] text-red-600 font-bold">
+                                                    Denda: Rp {Math.min(calculateWeeksLate(item.tenggatWaktu) * 50000, 200000).toLocaleString('id-ID')}
+                                                </div>
                                             </div>
                                         )}
                                         {(!item.status || item.status === 'Menunggu Hardcover') && (
@@ -388,7 +410,10 @@ export function SanksiMobile({ title }: { title: string }) {
                                 
                                 {isDropdownOpen && (
                                     <div className="absolute left-0 right-0 z-50 mt-1 bg-white border border-slate-200 shadow-lg rounded-xl max-h-40 overflow-y-auto">
-                                        {studentList.map(s => (
+                                        {studentList.length === 0 ? (
+                                            <div className="p-3 text-xs text-slate-400 text-center">Tidak ada mahasiswa yang sidangnya sudah dijadwalkan.</div>
+                                        ) : (
+                                            studentList.map(s => (
                                             <div
                                                 key={s.id}
                                                 onClick={() => handleSelectStudent(s)}
@@ -396,7 +421,7 @@ export function SanksiMobile({ title }: { title: string }) {
                                             >
                                                 <span>{s.nama} ({s.nim})</span>
                                             </div>
-                                        ))}
+                                        )))}
                                     </div>
                                 )}
                             </>

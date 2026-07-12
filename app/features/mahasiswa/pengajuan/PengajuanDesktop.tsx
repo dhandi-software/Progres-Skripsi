@@ -94,7 +94,12 @@ export function PengajuanDesktop() {
     }, [navigate]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
+        let { name, value } = e.target;
+
+        if (name === 'sksNilaiD' && Number(value) < 0) {
+            value = '0';
+        }
+
         setFormData(prev => ({ ...prev, [name]: value }));
 
         // Toast alert for SKS Grade D
@@ -459,6 +464,7 @@ export function PengajuanDesktop() {
                                         value={formData.sksNilaiD}
                                         onChange={handleInputChange}
                                         disabled={isReadOnly}
+                                        min="0"
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all pr-12"
                                         required
                                     />

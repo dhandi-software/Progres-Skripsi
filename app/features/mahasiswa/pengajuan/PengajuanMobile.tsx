@@ -95,7 +95,12 @@ export function PengajuanMobile() {
     }, [navigate]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
+        let { name, value } = e.target;
+
+        if (name === 'sksNilaiD' && Number(value) < 0) {
+            value = '0';
+        }
+
         setFormData(prev => ({ ...prev, [name]: value }));
 
         // Toast alert for SKS Grade D
@@ -469,6 +474,7 @@ export function PengajuanMobile() {
                                     value={formData.sksNilaiD}
                                     onChange={handleInputChange}
                                     disabled={isReadOnly}
+                                    min="0"
                                     className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-all"
                                     required
                                 />

@@ -51,6 +51,7 @@ export default [
             route("peninjauan", "routes/dosen/peninjauan.tsx"),
             route("peninjauan/:id", "routes/dosen/peninjauan.$id.tsx"),
             route("bimbingan", "routes/dosen/bimbingan.tsx"),
+            route("bimbingan/:id", "routes/dosen/bimbingan.$id.tsx"),
             route("chat", "routes/dosen/chat.tsx"),
             route("acara", "routes/dosen/acara.tsx"),
             route("acara/create", "routes/dosen/acara.create.tsx"),

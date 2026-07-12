@@ -3,6 +3,8 @@ import { useAuth } from "~/hooks/useAuth";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { Search, Download, Users, ClipboardList, Award, Accessibility } from "lucide-react";
 import { cn } from "~/lib/utils";
+import { format } from "date-fns";
+import { id as localeId } from "date-fns/locale";
 
 
 interface TempatKPItem {
@@ -50,6 +52,7 @@ interface LaporanItem {
     p2_nama: string | null;
     nilaiAkhir: number | null;
     keteranganPenilaian: string | null;
+    tanggalPenilaian: string | null;
     statusProgress: string;
     tempatKP: TempatKPItem | null;
     logbooks: LogbookItem[];
@@ -381,6 +384,10 @@ export function LaporanDesktop({ title }: { title?: string }) {
                                             "py-4 px-6 text-center w-[120px]",
                                             isLowVision ? "font-black text-base" : "font-semibold text-sm"
                                         )}>Huruf Mutu</th>
+                                        <th className={cn(
+                                            "py-4 px-6 text-center w-[130px]",
+                                            isLowVision ? "font-black text-base" : "font-semibold text-sm"
+                                        )}>Tanggal</th>
                                     </>
                                 )}
                             </tr>
@@ -542,16 +549,16 @@ export function LaporanDesktop({ title }: { title?: string }) {
                                                 <td className="py-4 px-6">
                                                     <div className="flex flex-col gap-1">
                                                         <div className={cn(
-                                                            "flex flex-wrap gap-1 text-xs",
-                                                            isLowVision && "text-sm font-black text-black"
+                                                            "flex flex-wrap gap-1.5 text-sm font-semibold",
+                                                            isLowVision && "text-base font-black text-black"
                                                         )}>
-                                                            <span className={cn("px-1.5 py-0.5 rounded font-medium", isLowVision ? "bg-white border border-black" : "bg-slate-100 border border-slate-200")}>
+                                                            <span className={cn("px-2 py-1 rounded", isLowVision ? "bg-white border border-black" : "bg-blue-50 text-blue-700")}>
                                                                 K1: {formatNilai(item.p1_k1, 0)}
                                                             </span>
-                                                            <span className={cn("px-1.5 py-0.5 rounded font-medium", isLowVision ? "bg-white border border-black" : "bg-slate-100 border border-slate-200")}>
+                                                            <span className={cn("px-2 py-1 rounded", isLowVision ? "bg-white border border-black" : "bg-emerald-50 text-emerald-700")}>
                                                                 K2: {formatNilai(item.p1_k2, 0)}
                                                             </span>
-                                                            <span className={cn("px-1.5 py-0.5 rounded font-medium", isLowVision ? "bg-white border border-black" : "bg-slate-100 border border-slate-200")}>
+                                                            <span className={cn("px-2 py-1 rounded", isLowVision ? "bg-white border border-black" : "bg-purple-50 text-purple-700")}>
                                                                 K3: {formatNilai(item.p1_k3, 0)}
                                                             </span>
                                                         </div>
@@ -577,16 +584,16 @@ export function LaporanDesktop({ title }: { title?: string }) {
                                                 <td className="py-4 px-6">
                                                     <div className="flex flex-col gap-1">
                                                         <div className={cn(
-                                                            "flex flex-wrap gap-1 text-xs",
-                                                            isLowVision && "text-sm font-black text-black"
+                                                            "flex flex-wrap gap-1.5 text-sm font-semibold",
+                                                            isLowVision && "text-base font-black text-black"
                                                         )}>
-                                                            <span className={cn("px-1.5 py-0.5 rounded font-medium", isLowVision ? "bg-white border border-black" : "bg-slate-100 border border-slate-200")}>
+                                                            <span className={cn("px-2 py-1 rounded", isLowVision ? "bg-white border border-black" : "bg-blue-50 text-blue-700")}>
                                                                 K1: {formatNilai(item.p2_k1, 0)}
                                                             </span>
-                                                            <span className={cn("px-1.5 py-0.5 rounded font-medium", isLowVision ? "bg-white border border-black" : "bg-slate-100 border border-slate-200")}>
+                                                            <span className={cn("px-2 py-1 rounded", isLowVision ? "bg-white border border-black" : "bg-emerald-50 text-emerald-700")}>
                                                                 K2: {formatNilai(item.p2_k2, 0)}
                                                             </span>
-                                                            <span className={cn("px-1.5 py-0.5 rounded font-medium", isLowVision ? "bg-white border border-black" : "bg-slate-100 border border-slate-200")}>
+                                                            <span className={cn("px-2 py-1 rounded", isLowVision ? "bg-white border border-black" : "bg-purple-50 text-purple-700")}>
                                                                 K3: {formatNilai(item.p2_k3, 0)}
                                                             </span>
                                                         </div>
@@ -636,6 +643,12 @@ export function LaporanDesktop({ title }: { title?: string }) {
                                                         );
                                                     })()}
                                                 </td>
+                                                <td className={cn(
+                                                    "py-4 px-6 text-center text-sm",
+                                                    isLowVision ? "text-base font-bold text-black" : "text-gray-600 font-medium print:text-black"
+                                                )}>
+                                                    {item.tanggalPenilaian ? format(new Date(item.tanggalPenilaian), "dd MMM yyyy", { locale: localeId }) : "-"}
+                                                </td>
                                             </>
                                         )}
                                     </tr>
@@ -672,7 +685,7 @@ export function LaporanDesktop({ title }: { title?: string }) {
                         {/* I. Progres Bimbingan */}
                         <div className="mb-6 w-full">
                             <h3 className="text-xs font-bold uppercase mb-2 border-b border-black pb-0.5">I. Uraian Bimbingan Kerja Praktik</h3>
-                            <table className="w-full text-left border-collapse border border-black text-[10px]">
+                            <table className="w-full text-left border-collapse border border-black text-sm">
                                 <thead>
                                     <tr className="bg-gray-100 border-b border-black font-bold">
                                         <th className="py-1.5 px-2 w-[40px] text-center border border-black">No</th>
@@ -709,7 +722,7 @@ export function LaporanDesktop({ title }: { title?: string }) {
                         {/* II. Rekapitulasi Logbook */}
                         <div className="mb-6 w-full">
                             <h3 className="text-xs font-bold uppercase mb-2 border-b border-black pb-0.5">II. Uraian Kegiatan Logbook Kerja Praktik</h3>
-                            <table className="w-full text-left border-collapse border border-black text-[10px]">
+                            <table className="w-full text-left border-collapse border border-black text-sm">
                                 <thead>
                                     <tr className="bg-gray-100 border-b border-black font-bold">
                                         <th className="py-1.5 px-2 w-[40px] text-center border border-black">No</th>
@@ -732,14 +745,14 @@ export function LaporanDesktop({ title }: { title?: string }) {
                                                 <td className="py-1.5 px-2 border border-black">{l.uraian}</td>
                                                 <td className="py-1 px-2 border border-black text-center">
                                                     {l.mahasiswaParaf ? (
-                                                        <img src={l.mahasiswaParaf} alt="Paraf Dosen" className="max-h-[28px] max-w-[80px] mx-auto object-contain print:block" />
+                                                        <img src={l.mahasiswaParaf} alt="Paraf Dosen" className="max-h-[48px] max-w-[120px] mx-auto object-contain print:block" />
                                                     ) : (
                                                         <span className="text-gray-400">-</span>
                                                     )}
                                                 </td>
                                                 <td className="py-1 px-2 border border-black text-center">
                                                     {l.pembimbingParaf ? (
-                                                        <img src={l.pembimbingParaf} alt="Paraf Pembimbing Perusahaan" className="max-h-[28px] max-w-[80px] mx-auto object-contain print:block" />
+                                                        <img src={l.pembimbingParaf} alt="Paraf Pembimbing Perusahaan" className="max-h-[48px] max-w-[120px] mx-auto object-contain print:block" />
                                                     ) : (
                                                         <span className="text-gray-400">-</span>
                                                     )}
@@ -754,41 +767,43 @@ export function LaporanDesktop({ title }: { title?: string }) {
                         {/* III. Penilaian Akhir */}
                         <div className="w-full">
                             <h3 className="text-xs font-bold uppercase mb-2 border-b border-black pb-0.5">III. Laporan Evaluasi & Penilaian Akhir</h3>
-                            <table className="w-full text-left border-collapse border border-black text-[10px]">
+                            <table className="w-full text-left border-collapse border border-black text-xs">
                                 <thead>
                                     <tr className="bg-gray-100 border-b border-black font-bold">
-                                        <th className="py-1.5 px-2 border border-black">Nilai Pembimbing (P1)</th>
-                                        <th className="py-1.5 px-2 border border-black">Nilai Penguji (P2)</th>
-                                        <th className="py-1.5 px-2 w-[100px] text-center border border-black">Nilai Akhir</th>
-                                        <th className="py-1.5 px-2 w-[80px] text-center border border-black">Grade</th>
+                                        <th className="py-2 px-2 border border-black">Nilai Pembimbing (P1)</th>
+                                        <th className="py-2 px-2 border border-black">Nilai Penguji (P2)</th>
+                                        <th className="py-2 px-2 w-[80px] text-center border border-black">Total</th>
+                                        <th className="py-2 px-2 w-[60px] text-center border border-black">Grade</th>
+                                        <th className="py-2 px-2 w-[110px] text-center border border-black">Tanggal Sidang</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr className="border-b border-black">
-                                        <td className="py-2 px-2 border border-black">
-                                            <div className="flex flex-col gap-0.5">
-                                                <div className="flex gap-1.5 font-semibold">
+                                        <td className="py-3 px-2 border border-black">
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex gap-2 font-bold text-sm">
                                                     <span>K1: {formatNilai(item.p1_k1, 0)}</span>
                                                     <span>K2: {formatNilai(item.p1_k2, 0)}</span>
                                                     <span>K3: {formatNilai(item.p1_k3, 0)}</span>
                                                 </div>
-                                                <div className="text-[9px] text-gray-500">Dospem: {item.p1_nama || "-"}</div>
-                                                <div className="font-bold mt-1">Total P1: {formatNilai(item.p1_total, 1)}</div>
+                                                <div className="text-[10px] text-gray-700 font-medium">Dospem: {item.p1_nama || "-"}</div>
+                                                <div className="font-black mt-1 text-sm text-[#D25026]">Total P1: {formatNilai(item.p1_total, 1)}</div>
                                             </div>
                                         </td>
-                                        <td className="py-2 px-2 border border-black">
-                                            <div className="flex flex-col gap-0.5">
-                                                <div className="flex gap-1.5 font-semibold">
+                                        <td className="py-3 px-2 border border-black">
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex gap-2 font-bold text-sm">
                                                     <span>K1: {formatNilai(item.p2_k1, 0)}</span>
                                                     <span>K2: {formatNilai(item.p2_k2, 0)}</span>
                                                     <span>K3: {formatNilai(item.p2_k3, 0)}</span>
                                                 </div>
-                                                <div className="text-[9px] text-gray-500">Penguji: {item.p2_nama || "-"}</div>
-                                                <div className="font-bold mt-1">Total P2: {formatNilai(item.p2_total, 1)}</div>
+                                                <div className="text-[10px] text-gray-700 font-medium">Penguji: {item.p2_nama || "-"}</div>
+                                                <div className="font-black mt-1 text-sm text-[#D25026]">Total P2: {formatNilai(item.p2_total, 1)}</div>
                                             </div>
                                         </td>
-                                        <td className="py-2 px-2 text-center border border-black font-bold text-sm">{formatNilai(item.nilaiAkhir, 1)}</td>
-                                        <td className="py-2 px-2 text-center border border-black font-extrabold text-sm">{getGrade(item.nilaiAkhir).huruf}</td>
+                                        <td className="py-3 px-2 text-center border border-black font-black text-lg">{formatNilai(item.nilaiAkhir, 1)}</td>
+                                        <td className="py-3 px-2 text-center border border-black font-black text-lg">{getGrade(item.nilaiAkhir).huruf}</td>
+                                        <td className="py-3 px-2 text-center border border-black font-bold text-xs">{item.tanggalPenilaian ? format(new Date(item.tanggalPenilaian), "dd MMM yyyy", { locale: localeId }) : "-"}</td>
                                     </tr>
                                 </tbody>
                             </table>

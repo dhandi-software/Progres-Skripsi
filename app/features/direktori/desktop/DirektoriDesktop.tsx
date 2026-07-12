@@ -6,8 +6,10 @@ import { profileApi } from "~/api/profileApi";
 import { PublicProfileModal } from "~/components/profile/PublicProfileModal";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
+import { useAuth } from "~/hooks/useAuth";
 
 export function DirektoriDesktop() {
+    const { user: currentUser } = useAuth();
     const [users, setUsers] = useState<DirectoryUser[]>([]);
     const [loading, setLoading] = useState(true);
     const [inputValue, setInputValue] = useState("");
@@ -66,6 +68,7 @@ export function DirektoriDesktop() {
     };
 
     const filteredUsers = users.filter(u => {
+        if (currentUser && u.id === currentUser.id) return false;
         const matchesSearch = u.username.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesRole = roleFilter === "SEMUA" || u.role.toUpperCase() === roleFilter.toUpperCase();
         return matchesSearch && matchesRole;

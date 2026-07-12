@@ -7,8 +7,9 @@ import {
     Calendar, Clock, MapPin, CheckCircle, AlertCircle, 
     Search, User, Filter, Check, MoreVertical,
     CheckCircle2, XCircle, Info, ChevronRight,
-    Users, LayoutDashboard, Clock3, MapPinned, Edit3
+    Users, LayoutDashboard, Clock3, MapPinned, Edit3, FileText
 } from "lucide-react";
+import { UPLOADS_URL } from "~/api/client";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -35,6 +36,7 @@ interface SidangItem {
     status: string;
     pembimbingApproved: boolean;
     catatan: string | null;
+    laporanUrl?: string;
 }
 
 export function ProdiSidang() {
@@ -266,6 +268,17 @@ export function ProdiSidang() {
 
                                             {/* Actions */}
                                             <div className="flex gap-4 pt-2">
+                                                {sidang.laporanUrl && (
+                                                    <a 
+                                                        href={`${UPLOADS_URL}${sidang.laporanUrl}`} 
+                                                        target="_blank" 
+                                                        rel="noreferrer"
+                                                        className="h-14 px-6 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 rounded-2xl font-black transition-all flex items-center justify-center gap-2 border border-blue-100 whitespace-nowrap"
+                                                        title="Lihat Laporan Sidang"
+                                                    >
+                                                        <FileText size={18} /> Lihat Laporan
+                                                    </a>
+                                                )}
                                                 {/* Kaprodi Verification Step */}
                                                 {sidang.status === "MENUNGGU_VERIFIKASI_KAPRODI" && isKaprodi && (
                                                     <div className="flex gap-3 w-full">

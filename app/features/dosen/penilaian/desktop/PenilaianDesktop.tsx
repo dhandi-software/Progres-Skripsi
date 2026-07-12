@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "~/hooks/useAuth";
 import { penilaianApi } from "~/api/penilaianApi";
+import { UPLOADS_URL } from "~/api/client";
 import { CheckCircle, Edit3, Trash2, X, Save, AlertCircle, Search, Download, FileText, User, GraduationCap, Lock, Eye, Users } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
@@ -51,6 +52,8 @@ interface FormState {
 
     p1_k1: string; p1_k2: string; p1_k3: string; p1_nama: string;
     p2_k1: string; p2_k2: string; p2_k3: string; p2_nama: string;
+
+    suratTugasUrl?: string | null;
 
     keterangan: string;
 }
@@ -248,6 +251,7 @@ export function PenilaianDesktop({ title }: { title: string }) {
             p2_k2: item.p2_k2 !== null ? String(item.p2_k2) : "",
             p2_k3: item.p2_k3 !== null ? String(item.p2_k3) : "",
             p2_nama: item.p2_nama || item.pengujiNama || "",
+            suratTugasUrl: item.suratTugasUrl || null,
             keterangan: item.keterangan || ""
         });
     };
@@ -646,6 +650,16 @@ export function PenilaianDesktop({ title }: { title: string }) {
                                         <span className="text-[10px] font-black text-slate-500 bg-slate-200/70 px-2 py-1 rounded-md flex items-center gap-1">
                                             <Lock size={10} /> Terkunci (Hanya Penguji)
                                         </span>
+                                    )}
+                                    {form.suratTugasUrl && (
+                                        <a 
+                                            href={`${UPLOADS_URL}${form.suratTugasUrl}`} 
+                                            target="_blank" 
+                                            rel="noreferrer"
+                                            className="text-[10px] font-black text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors shadow-sm ml-auto"
+                                        >
+                                            <FileText size={12} /> Lihat Surat Tugas
+                                        </a>
                                     )}
                                 </div>
                                 <div className="flex flex-col gap-4">

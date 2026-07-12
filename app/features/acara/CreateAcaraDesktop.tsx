@@ -213,11 +213,11 @@ export function CreateAcaraDesktop() {
         <div className="fixed inset-0 z-[100] bg-white flex items-center justify-center animate-in fade-in duration-300">
             <div className="w-full h-full bg-white flex flex-col md:flex-row animate-in zoom-in-95 duration-500">
                 {/* Decorative Sidebar */}
-                <div className="w-full md:w-[30%] bg-slate-900 p-12 text-white relative flex flex-col justify-between overflow-hidden shrink-0">
+                <div className="w-full md:w-[30%] bg-slate-900 text-white relative overflow-hidden shrink-0">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-brand-primary/20 rounded-full blur-[100px] -mr-32 -mt-32" />
                     <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-500/10 rounded-full blur-[80px] -ml-24 -mb-24" />
                     
-                    <div className="relative z-10">
+                    <div className="relative z-10 h-full p-12 overflow-y-auto custom-scrollbar flex flex-col justify-between">
                         <button 
                             onClick={() => navigate(routePrefix)}
                             className="flex items-center gap-3 text-slate-400 hover:text-white transition-colors font-black uppercase tracking-widest text-[10px] mb-12"

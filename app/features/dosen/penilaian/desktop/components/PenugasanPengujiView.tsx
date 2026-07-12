@@ -164,6 +164,7 @@ export function PenugasanPengujiView({
                                         </button>
                                         {dosenList
                                             .filter(d => d.nama.toLowerCase().includes(dropdownSearch.toLowerCase()))
+                                            .filter(d => data.some(item => item.pembimbingId === d.id || item.pembimbingNama === d.nama))
                                             .map(d => {
                                                 const pembimbingStudents = data.filter(item => item.pembimbingId === d.id || item.pembimbingNama === d.nama);
                                                 const firstPengujiNama = pembimbingStudents.find(item => item.pengujiNama)?.pengujiNama;

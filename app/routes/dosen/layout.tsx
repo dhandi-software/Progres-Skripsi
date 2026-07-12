@@ -132,20 +132,7 @@ const menuItems = [
     icon: FileText,
     url: "/dosen/laporan",
   },
-  {
-    key: "prodiSidang" as MenuKey,
-    title: "Manajemen Sidang (Prodi)",
-    icon: Calendar,
-    url: "/dosen/prodi/sidang",
-    prodiOnly: true
-  },
-  {
-    key: "prodiBimbingan" as MenuKey,
-    title: "Monitoring Bimbingan",
-    icon: Users,
-    url: "/dosen/prodi/bimbingan",
-    prodiOnly: true
-  },
+
   {
     key: "sanksi" as MenuKey,
     title: "Sanksi Administrasi",
@@ -313,6 +300,8 @@ export function AppSidebar() {
               }).map((item) => {
                 const isActive = active === item.key;
                 const IconComponent = item.icon;
+                
+                let title = item.title;
 
                 return (
                   <div key={item.key} className="flex flex-col gap-1">
@@ -338,7 +327,7 @@ export function AppSidebar() {
                             isActive ? "text-[#D25026]" : "text-[#A1A1A1] group-hover:text-gray-600"
                           )}
                         >
-                          {item.title}
+                          {title}
                         </span>
                       </div>
                       

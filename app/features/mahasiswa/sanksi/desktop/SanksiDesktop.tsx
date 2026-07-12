@@ -108,8 +108,13 @@ export function SanksiDesktop({ title }: { title: string }) {
                                         </div>
                                     )}
                                     {item.status === 'Terlambat' && (
-                                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-50 text-red-700 text-[10px] font-bold border border-red-200">
-                                            <AlertCircle size={12} /> Telat {calculateWeeksLate(item.tenggatWaktu)} Minggu
+                                        <div className="flex flex-col gap-1">
+                                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-50 text-red-700 text-[10px] font-bold border border-red-200 w-fit">
+                                                <AlertCircle size={12} /> Telat {calculateWeeksLate(item.tenggatWaktu)} Minggu
+                                            </div>
+                                            <span className="text-[10px] text-red-600 font-bold">
+                                                Denda: Rp {Math.min(calculateWeeksLate(item.tenggatWaktu) * 50000, 200000).toLocaleString('id-ID')}
+                                            </span>
                                         </div>
                                     )}
                                     {(!item.status || item.status === 'Menunggu Hardcover') && (

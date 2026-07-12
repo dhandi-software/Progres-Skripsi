@@ -33,6 +33,7 @@ export interface SupervisedStudent {
     nama: string;
     nim: string;
     tanggalSidang?: string | null;
+    statusSidang?: string | null;
 }
 
 export const sanksiApi = {

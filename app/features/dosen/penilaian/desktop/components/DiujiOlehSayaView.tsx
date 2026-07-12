@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { getGrade } from "~/features/dosen/penilaian/desktop/PenilaianDesktop";
 import type { PenilaianItem } from "~/features/dosen/penilaian/desktop/PenilaianDesktop";
 import { Input } from "~/components/ui/input";
-import { Search, Edit3, Trash2 } from "lucide-react";
+import { Search, Edit3, Trash2, FileText } from "lucide-react";
+import { UPLOADS_URL } from "~/api/client";
 import { cn } from "~/lib/utils";
 
 interface DiujiOlehSayaViewProps {
@@ -66,11 +67,28 @@ export function DiujiOlehSayaView({
                         {currentDosen?.nama || user?.name}
                     </span>
                 </div>
-                <div className="flex flex-col items-end gap-1">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Jumlah Mahasiswa Diuji</span>
-                    <span className={cn("text-2xl font-black text-slate-900", isLowVision && "text-black text-3xl font-black")}>
-                        {examinedStudents.length} Mahasiswa
-                    </span>
+                <div className="flex flex-col items-end gap-3">
+                    <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Jumlah Mahasiswa Diuji</span>
+                        <span className={cn("text-2xl font-black text-slate-900", isLowVision && "text-black text-3xl font-black")}>
+                            {examinedStudents.length} Mahasiswa
+                        </span>
+                    </div>
+                    {examinedStudents.find(s => s.suratTugasUrl) && (
+                        <a 
+                            href={`${UPLOADS_URL}${examinedStudents.find(s => s.suratTugasUrl)?.suratTugasUrl}`} 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className={cn(
+                                "text-xs font-black px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm",
+                                isLowVision 
+                                    ? "bg-black text-white border-2 border-black hover:bg-slate-800" 
+                                    : "bg-blue-600 text-white hover:bg-blue-700"
+                            )}
+                        >
+                            <FileText size={14} /> Lihat Surat Tugas
+                        </a>
+                    )}
                 </div>
             </div>
 
