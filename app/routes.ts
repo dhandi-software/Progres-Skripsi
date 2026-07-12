@@ -110,4 +110,7 @@ export default [
             route("sanksi", "routes/admin/sanksi.tsx"),
         ]),
     ]),
+
+    // Catch-all 404 Route
+    route("*", "routes/$.tsx"),
 ] satisfies RouteConfig;

@@ -12,11 +12,12 @@ import {
   Download,
   Contact,
 } from "lucide-react";
-import { Outlet, useRouteLoaderData } from "react-router";
+import { Outlet, useRouteLoaderData, isRouteErrorResponse, useRouteError } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
 import { RoleGuard } from "~/routes/RoleGuard";
 import { useAuth } from "~/hooks/useAuth";
 import type { ContextType } from "~/root";
+import { AlertCircle, Home } from "lucide-react";
 
 import { SidebarProvider, Sidebar, SidebarContent, useSidebar, SidebarTrigger } from "~/components/ui/sidebar";
 import { cn } from "~/lib/utils";
@@ -121,7 +122,7 @@ export function AppSidebar() {
     }
 
     if (key === "logout") {
-        logout();
+      logout();
     }
   };
 
@@ -222,5 +223,54 @@ export default function AdminLayout() {
         </SidebarProvider>
       </RoleGuard>
     </ProtectedRoute>
+  );
+}
+
+export function ErrorBoundary({ error }: { error: unknown }) {
+  const err = useRouteError();
+  const routeError = isRouteErrorResponse(err) ? err : null;
+
+  let message = "Mohon Maaf, Terjadi Kesalahan";
+  let details = "Terjadi masalah pada sistem admin. Tim kami sedang menanganinya.";
+
+  if (routeError) {
+    if (routeError.status === 404) {
+      message = "Halaman Tidak Ditemukan";
+      details = "Maaf, halaman admin yang Anda tuju tidak tersedia.";
+    } else {
+      message = `Error ${routeError.status}`;
+      details = routeError.statusText;
+    }
+  } else if (err instanceof Error) {
+    details = err.message;
+  }
+
+  // Coba ambil context jika memungkinkan
+  const rootData = useRouteLoaderData("root") as ContextType | undefined;
+  const isMobile = rootData?.isMobile ?? false;
+
+  return (
+    <SidebarProvider isMobile={isMobile}>
+      <div className="flex w-full h-screen overflow-hidden bg-neutral-50">
+        <AppSidebar />
+        <main className="flex-1 w-full h-full overflow-y-auto grid place-items-center p-6 bg-slate-50" style={{ width: "100%" }}>
+          <div className="bg-white rounded-3xl p-8 text-center shadow-xl shadow-slate-200/50 border border-slate-100 mx-auto" style={{ width: "100%", maxWidth: "450px", minWidth: "320px" }}>
+            <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertCircle className="w-10 h-10 text-red-500" />
+            </div>
+            <h1 className="text-2xl font-black text-slate-900 mb-3">{message}</h1>
+            <p className="text-sm font-medium text-slate-500 mb-8 leading-relaxed">
+              {details}
+            </p>
+            <div className="flex flex-col gap-3">
+              <a href="/admin" className="inline-flex items-center justify-center gap-2 bg-[#119DA4] hover:bg-[#0c7a80] text-white rounded-xl h-12 px-6 font-bold transition-all shadow-lg shadow-[#119DA4]/30">
+                <Home size={18} />
+                Kembali ke Dashboard
+              </a>
+            </div>
+          </div>
+        </main>
+      </div>
+    </SidebarProvider>
   );
 }
