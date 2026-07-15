@@ -8,6 +8,7 @@ import {
 
 export default [
     route("login", "routes/login/login.tsx"),
+    route("forgot-password", "routes/forgot-password/forgot-password.tsx"),
 
     layout("routes/landing/landing-layout.tsx", [
         route("/", "routes/landing/Home.tsx"),
@@ -30,9 +31,10 @@ export default [
             route("chat", "routes/mahasiswa/chat.tsx"),
             route("acara", "routes/mahasiswa/acara.tsx"),
             route("sidang", "routes/mahasiswa/sidang.tsx"),
-            route("penilaian", "routes/mahasiswa/penilaian.tsx"),
             route("profilemahasiswa", "routes/mahasiswa/profilemahasiswa.tsx"),
             route("logbook", "routes/mahasiswa/logbook.tsx"),
+            route("direktori", "routes/mahasiswa/direktori.tsx"),
+            route("sanksi", "routes/mahasiswa/sanksi.tsx"),
         ]),
     ]),
 
@@ -49,6 +51,7 @@ export default [
             route("peninjauan", "routes/dosen/peninjauan.tsx"),
             route("peninjauan/:id", "routes/dosen/peninjauan.$id.tsx"),
             route("bimbingan", "routes/dosen/bimbingan.tsx"),
+            route("bimbingan/:id", "routes/dosen/bimbingan.$id.tsx"),
             route("chat", "routes/dosen/chat.tsx"),
             route("acara", "routes/dosen/acara.tsx"),
             route("acara/create", "routes/dosen/acara.create.tsx"),
@@ -61,6 +64,8 @@ export default [
             route("profile", "routes/dosen/profile.tsx"),
             route("logbook", "routes/dosen/logbook.tsx"),
             route("logbook/:id", "routes/dosen/logbook.$id.tsx"),
+            route("direktori", "routes/dosen/direktori.tsx"),
+            route("sanksi", "routes/dosen/sanksi.tsx"),
         ]),
     ]),
     // Staf
@@ -68,8 +73,20 @@ export default [
         ...prefix("staf", [
             index("routes/staf/dashboard.tsx"),
             route("sidang", "routes/staf/sidang.tsx"),
+            route("jadwal", "routes/staf/jadwal.tsx"),
+            route("jadwal/create", "routes/staf/jadwal.create.tsx"),
+            route("jadwal/edit/:id", "routes/staf/jadwal.edit.$id.tsx"),
+            // Acara Staf
+            route("acara", "routes/staf/acara.tsx"),
+            route("acara/create", "routes/staf/acara.create.tsx"),
+            route("acara/edit/:id", "routes/staf/acara.edit.$id.tsx"),
+            route("download", "routes/staf/download.tsx"),
+            route("download/create", "routes/staf/download.create.tsx"),
+            route("download/edit/:id", "routes/staf/download.edit.$id.tsx"),
             route("chat", "routes/staf/chat.tsx"),
             route("profile", "routes/staf/profile.tsx"),
+            route("direktori", "routes/staf/direktori.tsx"),
+            route("sanksi", "routes/staf/sanksi.tsx"),
         ]),
     ]),
 
@@ -81,7 +98,19 @@ export default [
             route("create-account", "routes/admin/create-account.tsx"),
             route("edit-account/:id", "routes/admin/edit-account.$id.tsx"),
             route("monitoring", "routes/admin/monitoring.tsx"),
+            route("acara", "routes/admin/acara.tsx"),
+            route("acara/create", "routes/admin/acara.create.tsx"),
+            route("acara/edit/:id", "routes/admin/acara.edit.$id.tsx"),
+            route("download", "routes/admin/download.tsx"),
+            route("download/create", "routes/admin/download.create.tsx"),
+            route("download/edit/:id", "routes/admin/download.edit.$id.tsx"),
             route("chat", "routes/admin/chat.tsx"),
+            route("penilaian", "routes/admin/penilaian.tsx"),
+            route("direktori", "routes/admin/direktori.tsx"),
+            route("sanksi", "routes/admin/sanksi.tsx"),
         ]),
     ]),
+
+    // Catch-all 404 Route
+    route("*", "routes/$.tsx"),
 ] satisfies RouteConfig;

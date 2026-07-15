@@ -410,6 +410,32 @@ export function useChat() {
   const sendMessage = useCallback(async (content: string, file?: File, replyToId?: number) => {
     if (!user || !activeContact || !socket || isSending) return;
     
+    // --- 1. VALIDASI FILE SIZE MAKSIMAL 5MB ---
+    if (file && file.size > 5 * 1024 * 1024) {
+        setToastProps({
+            title: "File Terlalu Besar",
+            description: "Ukuran dokumen maksimal adalah 5MB.",
+            variant: "destructive"
+        });
+        setTimeout(() => setToastProps(null), 3000);
+        return;
+    }
+
+    // --- 2. VALIDASI ANTI-SPAM MAHASISWA ---
+    if (file && user.role?.toLowerCase() === 'mahasiswa') {
+        const isTargetMahasiswa = activeContact.role?.toLowerCase() === 'mahasiswa';
+        // Mahasiswa tidak bisa mengirim dokumen ke sesama mahasiswa (private)
+        if (!activeContact.isGroup && activeContact.id !== 0 && isTargetMahasiswa) {
+            setToastProps({
+                title: "Akses Ditolak",
+                description: "Mahasiswa hanya dapat mengirim dokumen kepada Dosen atau Staf.",
+                variant: "destructive"
+            });
+            setTimeout(() => setToastProps(null), 4000);
+            return;
+        }
+    }
+
     setIsSending(true);
     try {
 
@@ -423,6 +449,12 @@ export function useChat() {
         attachmentType = file.type.startsWith("image/") ? "image" : "document";
       } catch (error) {
         console.error("Upload failed", error);
+        setToastProps({
+            title: "Gagal Mengunggah",
+            description: "Terjadi kesalahan saat mengunggah dokumen. Silakan coba lagi.",
+            variant: "destructive"
+        });
+        setTimeout(() => setToastProps(null), 3000);
         return; 
       }
     }

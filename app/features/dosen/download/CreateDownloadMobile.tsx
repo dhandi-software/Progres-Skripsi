@@ -4,7 +4,7 @@ import {
     ArrowLeft, ChevronRight, Loader2, FileUp,
     AlertCircle, CheckCircle2
 } from "lucide-react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useLocation } from "react-router";
 import { Button } from "~/components/ui/button";
 import { downloadApi } from "~/api/downloadApi";
 import { Toast } from "~/components/ui/toast";
@@ -13,6 +13,12 @@ import { cn } from "~/lib/utils";
 export function CreateDownloadMobile() {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
+    const location = useLocation();
+    const routePrefix = location.pathname.startsWith("/admin") 
+        ? "/admin/download" 
+        : location.pathname.startsWith("/staf")
+        ? "/staf/download"
+        : "/dosen/download";
     const isEditMode = !!id;
 
     const [isLoading, setIsLoading] = useState(isEditMode);
@@ -97,7 +103,7 @@ export function CreateDownloadMobile() {
                 await downloadApi.createDownload(payload);
                 setToast({ title: "Berhasil diunggah!", variant: "success" });
             }
-            setTimeout(() => navigate("/dosen/download"), 1200);
+            setTimeout(() => navigate(routePrefix), 1200);
         } catch (error: any) {
             setToast({ title: "Gagal menyimpan.", variant: "destructive" });
         } finally {
@@ -119,7 +125,7 @@ export function CreateDownloadMobile() {
             <div className="flex items-center justify-between px-6 h-20 border-b border-slate-100 shrink-0 bg-white shadow-sm z-10">
                 <div className="flex items-center gap-4">
                     <Button 
-                        onClick={() => navigate("/dosen/download")} 
+                        onClick={() => navigate(routePrefix)} 
                         className="h-10 px-4 rounded-full bg-slate-50 flex items-center gap-2 text-slate-400 active:scale-90 border border-slate-100 shadow-sm border-none"
                     >
                         <ArrowLeft size={16} />

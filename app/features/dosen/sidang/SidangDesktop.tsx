@@ -5,8 +5,10 @@ import { bimbinganApi } from "~/api/bimbinganApi";
 import { 
     Calendar, Clock, MapPin, CheckCircle, AlertCircle, 
     MoreVertical, Edit3, Trash2, Search, User, Filter,
-    Check, CheckCircle2, XCircle, MapPinned, Users, ArrowRight
+    Check, CheckCircle2, XCircle, MapPinned, Users, ArrowRight, FileText
 } from "lucide-react";
+import { UPLOADS_URL } from "~/api/client";
+import { Toast } from "~/components/ui/toast";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -14,6 +16,7 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale/id";
 import { MonthYearFilter } from "~/components/ui/calendar";
 import { SidangPengajuanForm } from "./SidangPengajuanForm";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext } from "~/components/ui/pagination";
 
 interface SidangItem {
     id: number;
@@ -35,8 +38,8 @@ interface SidangItem {
     lokasi: string | null;
     status: string;
     pembimbingApproved: boolean;
-    prodiApproved: boolean;
     catatan: string | null;
+    laporanUrl?: string;
 }
 
 export function SidangDesktop() {
@@ -47,6 +50,10 @@ export function SidangDesktop() {
     const [activeTab, setActiveTab] = useState<"sidang" | "pengajuan">("sidang");
     const [isScheduling, setIsScheduling] = useState<SidangItem | null>(null);
     const [isApplying, setIsApplying] = useState<any | null>(null);
+    const [toast, setToast] = useState<{title: string, variant: "success" | "destructive"} | null>(null);
+
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 5;
 
     const eligibleStudents = bimbinganStudents
         .filter(m => !sidangs.some(s => s.mahasiswaId === m.mahasiswa.id))
@@ -72,7 +79,7 @@ export function SidangDesktop() {
                     userRole === "kaprodi";
                     
     const isKaprodi = userRole === "kaprodi" || 
-                      userJabatan.includes("prodi") ||
+                      userJabatan.includes("kepala program studi") ||
                       userJabatan.includes("kaprodi");
 
     const fetchData = async () => {
@@ -95,18 +102,25 @@ export function SidangDesktop() {
         if (user) fetchData();
     }, [user]);
 
+    const totalPages = Math.ceil(sidangs.length / ITEMS_PER_PAGE);
+    const paginatedSidangs = sidangs.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
     const handleApply = async (formData: { tanggalSidang: string; waktuSidang: string; lokasi: string }) => {
         if (!isApplying) return;
         try {
-            await sidangApi.applyForSidang({
-                mahasiswaId: isApplying.mahasiswa.id,
-                judul: isApplying.judul || "Skripsi",
-                ...formData
-            });
+            const formDataData = new FormData();
+            formDataData.append("mahasiswaId", isApplying.mahasiswa.nim);
+            formDataData.append("judul", isApplying.judul || "Skripsi");
+            formDataData.append("tanggalSidang", formData.tanggalSidang);
+            formDataData.append("waktuSidang", formData.waktuSidang);
+            formDataData.append("lokasi", formData.lokasi);
+
+            await sidangApi.applyForSidang(formDataData);
             setIsApplying(null);
             fetchData();
+            setToast({ title: "Berhasil mengajukan sidang!", variant: "success" });
         } catch (error) {
-            alert("Gagal mengajukan sidang.");
+            setToast({ title: "Gagal mengajukan sidang.", variant: "destructive" });
         }
     };
 
@@ -114,8 +128,9 @@ export function SidangDesktop() {
         try {
             await sidangApi.pembimbingApprove(id);
             fetchData();
+            setToast({ title: "Berhasil menyetujui sidang.", variant: "success" });
         } catch (error) {
-            alert("Gagal menyetujui.");
+            setToast({ title: "Gagal menyetujui.", variant: "destructive" });
         }
     };
 
@@ -131,8 +146,9 @@ export function SidangDesktop() {
             });
             setIsScheduling(null);
             fetchData();
+            setToast({ title: "Berhasil menjadwalkan sidang.", variant: "success" });
         } catch (error) {
-            alert("Gagal menjadwalkan.");
+            setToast({ title: "Gagal menjadwalkan.", variant: "destructive" });
         }
     };
 
@@ -144,13 +160,14 @@ export function SidangDesktop() {
             case "MENUNGGU_VERIFIKASI_KAPRODI":
                 return { label: "Menunggu Verifikasi Kaprodi", color: "text-purple-600 bg-purple-50" };
             case "MENUNGGU_PENJADWALAN_PRODI":
-                return { label: "Menunggu Jadwal Prodi", color: "text-blue-600 bg-blue-50" };
+            case "MENUNGGU_PENJADWALAN_KOORDINATOR":
+                return { label: "MENUNGGU JADWAL PRODI", color: "text-white bg-blue-600 shadow-blue-200" };
             case "MENUNGGU_KONFIRMASI_JADWAL_KAPRODI":
-                return { label: "Menunggu Konfirmasi Jadwal (Kaprodi)", color: "text-indigo-600 bg-indigo-50" };
+                return { label: "MENUNGGU KONFIRMASI JADWAL (KAPRODI)", color: "text-white bg-indigo-600 shadow-indigo-200" };
             case "SELESAI":
-                return { label: "Selesai", color: "text-slate-600 bg-slate-50" };
+                return { label: "SELESAI", color: "text-white bg-slate-600 shadow-slate-200" };
             default:
-                return { label: status, color: "text-slate-600 bg-slate-50" };
+                return { label: status, color: "text-white bg-slate-600 shadow-slate-200" };
         }
     };
 
@@ -198,32 +215,33 @@ export function SidangDesktop() {
                              <h3 className="text-xl font-black text-slate-900 tracking-tight">Belum Ada Data Sidang</h3>
                              <p className="text-slate-400 mx-auto mt-3 font-medium">Daftar sidang kerja praktik yang diajukan atau dijadwalkan akan muncul di sini.</p>
                         </div>
-                    ) : sidangs.map(item => (
-                        <div key={item.id} className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-8 flex flex-col xl:flex-row xl:items-center justify-between gap-8 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 group">
-                            <div className="flex items-center gap-6 flex-1 min-w-0">
-                                <div className="w-16 h-16 rounded-[22px] bg-brand-primary/5 flex items-center justify-center text-brand-primary shrink-0 group-hover:scale-110 transition-transform duration-500 shadow-inner">
+                    ) : paginatedSidangs.map(item => (
+                        <div key={item.id} className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-8 flex flex-col xl:flex-row xl:flex-wrap xl:items-center justify-between gap-8 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 group">
+                            {/* Left Section: Avatar & Identity Details */}
+                            <div className="flex items-start gap-6 flex-1">
+                                <div className="w-16 h-16 rounded-[22px] bg-orange-50 flex items-center justify-center text-brand-primary shrink-0 group-hover:scale-110 transition-transform duration-500 shadow-inner mt-1">
                                     <User size={32} strokeWidth={2.5} />
                                 </div>
-                                <div className="flex flex-col min-w-0 gap-1">
-                                    <div className="flex flex-wrap items-center gap-3">
-                                        <span className="text-lg font-black text-slate-900 tracking-tight truncate">{item.mahasiswa.nama}</span>
-                                        <span className={cn("text-[10px] font-black uppercase px-3 py-1 rounded-full tracking-wider shadow-sm", getStatusInfo(item.status, item).color.replace('bg-', 'bg-opacity-20 bg-'))}>
-                                            {getStatusInfo(item.status, item).label}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
+                                <div className="flex flex-col gap-2 items-start">
+                                    <span className="text-lg font-black text-slate-900 tracking-tight leading-tight whitespace-nowrap">{item.mahasiswa.nama}</span>
+                                    <span className={cn("text-[10px] font-black uppercase px-3 py-1 rounded-full tracking-wider shadow-sm whitespace-nowrap", getStatusInfo(item.status, item).color)}>
+                                        {getStatusInfo(item.status, item).label}
+                                    </span>
+                                    <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500 whitespace-nowrap">
                                         <span className="bg-slate-100 px-2 py-0.5 rounded">NPM: {item.mahasiswa.nim}</span>
-                                        <span className="w-1 h-1 rounded-full bg-slate-200" />
-                                        <span className="text-brand-primary/80">Kerja Praktik</span>
                                     </div>
-                                    <span className="text-xs text-slate-500 italic mt-1 line-clamp-1 opacity-70">"{item.judul}"</span>
+                                    <div className="flex items-center gap-2 text-[10px] font-bold whitespace-nowrap">
+                                        <span className="bg-blue-50 text-blue-600 px-2 py-1 rounded-md tracking-wide uppercase">JENIS PROYEK: Kerja Praktik</span>
+                                    </div>
+                                    <span className="text-[10px] text-slate-400 font-medium mt-1 whitespace-nowrap">Status diperbarui secara otomatis.</span>
                                 </div>
                             </div>
 
-                            <div className="flex flex-wrap items-center gap-8 xl:pr-10 xl:border-r border-slate-100">
+                            {/* Middle Section: Jadwal & Lokasi */}
+                            <div className="flex flex-col justify-center gap-5 xl:pr-10 xl:border-r border-slate-100 shrink-0">
                                 {item.tanggalSidang ? (
                                     <div className="flex flex-col gap-2">
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Jadwal Pelaksanaan</span>
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] leading-none">JADWAL</span>
                                         <div className="flex items-center gap-3">
                                             <div className="w-9 h-9 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
                                                 <Calendar size={18} />
@@ -239,19 +257,19 @@ export function SidangDesktop() {
                                     </div>
                                 ) : (
                                     <div className="flex flex-col gap-2">
-                                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] leading-none">Jadwal</span>
-                                         <div className="flex items-center gap-2 px-3 py-1 bg-amber-50 text-amber-600 rounded-lg border border-amber-100">
-                                             <AlertCircle size={14} />
+                                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] leading-none">JADWAL</span>
+                                         <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-600 rounded-full border border-amber-100 shadow-sm shadow-amber-100/50">
+                                             <AlertCircle size={14} strokeWidth={2.5} />
                                              <span className="text-xs font-black">Belum Dijadwalkan</span>
                                          </div>
                                     </div>
                                 )}
  
                                 <div className="flex flex-col gap-2">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] leading-none">Lokasi Sidang</span>
-                                    <div className="flex items-center gap-2.5 text-slate-700 font-bold text-sm bg-slate-50 px-4 py-2 rounded-xl border border-slate-100/50">
-                                        <MapPin size={16} className="text-slate-300" />
-                                        {item.lokasi || "Ditentukan Prodi"}
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] leading-none">LOKASI SIDANG</span>
+                                    <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-600 rounded-full border border-slate-200 shadow-sm">
+                                        <MapPin size={14} strokeWidth={2.5} className="text-slate-400" />
+                                        <span className="text-xs font-black">{item.lokasi || "Ditentukan Prodi/Koordinator"}</span>
                                     </div>
                                 </div>
                             </div>
@@ -268,12 +286,25 @@ export function SidangDesktop() {
                                     </Button>
                                 )}
 
+                                {/* Lihat Laporan Sidang (Koordinator / Kaprodi) */}
+                                {item.laporanUrl && isProdi && (
+                                    <a 
+                                        href={`${UPLOADS_URL}${item.laporanUrl}`} 
+                                        target="_blank" 
+                                        rel="noreferrer"
+                                        className="bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-2xl h-11 px-5 font-black text-xs gap-2 flex items-center justify-center border border-blue-100 transition-colors shadow-sm"
+                                        title="Lihat Laporan Sidang"
+                                    >
+                                        <FileText size={16} /> Lihat Laporan
+                                    </a>
+                                )}
+
                                 {/* 
                                    Tombol Atur Jadwal:
                                    Hanya muncul untuk Tim Prodi / Koordinator (bukan Kaprodi) 
                                    saat status sedang Menunggu Penjadwalan Prodi.
                                 */}
-                                {item.status === "MENUNGGU_PENJADWALAN_PRODI" && isProdi && !isKaprodi && (
+                                {item.status === "MENUNGGU_PENJADWALAN_KOORDINATOR" && isProdi && !isKaprodi && (
                                     <Button 
                                         onClick={() => {
                                             setIsScheduling(item);
@@ -286,11 +317,44 @@ export function SidangDesktop() {
                                             if (item.tanggalSidang) setSelectedDate(new Date(item.tanggalSidang));
                                             else setSelectedDate(undefined);
                                         }}
-                                        className="bg-brand-primary hover:bg-brand-primary/90 text-white rounded-xl h-10 px-4 font-bold text-xs gap-2 shadow-lg shadow-brand-primary/20"
+                                        className="bg-brand-primary hover:bg-orange-600 text-white rounded-2xl h-11 px-6 font-black text-xs gap-2 shadow-lg shadow-brand-primary/30 transition-all"
                                     >
-                                        <Calendar size={14} />
-                                        Jadwalkan Sidang
+                                        <Calendar size={16} /> Jadwalkan Sidang
                                     </Button>
+                                )}
+
+                                {/* Action for Kaprodi Verification */}
+                                {item.status === "MENUNGGU_VERIFIKASI_KAPRODI" && isKaprodi && (
+                                    <div className="flex gap-2">
+                                        <Button 
+                                            onClick={async () => {
+                                                 try {
+                                                     await sidangApi.verifyByKaprodi(item.id);
+                                                     fetchData();
+                                                 } catch (e) {
+                                                     console.error(e);
+                                                 }
+                                            }}
+                                            className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl h-10 px-4 font-bold text-xs gap-2"
+                                        >
+                                            <CheckCircle2 size={14} /> Verifikasi Pengajuan
+                                        </Button>
+                                        <Button 
+                                            onClick={async () => {
+                                                 try {
+                                                     await sidangApi.deleteSidang(item.id);
+                                                     fetchData();
+                                                 } catch (e) {
+                                                     console.error(e);
+                                                 }
+                                            }}
+                                            variant="outline"
+                                            className="rounded-xl h-10 px-4 font-bold text-xs gap-2 border-rose-200 text-rose-500 hover:bg-rose-50 hover:text-rose-600"
+                                            title="Tolak Pengajuan"
+                                        >
+                                            <XCircle size={14} /> Tolak
+                                        </Button>
+                                    </div>
                                 )}
 
                                 {/* Action for Kaprodi Confirmation - In standard view */}
@@ -311,8 +375,8 @@ export function SidangDesktop() {
                                      </Button>
                                 )}
 
-                                {/* Tombol Ubah Jadwal hanya untuk Dosen Pembimbing */}
-                                {item.dosen.userId === user?.id && item.status === "TERJADWAL" && (
+                                {/* Tombol Ubah Jadwal untuk Dosen Pembimbing atau Koordinator */}
+                                {(item.dosen.userId === user?.id || (isProdi && !isKaprodi)) && item.status === "TERJADWAL" && (
                                     <Button 
                                         onClick={() => {
                                             setIsScheduling(item);
@@ -335,6 +399,39 @@ export function SidangDesktop() {
                             </div>
                         </div>
                     ))}
+                    {totalPages > 1 && (
+                        <div className="pt-2 flex justify-center pb-6">
+                            <Pagination>
+                                <PaginationContent>
+                                    <PaginationItem>
+                                        <PaginationPrevious
+                                            href="#"
+                                            onClick={(e) => { e.preventDefault(); setCurrentPage(p => Math.max(1, p - 1)) }}
+                                            className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                                        />
+                                    </PaginationItem>
+                                    {Array.from({ length: totalPages }).map((_, i) => (
+                                        <PaginationItem key={i}>
+                                            <PaginationLink
+                                                href="#"
+                                                isActive={currentPage === i + 1}
+                                                onClick={(e) => { e.preventDefault(); setCurrentPage(i + 1) }}
+                                            >
+                                                {i + 1}
+                                            </PaginationLink>
+                                        </PaginationItem>
+                                    ))}
+                                    <PaginationItem>
+                                        <PaginationNext
+                                            href="#"
+                                            onClick={(e) => { e.preventDefault(); setCurrentPage(p => Math.min(totalPages, p + 1)) }}
+                                            className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                                        />
+                                    </PaginationItem>
+                                </PaginationContent>
+                            </Pagination>
+                        </div>
+                    )}
                 </div>
             ) : (
                 /* Ajukan Sidang Baru Tab */
@@ -493,6 +590,15 @@ export function SidangDesktop() {
                             />
                         </div>
                     </div>
+                </div>
+            )}
+            {toast && (
+                <div className="fixed top-10 right-10 z-[300]">
+                    <Toast 
+                        title={toast.title} 
+                        variant={toast.variant} 
+                        onClose={() => setToast(null)} 
+                    />
                 </div>
             )}
         </div>

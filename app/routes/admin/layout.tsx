@@ -7,13 +7,17 @@ import {
   Settings,
   FileText,
   BarChart3,
-  MessageSquare
+  MessageSquare,
+  ClipboardList,
+  Download,
+  Contact,
 } from "lucide-react";
-import { Outlet, useRouteLoaderData } from "react-router";
+import { Outlet, useRouteLoaderData, isRouteErrorResponse, useRouteError } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
 import { RoleGuard } from "~/routes/RoleGuard";
 import { useAuth } from "~/hooks/useAuth";
 import type { ContextType } from "~/root";
+import { AlertCircle, Home } from "lucide-react";
 
 import { SidebarProvider, Sidebar, SidebarContent, useSidebar, SidebarTrigger } from "~/components/ui/sidebar";
 import { cn } from "~/lib/utils";
@@ -22,13 +26,23 @@ type MenuKey =
   | "dashboard"
   | "users"
   | "monitoring"
+  | "acara"
+  | "download"
   | "chat"
+  | "penilaian"
+  | "sanksi"
+  | "direktori"
   | "logout";
 
 const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/admin/users") || pathname.startsWith("/admin/create-account") || pathname.startsWith("/admin/edit-account")) return "users";
   if (pathname.startsWith("/admin/monitoring")) return "monitoring";
   if (pathname.startsWith("/admin/chat")) return "chat";
+  if (pathname.startsWith("/admin/acara")) return "acara";
+  if (pathname.startsWith("/admin/download")) return "download";
+  if (pathname.startsWith("/admin/penilaian")) return "penilaian";
+  if (pathname.startsWith("/admin/sanksi")) return "sanksi";
+  if (pathname.startsWith("/admin/direktori")) return "direktori";
   if (pathname === "/admin" || pathname.startsWith("/admin/"))
     return "dashboard";
   return undefined;
@@ -54,10 +68,40 @@ const menuItems = [
     url: "/admin/monitoring",
   },
   {
+    key: "acara" as MenuKey,
+    title: "Pengumuman",
+    icon: ClipboardList,
+    url: "/admin/acara",
+  },
+  {
+    key: "direktori" as MenuKey,
+    title: "Direktori",
+    icon: Contact,
+    url: "/admin/direktori",
+  },
+  {
+    key: "download" as MenuKey,
+    title: "Download",
+    icon: Download,
+    url: "/admin/download",
+  },
+  {
     key: "chat" as MenuKey,
     title: "Chat",
     icon: MessageSquare,
     url: "/admin/chat",
+  },
+  {
+    key: "penilaian" as MenuKey,
+    title: "Penilaian Evaluasi",
+    icon: FileText,
+    url: "/admin/penilaian",
+  },
+  {
+    key: "sanksi" as MenuKey,
+    title: "Sanksi Administrasi",
+    icon: ClipboardList,
+    url: "/admin/sanksi",
   },
 ];
 
@@ -78,12 +122,12 @@ export function AppSidebar() {
     }
 
     if (key === "logout") {
-        logout();
+      logout();
     }
   };
 
   return (
-    <Sidebar className="border-r border-[#E5E5E5] bg-white overflow-y-hidden">
+    <Sidebar className="border-r border-[#E5E5E5] bg-white overflow-y-hidden print:hidden">
       <SidebarContent className="bg-[#FAFAFA] flex flex-col py-8 px-6 custom-scrollbar">
         {/* Logo Section */}
         <div className="mb-8 px-2">
@@ -160,15 +204,15 @@ export default function AdminLayout() {
     <ProtectedRoute>
       <RoleGuard allowedRoles={["admin"]}>
         <SidebarProvider isMobile={isMobile}>
-          <div className="flex w-full h-screen overflow-hidden bg-neutral-50">
+          <div className="flex w-full h-screen overflow-hidden bg-neutral-50 print:h-auto print:overflow-visible print:bg-white">
             <AppSidebar />
             <main className={cn(
-              "flex-1 w-full h-full overflow-y-auto",
+              "flex-1 w-full h-full overflow-y-auto print:h-auto print:overflow-visible print:p-0 print:pb-0",
               "pb-12" // simplified
             )}>
               {/* Mobile Header with Hamburger Menu */}
               {isMobile && (
-                <div className="md:hidden flex items-center p-4 bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
+                <div className="md:hidden flex items-center p-4 bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm print:hidden">
                   <SidebarTrigger className="p-2 -ml-2" />
                   <span className="ml-2 font-bold text-[#119DA4] text-lg tracking-tight">Admin Panel</span>
                 </div>
@@ -179,5 +223,54 @@ export default function AdminLayout() {
         </SidebarProvider>
       </RoleGuard>
     </ProtectedRoute>
+  );
+}
+
+export function ErrorBoundary({ error }: { error: unknown }) {
+  const err = useRouteError();
+  const routeError = isRouteErrorResponse(err) ? err : null;
+
+  let message = "Mohon Maaf, Terjadi Kesalahan";
+  let details = "Terjadi masalah pada sistem admin. Tim kami sedang menanganinya.";
+
+  if (routeError) {
+    if (routeError.status === 404) {
+      message = "Halaman Tidak Ditemukan";
+      details = "Maaf, halaman admin yang Anda tuju tidak tersedia.";
+    } else {
+      message = `Error ${routeError.status}`;
+      details = routeError.statusText;
+    }
+  } else if (err instanceof Error) {
+    details = err.message;
+  }
+
+  // Coba ambil context jika memungkinkan
+  const rootData = useRouteLoaderData("root") as ContextType | undefined;
+  const isMobile = rootData?.isMobile ?? false;
+
+  return (
+    <SidebarProvider isMobile={isMobile}>
+      <div className="flex w-full h-screen overflow-hidden bg-neutral-50">
+        <AppSidebar />
+        <main className="flex-1 w-full h-full overflow-y-auto grid place-items-center p-6 bg-slate-50" style={{ width: "100%" }}>
+          <div className="bg-white rounded-3xl p-8 text-center shadow-xl shadow-slate-200/50 border border-slate-100 mx-auto" style={{ width: "100%", maxWidth: "450px", minWidth: "320px" }}>
+            <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertCircle className="w-10 h-10 text-red-500" />
+            </div>
+            <h1 className="text-2xl font-black text-slate-900 mb-3">{message}</h1>
+            <p className="text-sm font-medium text-slate-500 mb-8 leading-relaxed">
+              {details}
+            </p>
+            <div className="flex flex-col gap-3">
+              <a href="/admin" className="inline-flex items-center justify-center gap-2 bg-[#119DA4] hover:bg-[#0c7a80] text-white rounded-xl h-12 px-6 font-bold transition-all shadow-lg shadow-[#119DA4]/30">
+                <Home size={18} />
+                Kembali ke Dashboard
+              </a>
+            </div>
+          </div>
+        </main>
+      </div>
+    </SidebarProvider>
   );
 }

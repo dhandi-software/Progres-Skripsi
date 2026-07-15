@@ -202,7 +202,14 @@ const monthsList = [
     "July", "August", "September", "October", "November", "December"
 ];
 
-function MonthSelector({ selectedMonth, onSelectMonth, onBack }: { selectedMonth: number | undefined, onSelectMonth: (m: number) => void, onBack?: () => void }) {
+function MonthSelector({ selectedMonth, onSelectMonth, onBack, minDate, maxDate, currentYear }: { selectedMonth: number | undefined, onSelectMonth: (m: number) => void, onBack?: () => void, minDate?: Date, maxDate?: Date, currentYear?: number }) {
+    const isMonthDisabled = (mIndex: number) => {
+        if (!currentYear) return false;
+        if (minDate && (currentYear < minDate.getFullYear() || (currentYear === minDate.getFullYear() && mIndex < minDate.getMonth()))) return true;
+        if (maxDate && (currentYear > maxDate.getFullYear() || (currentYear === maxDate.getFullYear() && mIndex > maxDate.getMonth()))) return true;
+        return false;
+    };
+
     return (
         <div className="w-64 p-3 bg-white z-50 rounded-lg shadow-md shadow-[0px_2px_4px_-2px_rgba(0,0,0,0.10)] outline outline-1 outline-offset-[-1px] outline-Border-subtle inline-flex flex-col justify-start items-start gap-3">
             <div className="self-stretch pb-2 border-b border-Border-subtle inline-flex justify-start items-center gap-2">
@@ -225,10 +232,12 @@ function MonthSelector({ selectedMonth, onSelectMonth, onBack }: { selectedMonth
                     {[0, 3, 6, 9].map((mIndex) => (
                         <button
                             key={mIndex}
-                            onClick={() => onSelectMonth(mIndex)}
+                            onClick={() => !isMonthDisabled(mIndex) && onSelectMonth(mIndex)}
+                            disabled={isMonthDisabled(mIndex)}
                             className={cn(
-                                "self-stretch p-1 rounded inline-flex justify-center items-center gap-2.5 hover:bg-gray-100 transition-colors w-full",
-                                selectedMonth === mIndex ? "bg-[#FF6900] text-white" : "bg-white text-black"
+                                "self-stretch p-1 rounded inline-flex justify-center items-center gap-2.5 transition-colors w-full",
+                                selectedMonth === mIndex ? "bg-[#FF6900] text-white" : "bg-white text-black",
+                                isMonthDisabled(mIndex) ? "opacity-30 cursor-not-allowed" : "hover:bg-gray-100 cursor-pointer"
                             )}
                         >
                             <div className={cn("flex-1 text-center justify-center text-xs font-normal font-['Geist'] leading-4", selectedMonth === mIndex ? "text-white" : "text-black")}>
@@ -241,10 +250,12 @@ function MonthSelector({ selectedMonth, onSelectMonth, onBack }: { selectedMonth
                     {[1, 4, 7, 10].map((mIndex) => (
                         <button
                             key={mIndex}
-                            onClick={() => onSelectMonth(mIndex)}
+                            onClick={() => !isMonthDisabled(mIndex) && onSelectMonth(mIndex)}
+                            disabled={isMonthDisabled(mIndex)}
                             className={cn(
-                                "self-stretch p-1 rounded inline-flex justify-center items-center gap-2.5 hover:bg-gray-100 transition-colors w-full",
-                                selectedMonth === mIndex ? "bg-[#FF6900] text-white" : "bg-white text-black"
+                                "self-stretch p-1 rounded inline-flex justify-center items-center gap-2.5 transition-colors w-full",
+                                selectedMonth === mIndex ? "bg-[#FF6900] text-white" : "bg-white text-black",
+                                isMonthDisabled(mIndex) ? "opacity-30 cursor-not-allowed" : "hover:bg-gray-100 cursor-pointer"
                             )}
                         >
                             <div className={cn("flex-1 text-center justify-center text-xs font-normal font-['Geist'] leading-4", selectedMonth === mIndex ? "text-white" : "text-black")}>
@@ -257,10 +268,12 @@ function MonthSelector({ selectedMonth, onSelectMonth, onBack }: { selectedMonth
                     {[2, 5, 8, 11].map((mIndex) => (
                         <button
                             key={mIndex}
-                            onClick={() => onSelectMonth(mIndex)}
+                            onClick={() => !isMonthDisabled(mIndex) && onSelectMonth(mIndex)}
+                            disabled={isMonthDisabled(mIndex)}
                             className={cn(
-                                "self-stretch p-1 rounded inline-flex justify-center items-center gap-2.5 hover:bg-gray-100 transition-colors w-full",
-                                selectedMonth === mIndex ? "bg-[#FF6900] text-white" : "bg-white text-black"
+                                "self-stretch p-1 rounded inline-flex justify-center items-center gap-2.5 transition-colors w-full",
+                                selectedMonth === mIndex ? "bg-[#FF6900] text-white" : "bg-white text-black",
+                                isMonthDisabled(mIndex) ? "opacity-30 cursor-not-allowed" : "hover:bg-gray-100 cursor-pointer"
                             )}
                         >
                             <div className={cn("flex-1 text-center justify-center text-xs font-normal font-['Geist'] leading-4", selectedMonth === mIndex ? "text-white" : "text-black")}>
@@ -277,13 +290,26 @@ function MonthSelector({ selectedMonth, onSelectMonth, onBack }: { selectedMonth
 /* =========================
    YEAR SELECTOR
 ========================= */
-function YearSelector({ selectedYear, onSelectYear, onBack }: { selectedYear: number | undefined, onSelectYear: (y: number) => void, onBack?: () => void }) {
-    const [yearPage, setYearPage] = useState(0); 
-    const startYear = 2016 + (yearPage * 16);
-    const years = Array.from({ length: 16 }, (_, i) => startYear + i);
+function YearSelector({ selectedYear, onSelectYear, onBack, minDate, maxDate }: { selectedYear: number | undefined, onSelectYear: (y: number) => void, onBack?: () => void, minDate?: Date, maxDate?: Date }) {
+    const startYear = Math.max(2000, (selectedYear || new Date().getFullYear()) - 7);
+    const [years, setYears] = useState(Array.from({ length: 16 }, (_, i) => startYear + i));
 
-    const handlePrev = () => setYearPage(p => p - 1);
-    const handleNext = () => setYearPage(p => p + 1);
+    const handleNext = () => {
+        const nextYears = years.map(y => y + 16);
+        if (maxDate && nextYears[0] > maxDate.getFullYear()) return; // Don't allow scrolling forward fully past maxDate
+        setYears(nextYears);
+    };
+    const handlePrev = () => {
+        const nextYears = years.map(y => y - 16);
+        if (minDate && nextYears[15] < minDate.getFullYear()) return; // Don't allow scrolling back fully before minDate
+        setYears(nextYears);
+    };
+
+    const isYearDisabled = (y: number) => {
+        if (minDate && y < minDate.getFullYear()) return true;
+        if (maxDate && y > maxDate.getFullYear()) return true;
+        return false;
+    };
 
     return (
         <div className="w-64 p-3 bg-white z-50 rounded-lg shadow-md shadow-[0px_2px_4px_-2px_rgba(0,0,0,0.10)] outline outline-1 outline-offset-[-1px] outline-Border-subtle inline-flex flex-col justify-start items-start gap-3">
@@ -320,10 +346,12 @@ function YearSelector({ selectedYear, onSelectYear, onBack }: { selectedYear: nu
                             return (
                                 <button
                                     key={actualYear}
-                                    onClick={() => onSelectYear(actualYear)}
+                                    onClick={() => !isYearDisabled(actualYear) && onSelectYear(actualYear)}
+                                    disabled={isYearDisabled(actualYear)}
                                     className={cn(
-                                        "w-full p-1 rounded inline-flex justify-center items-center gap-2.5 hover:bg-gray-100 transition-colors",
-                                        selectedYear === actualYear ? "bg-[#FF6900] text-white" : "bg-white text-black"
+                                        "w-full p-1 rounded inline-flex justify-center items-center gap-2.5 transition-colors",
+                                        selectedYear === actualYear ? "bg-[#FF6900] text-white" : "bg-white text-black",
+                                        isYearDisabled(actualYear) ? "opacity-30 cursor-not-allowed" : "hover:bg-gray-100 cursor-pointer"
                                     )}
                                 >
                                     <div className={cn("text-center justify-center text-xs font-normal font-['Geist'] leading-4", selectedYear === actualYear ? "text-white" : "text-black")}>
@@ -348,9 +376,11 @@ interface MonthYearFilterProps {
   showLabel?: boolean;
   className?: string;
   compact?: boolean;
+  minDate?: Date;
+  maxDate?: Date;
 }
 
-function MonthYearFilter({ date, setDate, showLabel = true, className, compact = false }: MonthYearFilterProps) {
+function MonthYearFilter({ date, setDate, showLabel = true, className, compact = false, minDate, maxDate }: MonthYearFilterProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [view, setView] = useState<'days' | 'months' | 'years'>('days');
   const [browsingDate, setBrowsingDate] = useState<Date>(date || new Date());
@@ -452,6 +482,10 @@ function MonthYearFilter({ date, setDate, showLabel = true, className, compact =
                         setDate(d);
                         setIsOpen(false);
                     }}
+                    disabled={[
+                        ...(minDate ? [{ before: minDate }] : []),
+                        ...(maxDate ? [{ after: maxDate }] : [])
+                    ]}
                     month={browsingDate}
                     onMonthChange={setBrowsingDate}
                     initialFocus
@@ -503,6 +537,9 @@ function MonthYearFilter({ date, setDate, showLabel = true, className, compact =
                         setView('days');
                     }} 
                     onBack={() => setView('days')}
+                    minDate={minDate}
+                    maxDate={maxDate}
+                    currentYear={browsingDate.getFullYear()}
                 />
             )}
             {view === 'years' && (
@@ -513,6 +550,8 @@ function MonthYearFilter({ date, setDate, showLabel = true, className, compact =
                         setView('days');
                     }}
                     onBack={() => setView('days')}
+                    minDate={minDate}
+                    maxDate={maxDate}
                 />
             )}
         </PopoverContent>

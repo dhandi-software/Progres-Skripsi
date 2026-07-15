@@ -13,7 +13,9 @@ export interface User {
     email?: string;
     photo?: string;
     jabatan?: string;
-    dosenId?: number;
+    dosenNidn?: string;
+    mahasiswaNim?: string;
+    tahunMasuk?: string;
 }
 
 export interface LoginResponse {

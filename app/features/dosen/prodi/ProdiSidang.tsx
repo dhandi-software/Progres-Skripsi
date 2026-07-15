@@ -7,8 +7,9 @@ import {
     Calendar, Clock, MapPin, CheckCircle, AlertCircle, 
     Search, User, Filter, Check, MoreVertical,
     CheckCircle2, XCircle, Info, ChevronRight,
-    Users, LayoutDashboard, Clock3, MapPinned, Edit3
+    Users, LayoutDashboard, Clock3, MapPinned, Edit3, FileText
 } from "lucide-react";
+import { UPLOADS_URL } from "~/api/client";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -22,7 +23,6 @@ interface SidangItem {
     mahasiswa: {
         nama: string;
         nim: string;
-        jurusan: string;
     };
     dosen: {
         nama: string;
@@ -35,8 +35,8 @@ interface SidangItem {
     lokasi: string | null;
     status: string;
     pembimbingApproved: boolean;
-    prodiApproved: boolean;
     catatan: string | null;
+    laporanUrl?: string;
 }
 
 export function ProdiSidang() {
@@ -146,7 +146,7 @@ export function ProdiSidang() {
     const getStatusInfo = (sidang: SidangItem) => {
         if (sidang.status === "TERJADWAL") return { label: "Terjadwal", color: "text-emerald-600 bg-emerald-50 border-emerald-100", icon: CheckCircle2 };
         if (sidang.status === "MENUNGGU_VERIFIKASI_KAPRODI") return { label: "Menunggu Verifikasi Kaprodi", color: "text-purple-600 bg-purple-50 border-purple-100", icon: Clock3 };
-        if (sidang.status === "MENUNGGU_PENJADWALAN_PRODI") return { label: "Menunggu Jadwal Prodi", color: "text-blue-600 bg-blue-50 border-blue-100", icon: Clock3 };
+        if (sidang.status === "MENUNGGU_PENJADWALAN_KOORDINATOR") return { label: "Menunggu Jadwal Koordinator", color: "text-blue-600 bg-blue-50 border-blue-100", icon: Clock3 };
         if (sidang.status === "MENUNGGU_KONFIRMASI_JADWAL_KAPRODI") return { label: "Konfirmasi Jadwal (Kaprodi)", color: "text-indigo-600 bg-indigo-50 border-indigo-100", icon: Info };
         if (sidang.pembimbingApproved) return { label: "Menunggu Verifikasi", color: "text-amber-600 bg-amber-50 border-amber-100", icon: AlertCircle };
         return { label: "Menunggu ACC Pembimbing", color: "text-slate-600 bg-slate-50 border-slate-100", icon: Clock3 };
@@ -169,8 +169,8 @@ export function ProdiSidang() {
 
                     <div className="flex gap-4">
                         <div className="bg-amber-50 px-6 py-3 rounded-2xl border border-amber-100 flex flex-col items-center">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-amber-600">Butuh ACC</span>
-                            <span className="text-xl font-black text-amber-700">{sidangs.filter(s => s.pembimbingApproved && !s.prodiApproved).length}</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-amber-600">Butuh Proses</span>
+                            <span className="text-xl font-black text-amber-700">{sidangs.filter(s => s.pembimbingApproved && s.status !== "TERJADWAL").length}</span>
                         </div>
                         <div className="bg-emerald-50 px-6 py-3 rounded-2xl border border-emerald-100 flex flex-col items-center">
                             <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Total Sidang</span>
@@ -211,8 +211,8 @@ export function ProdiSidang() {
                                     <div key={sidang.id} className="group bg-white rounded-[40px] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200/40 transition-all duration-500 overflow-hidden flex flex-col lg:flex-row">
                                         {/* Status Sidebar */}
                                         <div className={cn("w-full lg:w-3 border-b lg:border-b-0 lg:border-r border-black/5", 
-                                            !sidang.prodiApproved && sidang.pembimbingApproved ? "bg-blue-500" :
-                                            sidang.prodiApproved ? "bg-emerald-500" : "bg-amber-500"
+                                            sidang.status === "TERJADWAL" ? "bg-emerald-500" :
+                                            sidang.pembimbingApproved ? "bg-blue-500" : "bg-amber-500"
                                         )} />
                                         
                                         <div className="flex-1 p-8 space-y-6">
@@ -268,6 +268,17 @@ export function ProdiSidang() {
 
                                             {/* Actions */}
                                             <div className="flex gap-4 pt-2">
+                                                {sidang.laporanUrl && (
+                                                    <a 
+                                                        href={`${UPLOADS_URL}${sidang.laporanUrl}`} 
+                                                        target="_blank" 
+                                                        rel="noreferrer"
+                                                        className="h-14 px-6 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 rounded-2xl font-black transition-all flex items-center justify-center gap-2 border border-blue-100 whitespace-nowrap"
+                                                        title="Lihat Laporan Sidang"
+                                                    >
+                                                        <FileText size={18} /> Lihat Laporan
+                                                    </a>
+                                                )}
                                                 {/* Kaprodi Verification Step */}
                                                 {sidang.status === "MENUNGGU_VERIFIKASI_KAPRODI" && isKaprodi && (
                                                     <div className="flex gap-3 w-full">
@@ -292,7 +303,7 @@ export function ProdiSidang() {
                                                    Tombol Atur Jadwal: 
                                                    Hanya muncul untuk Tim/Koordinator Prodi biasa (bukan Kaprodi)
                                                 */}
-                                                {sidang.status === "MENUNGGU_PENJADWALAN_PRODI" && !isKaprodi && (
+                                                {sidang.status === "MENUNGGU_PENJADWALAN_KOORDINATOR" && !isKaprodi && (
                                                     <Button 
                                                         onClick={() => {
                                                             setIsScheduling(sidang);
@@ -354,11 +365,31 @@ export function ProdiSidang() {
                                                         >
                                                             <CheckCircle2 size={18} /> Jadwal Terkonfirmasi
                                                         </Button>
+                                                        
+                                                        {(!isKaprodi || isProdi) && (
+                                                            <Button 
+                                                                onClick={() => {
+                                                                    setIsScheduling(sidang);
+                                                                    setSchedData({
+                                                                        tanggalSidang: sidang.tanggalSidang || "",
+                                                                        waktuSidang: sidang.waktuSidang || "09:00",
+                                                                        lokasi: sidang.lokasi || "Ruang Sidang Lt. 3",
+                                                                        catatan: sidang.catatan || ""
+                                                                    });
+                                                                    if (sidang.tanggalSidang) setSelectedDate(new Date(sidang.tanggalSidang));
+                                                                }}
+                                                                variant="outline"
+                                                                className="h-14 px-6 rounded-2xl font-black text-slate-600 border-2 border-slate-100 hover:bg-slate-50 transition-all"
+                                                                title="Ubah Jadwal"
+                                                            >
+                                                                <Edit3 size={20} />
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                 )}
 
                                                 {/* Fallback / General Actions (e.g. for rejected or waiting supervisor) */}
-                                                {!["MENUNGGU_VERIFIKASI_KAPRODI", "MENUNGGU_PENJADWALAN_PRODI", "MENUNGGU_KONFIRMASI_JADWAL_KAPRODI", "TERJADWAL"].includes(sidang.status) && (
+                                                {!["MENUNGGU_VERIFIKASI_KAPRODI", "MENUNGGU_PENJADWALAN_KOORDINATOR", "MENUNGGU_KONFIRMASI_JADWAL_KAPRODI", "TERJADWAL"].includes(sidang.status) && (
                                                     <Button 
                                                         disabled 
                                                         className="flex-1 h-14 bg-slate-100 text-slate-400 rounded-2xl font-black gap-2 opacity-50"

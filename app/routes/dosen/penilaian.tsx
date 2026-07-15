@@ -4,5 +4,5 @@ import { PenilaianDesktop, PenilaianMobile } from "~/features/dosen/penilaian";
 
 export default function PenilaianRoute() {
   const { isMobile } = useOutletContext<ContextType>();
-  return isMobile ? <PenilaianMobile title="Penilaian" /> : <PenilaianDesktop title="Penilaian" />;
+  return isMobile ? <PenilaianMobile title="Penilaian Evaluasi Kerja Praktik" /> : <PenilaianDesktop title="Penilaian Evaluasi Kerja Praktik" />;
 }

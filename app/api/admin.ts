@@ -46,8 +46,10 @@ export const adminApi = {
      * Get monitoring data
      * GET /admin/monitoring
      */
-    getMonitoringData: async (): Promise<ApiResponse<any[]>> => {
-        const response = await client.get<ApiResponse<any[]>>("/admin/monitoring");
+    getMonitoringData: async (search?: string, statusBimbingan?: string, page: number = 1, limit: number = 10): Promise<ApiResponse<{ data: any[], meta: { total: number, page: number, totalPages: number } }>> => {
+        const response = await client.get<ApiResponse<{ data: any[], meta: { total: number, page: number, totalPages: number } }>>("/admin/monitoring", {
+            params: { search, statusBimbingan, page, limit }
+        });
         return response.data;
     },
 
@@ -119,8 +121,9 @@ export const adminApi = {
      * Get students without proposal
      * GET /admin/mahasiswa-tanpa-pengajuan
      */
-    getMahasiswaTanpaPengajuan: async (): Promise<ApiResponse<any[]>> => {
-        const response = await client.get<ApiResponse<any[]>>("/admin/mahasiswa-tanpa-pengajuan");
+    getMahasiswaTanpaPengajuan: async (search?: string): Promise<ApiResponse<any[]>> => {
+        const params = search ? { search } : {};
+        const response = await client.get<ApiResponse<any[]>>("/admin/mahasiswa-tanpa-pengajuan", { params });
         return response.data;
     },
 
@@ -128,8 +131,9 @@ export const adminApi = {
      * Get students with proposal
      * GET /admin/mahasiswa-sudah-pengajuan
      */
-    getMahasiswaSudahPengajuan: async (): Promise<ApiResponse<any[]>> => {
-        const response = await client.get<ApiResponse<any[]>>("/admin/mahasiswa-sudah-pengajuan");
+    getMahasiswaSudahPengajuan: async (search?: string): Promise<ApiResponse<any[]>> => {
+        const params = search ? { search } : {};
+        const response = await client.get<ApiResponse<any[]>>("/admin/mahasiswa-sudah-pengajuan", { params });
         return response.data;
     },
 };

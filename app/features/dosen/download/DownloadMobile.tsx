@@ -6,7 +6,7 @@ import {
     Download as DownloadIcon, File as FileIcon,
     MoreVertical, FileText, ClipboardList, Eye, ArrowLeft
 } from "lucide-react";
-import { useNavigate } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 import { Button } from "~/components/ui/button";
 import { useAuth } from "~/hooks/useAuth";
 import { downloadApi, type Download, type DownloadResponse } from "~/api/downloadApi";
@@ -30,7 +30,13 @@ import {
 export function DownloadMobile({ title }: { title: string }) {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const isDosen = user?.role === "dosen";
+    const location = useLocation();
+    const routePrefix = location.pathname.startsWith("/admin") 
+        ? "/admin/download" 
+        : location.pathname.startsWith("/staf")
+        ? "/staf/download"
+        : "/dosen/download";
+    const canManage = ["dosen", "dosen_pembimbing", "kaprodi", "staf", "staf_univ", "admin"].includes(user?.role?.toLowerCase() || "");
 
     const [downloads, setDownloads] = useState<Download[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -135,14 +141,14 @@ export function DownloadMobile({ title }: { title: string }) {
                                         <DownloadIcon size={16} />
                                     </button>
                                 </div>
-                                {isDosen && (
+                                {canManage && (
                                     <div className="flex items-center gap-2">
                                         <Button 
                                             variant="ghost"
                                             size="icon"
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                navigate(`/dosen/download/edit/${item.id}`);
+                                                navigate(`${routePrefix}/edit/${item.id}`);
                                             }}
                                             className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-500 active:scale-90 transition-all border border-blue-100"
                                         >
@@ -216,9 +222,9 @@ export function DownloadMobile({ title }: { title: string }) {
             </div>
 
             {/* Floating Action Button - MATCH ACARA */}
-            {isDosen && (
+            {canManage && (
                 <Button 
-                    onClick={() => navigate("/dosen/download/create")}
+                    onClick={() => navigate(`${routePrefix}/create`)}
                     className="fixed bottom-8 right-8 w-16 h-16 bg-brand-primary text-white rounded-[24px] flex items-center justify-center shadow-2xl shadow-brand-primary/40 active:scale-90 transition-all z-50 border-none"
                 >
                     <Plus size={28} strokeWidth={3} />

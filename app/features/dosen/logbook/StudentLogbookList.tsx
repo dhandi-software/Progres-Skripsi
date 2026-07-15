@@ -68,7 +68,7 @@ export function StudentLogbookList() {
                     {filteredStudents.map((item) => (
                         <Link 
                             key={item.id}
-                            to={`/dosen/logbook/${item.mahasiswaId}`}
+                            to={`/dosen/logbook/${item.mahasiswa?.nim || item.mahasiswaNim}`}
                             className="group bg-white p-5 rounded-2xl border border-gray-100 hover:border-[#D25026] hover:shadow-xl hover:shadow-[#D25026]/5 transition-all duration-300"
                         >
                             <div className="flex items-start justify-between mb-4">

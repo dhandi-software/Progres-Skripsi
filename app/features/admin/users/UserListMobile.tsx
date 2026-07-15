@@ -3,7 +3,7 @@ import { Plus, Search, Filter, Monitor, Pencil, Trash2, Check, X, ChevronRight, 
 import { adminApi } from "~/api/admin";
 import { cn } from "~/lib/utils";
 import { CreateAccountMobile } from "../create-account/CreateAccountMobile";
-import { useNavigate, useSearchParams } from "react-router";
+import { useNavigate, useSearchParams, useLocation } from "react-router";
 import { Checkbox } from "~/components/ui/checkbox";
 import { DeleteConfirmationModal } from "~/components/ui/delete-confirmation-modal";
 import { ForceDeleteModal } from "~/components/ui/force-delete-modal";
@@ -13,10 +13,12 @@ import {
     DrawerContent,
     DrawerTrigger,
 } from "~/components/ui/drawer";
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "~/components/ui/pagination";
 import { useSidebar } from "~/components/ui/sidebar";
 
 export function UserListMobile() {
     const navigate = useNavigate();
+    const location = useLocation();
     const [searchParams, setSearchParams] = useSearchParams();
     const activeTab = (searchParams.get("tab") as "mahasiswa" | "dosen" | "staf") || "mahasiswa";
     const setActiveTab = (tab: "mahasiswa" | "dosen" | "staf") => setSearchParams({ tab });
@@ -42,6 +44,14 @@ export function UserListMobile() {
         setToastProps({ title, variant });
         setTimeout(() => setToastProps(null), 5000);
     };
+
+    useEffect(() => {
+        if (location.state?.toast) {
+            showToast(location.state.toast.title, location.state.toast.variant);
+            // Clear location state to prevent toast from reappearing on refresh
+            window.history.replaceState({}, document.title);
+        }
+    }, [location]);
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -436,7 +446,7 @@ export function UserListMobile() {
                                         <span className="text-xs text-gray-500 font-mono truncate">
                                             {activeTab === 'mahasiswa' ? user.nim : activeTab === 'dosen' ? user.nidn : user.user?.username}
                                         </span>
-                                        <span className="text-[10px] text-gray-400 truncate mt-0.5">{user.email || user.user?.email || '-'}</span>
+                                        <span className="text-[10px] text-gray-400 truncate mt-0.5">{user.email || user.user?.mahasiswa?.email || user.user?.dosen?.email || user.user?.staf?.email || user.user?.email || "-"}</span>
                                     </div>
                                 </div>
 
@@ -473,24 +483,58 @@ export function UserListMobile() {
 
             {/* Pagination */}
             {!loading && totalPages > 1 && (
-                <div className="px-4 py-6 flex justify-center gap-2 mb-20">
-                    <button 
-                        disabled={currentPage === 1}
-                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                        className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 shadow-sm disabled:opacity-50 active:scale-95 transition-all"
-                    >
-                        Prev
-                    </button>
-                    <div className="flex items-center px-6 bg-white border border-gray-100 rounded-xl text-sm font-black text-[#D25026] shadow-inner">
-                        {currentPage} / {totalPages}
-                    </div>
-                    <button 
-                        disabled={currentPage === totalPages}
-                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                        className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 shadow-sm disabled:opacity-50 active:scale-95 transition-all"
-                    >
-                        Next
-                    </button>
+                <div className="px-4 py-6 flex justify-center mb-20 overflow-x-auto">
+                    <Pagination>
+                        <PaginationContent>
+                            <PaginationItem>
+                                <PaginationPrevious 
+                                    href="#" 
+                                    onClick={(e) => { e.preventDefault(); setCurrentPage(prev => Math.max(1, prev - 1)); }}
+                                    className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                                />
+                            </PaginationItem>
+                            
+                            {(() => {
+                                let pages: (number | string)[] = [];
+                                if (totalPages <= 5) {
+                                    pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+                                } else {
+                                    if (currentPage <= 3) {
+                                        pages = [1, 2, 3, 4, 'ellipsis-1', totalPages];
+                                    } else if (currentPage >= totalPages - 2) {
+                                        pages = [1, 'ellipsis-2', totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+                                    } else {
+                                        pages = [1, 'ellipsis-1', currentPage - 1, currentPage, currentPage + 1, 'ellipsis-2', totalPages];
+                                    }
+                                }
+
+                                return pages.map((page, idx) => {
+                                    if (typeof page === 'string') {
+                                        return <PaginationEllipsis key={`ellipsis-${idx}`} />;
+                                    }
+                                    return (
+                                        <PaginationItem key={page}>
+                                            <PaginationLink 
+                                                href="#" 
+                                                isActive={currentPage === page}
+                                                onClick={(e) => { e.preventDefault(); setCurrentPage(page as number); }}
+                                            >
+                                                {page}
+                                            </PaginationLink>
+                                        </PaginationItem>
+                                    );
+                                });
+                            })()}
+
+                            <PaginationItem>
+                                <PaginationNext 
+                                    href="#" 
+                                    onClick={(e) => { e.preventDefault(); setCurrentPage(prev => Math.min(totalPages, prev + 1)); }}
+                                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                                />
+                            </PaginationItem>
+                        </PaginationContent>
+                    </Pagination>
                 </div>
             )}
         </div>

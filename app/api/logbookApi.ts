@@ -1,9 +1,10 @@
 import { client as apiClient } from "./client";
 
-export interface LogbookInfo {
+export interface TempatKP {
     namaPerusahaan: string;
     tlpFaxPerusahaan: string;
     alamatPerusahaan: string;
+    kontakPembimbing: string;
 }
 
 export interface LogbookEntry {
@@ -17,31 +18,36 @@ export interface LogbookEntry {
 
 export const logbookApi = {
     // Info Perusahaan
-    getInfo: async (mahasiswaId?: number): Promise<LogbookInfo> => {
+    getInfo: async (mahasiswaId?: string): Promise<TempatKP> => {
         const url = mahasiswaId ? `/logbook/info?mahasiswaId=${mahasiswaId}` : '/logbook/info';
         const response = await apiClient.get(url);
         return response.data;
     },
+
+    getCompanies: async (): Promise<TempatKP[]> => {
+        const response = await apiClient.get('/logbook/companies');
+        return response.data;
+    },
     
-    updateInfo: async (data: LogbookInfo, mahasiswaId?: number): Promise<LogbookInfo> => {
+    updateInfo: async (data: TempatKP, mahasiswaId?: string): Promise<TempatKP> => {
         const url = mahasiswaId ? `/logbook/info?mahasiswaId=${mahasiswaId}` : '/logbook/info';
         const response = await apiClient.post(url, data);
         return response.data.data;
     },
 
     // Logbook Entries
-    getEntries: async (mahasiswaId?: number): Promise<LogbookEntry[]> => {
+    getEntries: async (mahasiswaId?: string): Promise<LogbookEntry[]> => {
         const url = mahasiswaId ? `/logbook/entries?mahasiswaId=${mahasiswaId}` : '/logbook/entries';
         const response = await apiClient.get(url);
         return response.data;
     },
 
-    syncEntries: async (entries: LogbookEntry[], mahasiswaId?: number): Promise<void> => {
+    syncEntries: async (entries: LogbookEntry[], mahasiswaId?: string): Promise<void> => {
         const url = mahasiswaId ? `/logbook/entries/sync?mahasiswaId=${mahasiswaId}` : '/logbook/entries/sync';
         await apiClient.post(url, { entries });
     },
 
-    getStudentProfile: async (mahasiswaId: number): Promise<any> => {
+    getStudentProfile: async (mahasiswaId: string): Promise<any> => {
         const response = await apiClient.get(`/logbook/student-profile/${mahasiswaId}`);
         return response.data;
     }

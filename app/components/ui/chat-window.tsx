@@ -6,12 +6,13 @@ import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
 import type { Message, ChatContact } from "~/types/chat";
 import { cn } from "~/lib/utils";
-import { Paperclip, Send, FileText, ArrowLeft, X, Check, CheckCheck, Trash2, UserPlus } from "lucide-react";
+import { Paperclip, Send, FileText, ArrowLeft, X, Check, CheckCheck, Trash2, UserPlus, User } from "lucide-react";
 import { MessageActionMenu } from "./message-action-menu";
 import { DeleteMessageDialog } from "./delete-message-dialog";
 import { RemoveMemberDialog } from "./remove-member-dialog";
 import { DeleteGroupDialog } from "./delete-group-dialog";
 import { profileApi } from "~/api/profileApi";
+import { PublicProfileModal } from "~/components/profile/PublicProfileModal";
 
 interface ChatWindowProps {
     activeContact: ChatContact | null;
@@ -61,8 +62,29 @@ export function ChatWindow({
     const [memberToRemove, setMemberToRemove] = useState<{ id: number; name: string } | null>(null);
     const [isDeleteGroupOpen, setIsDeleteGroupOpen] = useState(false);
     
+    // For Public Profile viewing
+    const [selectedPublicUserId, setSelectedPublicUserId] = useState<number | null>(null);
+    
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const canAttachFiles = () => {
+        if (!currentUser || !activeContact) return false;
+        
+        // Allowed in all groups (isGroup or Public Room id 0)
+        const isGroup = activeContact.isGroup || Number(activeContact.id) === 0;
+        if (isGroup) return true;
+        
+        // For direct chats, if both are Mahasiswa, do not allow attachments
+        const currentRole = currentUser.role?.toUpperCase() || "";
+        const contactRole = activeContact.role?.toUpperCase() || "";
+        
+        if (currentRole === "MAHASISWA" && contactRole === "MAHASISWA") {
+            return false;
+        }
+        
+        return true;
+    };
 
     // Function to get Avatar Details (Consistent with Sidebar)
     const getAvatarDetails = (contact: ChatContact) => {
@@ -80,7 +102,7 @@ export function ChatWindow({
         if (role.includes("mahasiswa") || username.includes("mahasiswa")) {
             image = "https://img.freepik.com/free-vector/smiling-young-man-illustration_1308-174669.jpg?semt=ais_hybrid&w=740&q=80";
         } else if (role.includes("dosen") || username.includes("dosen")) {
-            image = "https://rmik.poltekkes-smg.ac.id/wp-content/uploads/2023/10/Doen.png";
+            image = "https://cdn-icons-png.flaticon.com/512/2784/2784488.png";
         } else if (role.includes("kaprodi") || username.includes("kaprodi")) {
             initials = "Ka";
             color = "bg-[#fdffb6]"; 
@@ -178,17 +200,22 @@ export function ChatWindow({
     const { initials: avatarInitials, color: avatarColor, image: avatarImage } = getAvatarDetails(activeContact);
 
     return (
-        <div className="flex flex-col h-full bg-[#efeae2] relative w-full mb-0">
-            {/* Background Pattern */}
-            <div className="absolute inset-0 opacity-[0.4] pointer-events-none" style={{
-                backgroundImage: `url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")`,
-                backgroundSize: "400px"
+        <div className="flex flex-col h-full bg-[#f8fafc] relative w-full mb-0">
+            {/* Subtle Abstract Pattern instead of dots */}
+            <div className="absolute inset-0 pointer-events-none opacity-[0.4]" style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2394a3b8' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
             }} />
 
             {/* Header */}
             <div 
-                className={cn("flex items-center p-3 bg-[#f0f2f5] border-b border-[#d1d7db] z-10 shrink-0 h-[60px]", (activeContact.isGroup || Number(activeContact.id) === 0) && "cursor-pointer hover:bg-[#e9edef] transition-colors")}
-                onClick={() => (activeContact.isGroup || Number(activeContact.id) === 0) && setIsGroupInfoOpen(true)}
+                className={cn("flex items-center p-3 pl-16 md:pl-3 bg-[#f0f2f5] border-b border-[#d1d7db] z-10 shrink-0 h-[60px] cursor-pointer hover:bg-[#e9edef] transition-colors")}
+                onClick={() => {
+                    if (activeContact.isGroup || Number(activeContact.id) === 0) {
+                        setIsGroupInfoOpen(true);
+                    } else {
+                        setSelectedPublicUserId(Number(activeContact.id));
+                    }
+                }}
             >
                 <div className="flex items-center flex-1">
                     <Button variant="ghost" size="icon" className="md:hidden mr-2 text-[#54656f]" onClick={(e) => { e.stopPropagation(); onBack?.(); }}>
@@ -226,7 +253,35 @@ export function ChatWindow({
                         messages.map((msg, idx) => {
                             const isMe = msg.senderId === currentUser?.id;
                             const isPublic = Number(activeContact.id) === 0;
-                            const senderColor = isPublic ? ['#FF5733', '#33FF57', '#3357FF', '#FF33F5'][msg.senderId % 4] : undefined;
+                            const isGroupChat = activeContact.isGroup || isPublic;
+                            const showAvatarAndName = !isMe && isGroupChat;
+
+                            // Gunakan gradien mewah untuk avatar fallback
+                            const gradientColors = [
+                                "bg-gradient-to-br from-indigo-500 to-purple-500",
+                                "bg-gradient-to-br from-blue-500 to-cyan-500",
+                                "bg-gradient-to-br from-emerald-500 to-teal-500",
+                                "bg-gradient-to-br from-rose-500 to-pink-500",
+                                "bg-gradient-to-br from-amber-500 to-orange-500",
+                                "bg-gradient-to-br from-fuchsia-500 to-violet-500"
+                            ];
+                            
+                            // Warna teks nama tetap flat agar mudah dibaca
+                            const textColors = ['#6366f1', '#0ea5e9', '#10b981', '#f43f5e', '#f59e0b', '#d946ef'];
+                            
+                            const senderGradient = isGroupChat ? gradientColors[msg.senderId % 6] : "bg-slate-300";
+                            const senderColor = isGroupChat ? textColors[msg.senderId % 6] : undefined;
+
+                            let senderAvatarImage = "";
+                            let senderInitials = "";
+                            if (showAvatarAndName && msg.sender) {
+                                const senderRole = msg.sender.role?.toLowerCase() || "";
+                                const senderUsername = msg.sender.username || "U";
+                                if (senderRole.includes("mahasiswa")) senderAvatarImage = "https://img.freepik.com/free-vector/smiling-young-man-illustration_1308-174669.jpg?semt=ais_hybrid&w=740&q=80";
+                                else if (senderRole.includes("dosen")) senderAvatarImage = "https://cdn-icons-png.flaticon.com/512/2784/2784488.png";
+                                if (msg.sender.photo) senderAvatarImage = profileApi.getProfilePhotoUrl(msg.sender.photo);
+                                senderInitials = senderUsername.substring(0, 2).toUpperCase();
+                            }
 
                             if (msg.isDeleted) {
                                 return (
@@ -249,14 +304,32 @@ export function ChatWindow({
 
                             return (
                                 <div key={idx} className={cn("flex flex-col mb-1 group max-w-full", isMe ? "items-end" : "items-start")}>
-                                    <div
-                                        className={cn(
-                                            "max-w-[70%] sm:max-w-[60%] rounded-lg px-2 py-1 relative shadow-sm text-sm break-words flex flex-col min-w-[120px]",
-                                            isMe
-                                                ? "bg-[#d9fdd3] text-[#111b21] rounded-tr-none"
-                                                : "bg-white text-[#111b21] rounded-tl-none"
+                                    <div className={cn("flex max-w-[85%] sm:max-w-[75%]", isMe ? "justify-end" : "justify-start gap-2")}>
+                                        
+                                        {/* Avatar for incoming group messages */}
+                                        {showAvatarAndName && (
+                                            <Avatar 
+                                                className="h-8 w-8 flex-shrink-0 cursor-pointer mt-0.5 shadow-sm"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (msg.senderId) setSelectedPublicUserId(msg.senderId);
+                                                }}
+                                            >
+                                                <AvatarImage src={senderAvatarImage} />
+                                                <AvatarFallback className={cn("text-[11px] font-bold text-white", senderGradient)}>
+                                                    {senderInitials}
+                                                </AvatarFallback>
+                                            </Avatar>
                                         )}
-                                    >
+
+                                        <div
+                                            className={cn(
+                                                "px-3.5 py-2.5 relative text-[14.5px] break-words flex flex-col min-w-[120px] transition-all",
+                                                isMe
+                                                    ? "bg-gradient-to-br from-blue-400 to-blue-500 text-white rounded-2xl rounded-br-sm shadow-md shadow-blue-400/20"
+                                                    : "bg-white text-slate-800 rounded-2xl rounded-bl-sm shadow-sm border border-slate-100/60"
+                                            )}
+                                        >
                                         {/* Action Menu Trigger (Hover) */}
                                         <div className="absolute top-0 right-0 p-1 z-20">
                                             <MessageActionMenu 
@@ -268,15 +341,44 @@ export function ChatWindow({
                                             />
                                         </div>
 
+                                        {/* Sender Name in Group Chat (ALWAYS ON TOP) */}
+                                        {showAvatarAndName && (
+                                            <div 
+                                                className="text-[12px] font-bold mb-1.5 cursor-pointer hover:opacity-80 flex items-center justify-between"
+                                                style={{ color: senderColor }}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (msg.senderId) {
+                                                        setSelectedPublicUserId(msg.senderId);
+                                                    }
+                                                }}
+                                            >
+                                                <span>{msg.sender?.username || 'Unknown'}</span>
+                                                {msg.sender?.role && (
+                                                    <span className="text-[9px] uppercase tracking-wider text-slate-500 font-bold ml-2 bg-slate-100 px-1.5 py-0.5 rounded-full">
+                                                        {msg.sender.role}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+
                                         {/* Reply Context */}
                                         {msg.parent && (
-                                            <div className="bg-[#0000000d] rounded-md p-1 mb-1 border-l-4 border-[#00a884] text-xs flex flex-col cursor-pointer" onClick={() => {
-                                                const el = document.getElementById(`msg-${msg.parent!.id}`);
-                                                el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                            }}>
-                                                <span className="text-[#00a884] font-bold">{msg.parent.sender.username}</span>
+                                            <div 
+                                                className={cn(
+                                                    "rounded-lg p-2 mb-2 border-l-[3px] text-xs flex flex-col cursor-pointer transition-colors",
+                                                    isMe ? "bg-white/20 border-white/50 hover:bg-white/30 text-white" : "bg-black/5 border-[#119DA4] hover:bg-black/10 text-slate-700"
+                                                )}
+                                                onClick={() => {
+                                                    const el = document.getElementById(`msg-${msg.parent!.id}`);
+                                                    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                }}
+                                            >
+                                                <span className={cn("font-bold opacity-90", isMe ? "text-white" : "text-[#119DA4]")}>
+                                                    {msg.parent.sender.username}
+                                                </span>
                                                 <span 
-                                                    className="text-[#54656f] block break-words overflow-hidden text-ellipsis"
+                                                    className="opacity-80 block break-words overflow-hidden text-ellipsis mt-0.5"
                                                     style={{
                                                         display: '-webkit-box',
                                                         WebkitLineClamp: 1,
@@ -285,16 +387,6 @@ export function ChatWindow({
                                                 >
                                                     {msg.parent.content || "Lampiran"}
                                                 </span>
-                                            </div>
-                                        )}
-
-                                        {/* Sender Name in Public Chat */}
-                                        {isPublic && !isMe && (
-                                            <div 
-                                                className="text-xs font-bold mb-1 cursor-pointer hover:underline"
-                                                style={{ color: senderColor }}
-                                            >
-                                                {msg.sender?.username || 'Unknown'}
                                             </div>
                                         )}
 
@@ -331,16 +423,18 @@ export function ChatWindow({
                                         </div>
                                         
                                         {/* Meta (Time & Status) */}
-                                        <div className="flex justify-end items-center gap-1 mt-0.5 select-none self-end float-right">
-                                            {msg.isEdited && <span className="text-[10px] text-[#667781] italic mr-2">diedit</span>}
-                                            <span className="text-[11px] text-[#667781] mr-0.5">
-                                                {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                            {isMe && !isPublic && (
-                                                <span className={cn(msg.isRead ? "text-[#53bdeb]" : "text-[#667781]")}>
-                                                    {msg.isRead ? <CheckCheck size={14} /> : <Check size={14} />}
-                                                </span>
-                                            )}
+                                         {/* Meta (Time & Status) */}
+                                         <div className={cn("flex justify-end items-center gap-1.5 mt-1 select-none self-end float-right", isMe ? "text-white" : "text-slate-500")}>
+                                             {msg.isEdited && <span className="text-[10px] italic">diedit</span>}
+                                             <span className="text-[10px] font-bold">
+                                                 {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                             </span>
+                                             {isMe && !isPublic && (
+                                                 <span className="text-white">
+                                                     {msg.isRead ? <CheckCheck size={14} strokeWidth={2.5} /> : <Check size={14} strokeWidth={2.5} />}
+                                                 </span>
+                                             )}
+                                         </div>
                                         </div>
                                     </div>
                                 </div>
@@ -353,10 +447,10 @@ export function ChatWindow({
 
             {/* Replying Banner */}
             {replyingTo && !editingMessageId && (
-                <div className="bg-[#f0f2f5] px-4 py-2 border-l-4 border-[#00a884] flex justify-between items-center animate-in slide-in-from-bottom-2 border-t border-[#d1d7db]">
+                <div className="bg-white/80 backdrop-blur-md px-6 py-3 border-l-[4px] border-blue-500 flex justify-between items-center animate-in slide-in-from-bottom-2 border-t border-slate-200/60 shadow-sm z-20">
                     <div className="flex flex-col overflow-hidden">
-                        <span className="text-[#00a884] text-sm font-bold">Balas ke {replyingTo.sender?.username || currentUser?.username}</span>
-                        <span className="text-[#54656f] text-xs truncate">{replyingTo.content || "Lampiran"}</span>
+                        <span className="text-blue-500 text-sm font-bold">Membalas {replyingTo.sender?.username || currentUser?.username}</span>
+                        <span className="text-slate-500 text-xs truncate mt-0.5">{replyingTo.content || "Lampiran"}</span>
                     </div>
                     <Button variant="ghost" size="icon" onClick={() => setReplyingTo(null)} className="text-[#54656f] hover:text-[#111b21] hover:bg-[#d1d7db]">
                         <X size={20} />
@@ -379,24 +473,28 @@ export function ChatWindow({
 
             {/* Input Area */}
             <div className="px-4 py-2 bg-[#f0f2f5] flex items-center gap-2 z-20 border-t border-[#d1d7db]">
-                 <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    onChange={handleFileUpload}
-                />
+                 {canAttachFiles() && (
+                    <>
+                        <input 
+                            type="file" 
+                            ref={fileInputRef}
+                            className="hidden"
+                            onChange={handleFileUpload}
+                        />
+                        
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-[46px] w-[46px] rounded-full bg-white text-slate-500 hover:text-blue-500 hover:bg-blue-50 shadow-sm border border-slate-200 transition-all flex-shrink-0" 
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isSending}
+                        >
+                            <Paperclip size={20} />
+                        </Button>
+                    </>
+                )}
                 
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="text-[#54656f] hover:text-[#111b21] hover:bg-[#d1d7db]" 
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isSending}
-                >
-                    <Paperclip size={20} />
-                </Button>
-                
-                <div className="flex-1 bg-white rounded-lg px-2 flex items-center min-h-[40px] py-1 border border-[#fff]">
+                <div className="flex-1 bg-white rounded-3xl px-4 flex items-center min-h-[46px] py-1 shadow-sm border border-slate-200 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all">
                     <Textarea
                         placeholder={editingMessageId ? "Edit pesan Anda..." : "Ketik pesan"}
                         value={inputValue}
@@ -418,20 +516,21 @@ export function ChatWindow({
                     />
                 </div>
                 
-                <Button 
+                <button 
                     onClick={handleSend} 
                     disabled={!inputValue.trim() || isSending}
                     className={cn(
-                        "rounded-full p-2 h-10 w-10 transition-colors",
-                         inputValue.trim() ? "bg-[#00a884] text-white hover:bg-[#008f6f]" : "bg-[#f0f2f5] text-[#8696a0]"
+                        "rounded-full p-2 h-[48px] w-[48px] flex items-center justify-center transition-all flex-shrink-0 shadow-sm border-none outline-none",
+                         inputValue.trim() ? "text-white cursor-pointer shadow-md" : "bg-white text-slate-300 border border-slate-200 cursor-not-allowed"
                     )}
+                    style={{ backgroundColor: inputValue.trim() ? '#2563eb' : '' }}
                 >
                     {editingMessageId ? (
-                         <Check size={20} className={inputValue.trim() ? "ml-0.5" : ""} />
+                         <Check size={26} />
                     ) : ( 
-                         <Send size={20} className={inputValue.trim() ? "ml-0.5" : ""} />
+                         <Send size={26} className={inputValue.trim() ? "ml-1" : ""} />
                     )}
-                </Button>
+                </button>
             </div>
 
             <DeleteMessageDialog 
@@ -532,6 +631,19 @@ export function ChatWindow({
                                                 {Number(activeContact.id) === 0 ? (member.role || 'Admin') : 'Admin'}
                                             </div>
                                         )}
+                                        {/* View Profile Button */}
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedPublicUserId(member.id);
+                                            }}
+                                            className="ml-auto text-[#00a884] hover:text-[#008f6f] hover:bg-[#d9fdd3] h-8 w-8 p-0 rounded-full flex-shrink-0"
+                                            title="Lihat profil"
+                                        >
+                                            <User className="w-4 h-4" />
+                                        </Button>
                                         {/* Group Kick (Non-Public) */}
                                         {Number(activeContact.id) !== 0 && activeContact.adminId === currentUser?.id && member.id !== currentUser?.id && onRemoveMember && (
                                             <Button 
@@ -627,6 +739,14 @@ export function ChatWindow({
                         }
                     }
                 }}
+            />
+
+            <PublicProfileModal 
+                userId={selectedPublicUserId} 
+                open={selectedPublicUserId !== null} 
+                onOpenChange={(open) => {
+                    if (!open) setSelectedPublicUserId(null);
+                }} 
             />
         </div>
     );

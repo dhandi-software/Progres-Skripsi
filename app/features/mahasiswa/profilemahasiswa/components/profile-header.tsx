@@ -4,6 +4,7 @@ import { profileApi } from "~/api/profileApi";
 import { pengajuanApi } from "~/api/pengajuan";
 import { Toast } from "~/components/ui/toast";
 import { cn } from "~/lib/utils";
+import { useAuth } from "~/hooks/useAuth";
 
 interface ProfileHeaderProps {
     profile: any;
@@ -11,6 +12,7 @@ interface ProfileHeaderProps {
 }
 
 export function ProfileHeader({ profile, onUpdate }: ProfileHeaderProps) {
+    const { user } = useAuth();
     const [uploading, setUploading] = useState(false);
     const [toastProps, setToastProps] = useState<{title: string, variant?: "success" | "destructive"} | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -57,9 +59,10 @@ export function ProfileHeader({ profile, onUpdate }: ProfileHeaderProps) {
         }
     };
 
-    const studentInitials = profile?.nama 
-        ? profile.nama.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
-        : "?";
+    const displayNama = user?.name || profile?.nama || "";
+    const studentInitials = displayNama 
+        ? displayNama.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
+        : 'M';
 
     return (
         <div className="relative">
@@ -86,10 +89,10 @@ export function ProfileHeader({ profile, onUpdate }: ProfileHeaderProps) {
                         className="w-40 h-40 md:w-48 md:h-48 rounded-[2.5rem] border-8 border-white bg-white shadow-xl overflow-hidden relative cursor-pointer"
                         onClick={handlePhotoClick}
                     >
-                        {profile?.user?.photo ? (
+                        {profile?.photo ? (
                             <img 
-                                src={profileApi.getProfilePhotoUrl(profile.user.photo)} 
-                                alt={profile.nama}
+                                src={profileApi.getProfilePhotoUrl(profile.photo)} 
+                                alt={displayNama}
                                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                             />
                         ) : (
@@ -114,17 +117,14 @@ export function ProfileHeader({ profile, onUpdate }: ProfileHeaderProps) {
                     <input type="file" className="hidden" ref={fileInputRef} onChange={handleFileChange} accept="image/*" />
                 </div>
 
-                <div className="flex-1 pb-2">
-                    <h1 className="text-3xl md:text-4xl font-black text-gray-900 drop-shadow-sm">{profile?.nama || "..."}</h1>
-                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-2">
+                <div className="flex-1 min-w-0 pb-2">
+                    <h1 className="text-3xl md:text-4xl font-black text-gray-900 drop-shadow-sm">{displayNama || "..."}</h1>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mt-3">
                         <div className="flex items-center gap-2 bg-white/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-white shadow-sm">
                             <BadgeCheck className="w-5 h-5 text-[#119DA4]" />
                             <span className="font-bold text-gray-700">{profile?.nim || "-"}</span>
                         </div>
-                        <div className="flex items-center gap-2 bg-white/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-white shadow-sm">
-                            <Award className="w-5 h-5 text-orange-500" />
-                            <span className="font-bold text-gray-700">{profile?.jurusan || "-"}</span>
-                        </div>
+
                     </div>
                 </div>
             </div>

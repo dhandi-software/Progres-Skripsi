@@ -146,7 +146,10 @@ export function AcaraMobile({ title }: { title: string }) {
         const transformed = content
             .replace(/src="\/uploads\//g, `src="${baseUploads}/uploads/`)
             .replace(/href="\/uploads\//g, `href="${baseUploads}/uploads/`)
-            .replace(/<img /g, '<img class="w-full h-auto max-h-[400px] rounded-2xl my-6 shadow-lg border border-slate-100 object-contain bg-slate-50/30" ');
+            .replace(/<img([^>]*)src="([^">]+)"([^>]*)>/g, (match, p1, src, p2) => {
+                const updatedImg = `<img${p1}src="${src}"${p2}`.replace(/<img /g, '<img class="w-full h-auto max-h-[400px] rounded-2xl my-6 shadow-lg border border-slate-100 object-contain bg-slate-50/30 hover:scale-[1.02] transition-transform cursor-pointer" ');
+                return `<a href="${src}" target="_blank" rel="noopener noreferrer">${updatedImg}</a>`;
+            });
         
         return sanitizeHtml(transformed);
     };
@@ -185,8 +188,21 @@ export function AcaraMobile({ title }: { title: string }) {
                     </button>
                     <div className="flex-1 min-w-0">
                         <h1 className="text-sm font-black text-slate-900 truncate tracking-tight">{selectedAcara.title}</h1>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-0.5">
-                            {selectedAcara.dosen?.nama} • {format(new Date(selectedAcara.createdAt), "dd MMM", { locale: id })}
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1 flex items-center gap-1.5 flex-wrap">
+                            <span>{selectedAcara.user?.role === 'admin' ? 'Admin' : (selectedAcara.user?.mahasiswa?.nama || selectedAcara.user?.dosen?.nama || selectedAcara.user?.username || selectedAcara.dosen?.nama || "Sistem")}</span>
+                            <span className={cn(
+                                "text-[7px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider leading-none",
+                                (selectedAcara.user?.role || "DOSEN").toUpperCase() === "MAHASISWA" 
+                                    ? "bg-blue-50 text-blue-500 border border-blue-100/50" 
+                                    : (selectedAcara.user?.role || "DOSEN").toUpperCase() === "DOSEN" || (selectedAcara.user?.role || "DOSEN").toUpperCase() === "KAPRODI"
+                                    ? "bg-purple-50 text-purple-500 border border-purple-100/50"
+                                    : (selectedAcara.user?.role || "DOSEN").toUpperCase() === "ADMIN"
+                                    ? "bg-red-50 text-red-500 border border-red-100/50"
+                                    : "bg-slate-50 text-slate-500 border border-slate-100"
+                            )}>
+                                {(selectedAcara.user?.role || "DOSEN").toUpperCase() === "MAHASISWA" ? "Mahasiswa" : (selectedAcara.user?.role || "DOSEN").toUpperCase() === "DOSEN" || (selectedAcara.user?.role || "DOSEN").toUpperCase() === "KAPRODI" ? "Dosen" : (selectedAcara.user?.role || "DOSEN").toUpperCase() === "ADMIN" ? "Admin" : "Staff"}
+                            </span>
+                            <span>• {format(new Date(selectedAcara.createdAt), "dd MMM", { locale: id })}</span>
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -244,9 +260,19 @@ export function AcaraMobile({ title }: { title: string }) {
                                                 </div>
                                             )}
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 mb-1">
+                                                <div className="flex items-center gap-2 mb-1 flex-wrap">
                                                     <span className="text-[11px] font-black text-slate-900 truncate">
                                                         {displayName}
+                                                    </span>
+                                                    <span className={cn(
+                                                        "text-[9px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider leading-none",
+                                                        comment.user.role.toUpperCase() === "MAHASISWA" 
+                                                            ? "bg-blue-50 text-blue-500 border border-blue-100/50" 
+                                                            : comment.user.role.toUpperCase() === "DOSEN" || comment.user.role.toUpperCase() === "KAPRODI"
+                                                            ? "bg-purple-50 text-purple-500 border border-purple-100/50"
+                                                            : "bg-slate-50 text-slate-500 border border-slate-100"
+                                                    )}>
+                                                        {comment.user.role.toUpperCase() === "MAHASISWA" ? "Mhs" : comment.user.role.toUpperCase() === "DOSEN" || comment.user.role.toUpperCase() === "KAPRODI" ? "Dosen" : "Staff"}
                                                     </span>
                                                     <span className="text-[9px] font-bold text-slate-300">{format(new Date(comment.createdAt), "HH:mm", { locale: id })}</span>
                                                 </div>
@@ -325,9 +351,26 @@ export function AcaraMobile({ title }: { title: string }) {
                                 <ClipboardList size={22} />
                             </div>
                             <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                                    <span className="text-[10px] font-black text-slate-800 leading-none">
+                                        {item.user?.role === 'admin' ? 'Admin' : (item.user?.mahasiswa?.nama || item.user?.dosen?.nama || item.user?.username || item.dosen?.nama || "Sistem")}
+                                    </span>
+                                    <span className={cn(
+                                        "text-[7px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider leading-none scale-90 origin-left",
+                                        (item.user?.role || "DOSEN").toUpperCase() === "MAHASISWA" 
+                                            ? "bg-blue-50 text-blue-500 border border-blue-100/50" 
+                                            : (item.user?.role || "DOSEN").toUpperCase() === "DOSEN" || (item.user?.role || "DOSEN").toUpperCase() === "KAPRODI"
+                                            ? "bg-purple-50 text-purple-500 border border-purple-100/50"
+                                            : (item.user?.role || "DOSEN").toUpperCase() === "ADMIN"
+                                            ? "bg-red-50 text-red-500 border border-red-100/50"
+                                            : "bg-slate-50 text-slate-500 border border-slate-100"
+                                    )}>
+                                        {(item.user?.role || "DOSEN").toUpperCase() === "MAHASISWA" ? "Mahasiswa" : (item.user?.role || "DOSEN").toUpperCase() === "DOSEN" || (item.user?.role || "DOSEN").toUpperCase() === "KAPRODI" ? "Dosen" : (item.user?.role || "DOSEN").toUpperCase() === "ADMIN" ? "Admin" : "Staff"}
+                                    </span>
+                                </div>
                                 <div className="flex items-center gap-2">
                                     <h3 className="text-sm font-black text-slate-900 tracking-tight truncate mb-0.5">
-                                        {item.dosen?.nama} memposting: {item.title}
+                                        {item.title}
                                     </h3>
                                     {(item.isReadByMe === false || item.isReadByMe === undefined) && (
                                         <span className="w-2 h-2 rounded-full bg-orange-500 shadow-sm" />

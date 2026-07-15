@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "~/hooks/useAuth";
 import { pengajuanApi } from "~/api/pengajuan";
 import { logbookApi } from "~/api/logbookApi";
-import { Loader2, Plus, Trash2, Save, CheckCircle, Clock, FileText, UserCheck, Briefcase } from "lucide-react";
+import { Loader2, Plus, Trash2, Save, CheckCircle, Clock, Search, UserCheck, Briefcase, FileText, ChevronDown } from "lucide-react";
 import { Toast } from "~/components/ui/toast";
 import { MonthYearFilter } from "~/components/ui/calendar";
 import { format } from "date-fns";
@@ -20,7 +20,7 @@ interface LogbookEntry {
 }
 
 interface LogbookProps {
-    mahasiswaId?: number;
+    mahasiswaId?: string;
 }
 
 export function LogbookMobile({ mahasiswaId }: LogbookProps) {
@@ -38,8 +38,32 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
         tahunAkademik: "",
         namaPerusahaan: "",
         tlpFaxPerusahaan: "",
-        alamatPerusahaan: ""
+        alamatPerusahaan: "",
+        kontakPembimbing: ""
     });
+
+    const [isManualInput, setIsManualInput] = useState(false);
+    const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [companies, setCompanies] = useState<{namaPerusahaan: string, tlpFaxPerusahaan: string, alamatPerusahaan: string, kontakPembimbing: string}[]>([]);
+
+    useEffect(() => {
+        if (!isViewingStudent && companies.length === 0) {
+            logbookApi.getCompanies().then((res) => {
+                setCompanies(res);
+            }).catch(console.error);
+        }
+    }, [isViewingStudent, companies.length]);
+
+    // Jika sudah ada data perusahaan dari backend yang tidak ada di list, otomatis mode manual
+    useEffect(() => {
+        if (companies.length > 0 && headerInfo.namaPerusahaan && !isManualInput) {
+            const exists = companies.some(c => c.namaPerusahaan === headerInfo.namaPerusahaan);
+            if (!exists) {
+                setIsManualInput(true);
+            }
+        }
+    }, [companies, headerInfo.namaPerusahaan]);
 
     const [entries, setEntries] = useState<LogbookEntry[]>([]);
     const [editingRowIds, setEditingRowIds] = useState<Set<string>>(new Set());
@@ -73,7 +97,8 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                     tahunAkademik: profileRes.pengajuanJudul?.[0]?.tahunAkademik || calculatedTahunAkademik,
                     namaPerusahaan: infoRes.namaPerusahaan || "",
                     tlpFaxPerusahaan: infoRes.tlpFaxPerusahaan || "",
-                    alamatPerusahaan: infoRes.alamatPerusahaan || ""
+                    alamatPerusahaan: infoRes.alamatPerusahaan || "",
+                    kontakPembimbing: infoRes.kontakPembimbing || ""
                 }));
 
                 const entriesRes = await logbookApi.getEntries(mahasiswaId);
@@ -114,7 +139,7 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
         fetchData();
     }, [user, mahasiswaId]);
 
-    const handleHeaderChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const handleHeaderChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setHeaderInfo(prev => ({ ...prev, [name]: value }));
     };
@@ -160,11 +185,8 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                 next.delete(id);
             } else {
                 next.add(id);
-                // Menghapus paraf pembimbing jika mengedit baris yang sudah sah
-                setEntries(current => current.map(e => 
-                    e.id === id ? { ...e, pembimbingParaf: null, catatan: "" } : e
-                ));
-                showToast("Peringatan: Mengedit baris ini akan menghapus paraf pembimbing.", "default");
+                // Removed clearing of pembimbingParaf and catatan when editing
+                // so users don't lose them when editing other fields
             }
             return next;
         });
@@ -174,18 +196,13 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
     const handleSave = async () => {
         setSaving(true);
         try {
-            // Validasi input uraian
-            const hasEmpty = entries.some(e => !e.uraian.trim());
-            if (hasEmpty) {
-                showToast("Harap isi semua uraian kegiatan", "destructive");
-                setSaving(false);
-                return;
-            }
+            // Save all entries regardless of empty uraian
 
             await logbookApi.updateInfo({
                 namaPerusahaan: headerInfo.namaPerusahaan,
                 tlpFaxPerusahaan: headerInfo.tlpFaxPerusahaan,
-                alamatPerusahaan: headerInfo.alamatPerusahaan
+                alamatPerusahaan: headerInfo.alamatPerusahaan,
+                kontakPembimbing: headerInfo.kontakPembimbing
             }, mahasiswaId);
             await logbookApi.syncEntries(entries, mahasiswaId);
             
@@ -250,13 +267,9 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                     </div>
                 </div>
                 <div className="bg-white/10 rounded-xl p-4 text-sm space-y-2">
-                    <div className="flex justify-between border-b border-white/10 pb-2">
+                    <div className="flex justify-between pb-1">
                         <span className="text-gray-300">{isViewingStudent ? "Nama Mahasiswa" : isDosen ? "Nama Dosen" : "Nama Mahasiswa"}</span>
                         <span className="font-medium text-right line-clamp-1 max-w-[150px]">{profile?.nama || "-"}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-gray-300">{isViewingStudent ? "NIM" : isDosen ? "NIDN / NIP" : "NIM"}</span>
-                        <span className="font-medium">{(isViewingStudent ? profile?.nim : isDosen ? profile?.nidn : profile?.nim) || "-"}</span>
                     </div>
                 </div>
             </div>
@@ -271,11 +284,110 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                     <div className="space-y-3 text-sm">
                         <div className="flex flex-col gap-1">
                             <label className="text-gray-500 font-medium">Nama Perusahaan</label>
-                            <input 
-                                type="text" name="namaPerusahaan" value={headerInfo.namaPerusahaan} onChange={handleHeaderChange}
-                                readOnly={isViewingStudent}
-                                className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-[#D25026] disabled:opacity-70"
-                            />
+                            {isViewingStudent ? (
+                                <input 
+                                    type="text" 
+                                    name="namaPerusahaan"
+                                    value={headerInfo.namaPerusahaan}
+                                    className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none w-full opacity-70"
+                                    readOnly
+                                />
+                            ) : isManualInput ? (
+                                <div className="flex w-full items-center gap-2">
+                                    <input 
+                                        type="text" 
+                                        name="namaPerusahaan"
+                                        value={headerInfo.namaPerusahaan}
+                                        onChange={handleHeaderChange}
+                                        className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-[#D25026] w-full"
+                                        placeholder="Ketik nama perusahaan baru..."
+                                    />
+                                    <button 
+                                        type="button"
+                                        onClick={() => {
+                                            setIsManualInput(false);
+                                        }}
+                                        className="text-[10px] text-gray-500 hover:text-red-500 whitespace-nowrap px-2 py-2 bg-gray-100 rounded-lg border border-gray-200 transition-colors"
+                                    >
+                                        Batal
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="relative w-full">
+                                    <button 
+                                        type="button"
+                                        onClick={() => setCompanyDropdownOpen(!companyDropdownOpen)}
+                                        className="flex w-full items-center justify-between px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:border-[#D25026] text-left transition-colors"
+                                    >
+                                        <span className={headerInfo.namaPerusahaan ? "text-gray-900" : "text-gray-500"}>
+                                            {headerInfo.namaPerusahaan || "-- Pilih Perusahaan Terdaftar --"}
+                                        </span>
+                                        <ChevronDown size={16} className="text-gray-400" />
+                                    </button>
+                                    
+                                    {companyDropdownOpen && (
+                                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 flex flex-col overflow-hidden">
+                                            <div className="p-2 border-b border-gray-100 flex items-center gap-2 bg-gray-50">
+                                                <Search size={14} className="text-gray-400" />
+                                                <input 
+                                                    type="text"
+                                                    className="w-full outline-none text-sm bg-transparent"
+                                                    placeholder="Cari perusahaan..."
+                                                    value={searchQuery}
+                                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                                    autoFocus
+                                                />
+                                            </div>
+                                            
+                                            <div className="max-h-60 overflow-y-auto custom-scrollbar flex-1">
+                                                {companies
+                                                    .filter(c => c.namaPerusahaan.toLowerCase().includes(searchQuery.toLowerCase()))
+                                                    .map((c, i) => (
+                                                        <div 
+                                                            key={i}
+                                                            className="px-4 py-2 hover:bg-blue-100 cursor-pointer transition-colors border-b border-gray-50 last:border-b-0"
+                                                            onClick={() => {
+                                                                setHeaderInfo(prev => ({
+                                                                    ...prev,
+                                                                    namaPerusahaan: c.namaPerusahaan || "",
+                                                                    tlpFaxPerusahaan: c.tlpFaxPerusahaan || "",
+                                                                    alamatPerusahaan: c.alamatPerusahaan || "",
+                                                                    kontakPembimbing: c.kontakPembimbing || ""
+                                                                }));
+                                                                setSearchQuery("");
+                                                                setCompanyDropdownOpen(false);
+                                                            }}
+                                                        >
+                                                            <div className="font-medium text-gray-800 text-sm">{c.namaPerusahaan}</div>
+                                                            {(c.alamatPerusahaan || c.tlpFaxPerusahaan) && (
+                                                                <div className="text-[11px] text-gray-500 truncate mt-0.5">
+                                                                    {c.alamatPerusahaan} {c.tlpFaxPerusahaan && `• ${c.tlpFaxPerusahaan}`}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                ))}
+                                                
+                                                {companies.filter(c => c.namaPerusahaan.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                                                    <div className="px-4 py-3 text-sm text-gray-500 text-center italic">
+                                                        Perusahaan tidak ditemukan.
+                                                    </div>
+                                                )}
+                                            </div>
+                                            
+                                            <div 
+                                                className="sticky bottom-0 text-red-600 font-semibold bg-red-50 hover:bg-red-100 px-4 py-3 cursor-pointer border-t border-red-100 transition-colors mt-auto text-sm shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]"
+                                                onClick={() => {
+                                                    setIsManualInput(true);
+                                                    setSearchQuery("");
+                                                    setCompanyDropdownOpen(false);
+                                                }}
+                                            >
+                                                + Input Manual (Perusahaan Baru)
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                         <div className="flex flex-col gap-1">
                             <label className="text-gray-500 font-medium">No. Telp / Fax</label>
@@ -291,6 +403,14 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                                 name="alamatPerusahaan" value={headerInfo.alamatPerusahaan} onChange={handleHeaderChange}
                                 readOnly={isViewingStudent}
                                 className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-[#D25026] resize-none h-20 disabled:opacity-70"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <label className="text-gray-500 font-medium">Kontak Pembimbing Lapangan</label>
+                            <input 
+                                type="text" name="kontakPembimbing" value={headerInfo.kontakPembimbing} onChange={handleHeaderChange}
+                                readOnly={isViewingStudent}
+                                className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-[#D25026] disabled:opacity-70"
                             />
                         </div>
                     </div>
@@ -341,7 +461,6 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                                                                 const timePart = entry.tanggalPukul.split('T')[1] || "09:00";
                                                                 const newDateTime = `${format(d, "yyyy-MM-dd")}T${timePart}`;
                                                                 handleEntryChange(entry.id, 'tanggalPukul', newDateTime);
-                                                                handleEntryChange(entry.id, 'pembimbingParaf', null);
                                                             }
                                                         }}
                                                         showLabel={false}
@@ -364,7 +483,6 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                                                         onChange={(e) => {
                                                             const datePart = entry.tanggalPukul.split('T')[0];
                                                             handleEntryChange(entry.id, 'tanggalPukul', `${datePart}T${e.target.value}`);
-                                                            handleEntryChange(entry.id, 'pembimbingParaf', null);
                                                         }}
                                                         className="outline-none text-lg font-black w-full bg-transparent text-gray-800 disabled:text-gray-400 tracking-widest text-center"
                                                     />
@@ -397,7 +515,6 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                                                 disabled={isViewingStudent || (!editingRowIds.has(entry.id) && !!entry.pembimbingParaf)}
                                                 onChange={(e) => {
                                                     handleEntryChange(entry.id, 'uraian', e.target.value);
-                                                    handleEntryChange(entry.id, 'pembimbingParaf', null);
                                                 }}
                                                 placeholder="Deskripsikan aktivitas harian Anda..."
                                                 className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-[#D25026] focus:ring-1 focus:ring-[#D25026] text-sm min-h-[80px] disabled:text-gray-500 disabled:bg-gray-100/50"
@@ -407,15 +524,15 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                                         <div className="grid grid-cols-2 gap-3 pt-2 border-t">
                                             {/* Mahasiswa Sign */}
                                             <div className="flex flex-col gap-2">
-                                                <span className="text-[10px] font-bold text-gray-400 uppercase text-center">Paraf {isDosen ? "Dosen" : "Mahasiswa"}</span>
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase text-center">Paraf Dosen</span>
                                                 {entry.mahasiswaParaf ? (
                                                     <div className="relative border border-gray-200 rounded-lg bg-white p-1 h-12 flex justify-center items-center group">
                                                         <img src={entry.mahasiswaParaf} alt="Signature" className="max-w-full max-h-full object-contain" />
-                                                        {!isViewingStudent && (
+                                                        {isViewingStudent && (
                                                             <button 
-                                                                disabled={!editingRowIds.has(entry.id) && !!entry.pembimbingParaf}
+                                                                disabled={!isViewingStudent}
                                                                 onClick={() => setActiveSignature({ id: entry.id, type: 'mahasiswaParaf' })}
-                                                                className={cn("absolute -top-2 -right-2 bg-gray-100 text-gray-500 rounded-full p-1 border border-gray-200 shadow-sm transition-opacity", (editingRowIds.has(entry.id) || !entry.pembimbingParaf) ? "opacity-100" : "opacity-0 pointer-events-none")}
+                                                                className={cn("absolute -top-2 -right-2 bg-gray-100 text-gray-500 rounded-full p-1 border border-gray-200 shadow-sm transition-opacity", isViewingStudent ? "opacity-100" : "opacity-0 pointer-events-none")}
                                                             >
                                                                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                                                             </button>
@@ -423,11 +540,12 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                                                     </div>
                                                 ) : (
                                                     <button 
-                                                        disabled={true}
-                                                        className={cn("h-12 border border-dashed border-gray-300 rounded-lg flex items-center justify-center gap-1 text-gray-400 transition-colors opacity-50 cursor-not-allowed")}
+                                                        disabled={!isViewingStudent}
+                                                        onClick={() => setActiveSignature({ id: entry.id, type: 'mahasiswaParaf' })}
+                                                        className={cn("h-12 border border-dashed border-gray-300 rounded-lg flex items-center justify-center gap-1 text-gray-400 transition-colors", !isViewingStudent ? "opacity-50 cursor-not-allowed" : "hover:border-[#D25026] hover:text-[#D25026]")}
                                                     >
                                                         <Plus size={14} />
-                                                        <span className="text-[10px]">Paraf</span>
+                                                        <span className="text-[10px]">{isViewingStudent ? "Klik TTD" : "Belum TTD"}</span>
                                                     </button>
                                                 )}
                                             </div>
@@ -450,11 +568,12 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                                                     </div>
                                                 ) : (
                                                     <button 
-                                                        disabled={true}
-                                                        className={cn("h-12 border border-dashed border-gray-300 rounded-lg flex items-center justify-center gap-1 text-gray-400 transition-colors opacity-50")}
+                                                        disabled={isViewingStudent}
+                                                        onClick={() => setActiveSignature({ id: entry.id, type: 'pembimbingParaf' })}
+                                                        className={cn("h-12 border border-dashed border-gray-300 rounded-lg flex items-center justify-center gap-1 text-gray-400 transition-colors", isViewingStudent ? "opacity-50 cursor-not-allowed" : "hover:border-[#D25026] hover:text-[#D25026]")}
                                                     >
                                                         <Plus size={14} />
-                                                        <span className="text-[10px]">Paraf</span>
+                                                        <span className="text-[10px]">{isViewingStudent ? "Belum TTD" : "Klik TTD"}</span>
                                                     </button>
                                                 )}
                                             </div>
@@ -464,8 +583,10 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Catatan Pembimbing</label>
                                             <textarea 
                                                 value={entry.catatan}
-                                                readOnly={true}
-                                                disabled={true}
+                                                onChange={(e) => {
+                                                    handleEntryChange(entry.id, 'catatan', e.target.value);
+                                                }}
+                                                disabled={isViewingStudent || (!editingRowIds.has(entry.id) && !!entry.pembimbingParaf)}
                                                 placeholder={isViewingStudent ? "Tidak ada catatan." : "Catatan dari pembimbing..."}
                                                 className="w-full px-3 py-2 bg-white border border-gray-100 rounded-lg outline-none focus:border-blue-400 text-xs min-h-[50px] italic text-gray-500 disabled:opacity-70"
                                             />
@@ -492,7 +613,9 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                     <button 
                         onClick={handleSave}
                         disabled={saving}
-                        className="py-3 px-4 bg-[#D25026] text-white font-bold rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-[#D25026]/20 disabled:opacity-70 flex-[2]"
+                        className={cn(
+                            "py-3 px-4 bg-[#D25026] text-white font-bold rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-[#D25026]/20 disabled:opacity-70 flex-[2]"
+                        )}
                     >
                         {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
                         {saving ? 'Menyimpan...' : 'Simpan Logbook'}
@@ -503,9 +626,26 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
             <SignatureModal 
                 isOpen={!!activeSignature}
                 onClose={() => setActiveSignature(null)}
-                onSave={(data) => {
+                onSave={async (data) => {
                     if (activeSignature) {
-                        handleEntryChange(activeSignature.id, activeSignature.type, data || null);
+                        const updatedEntries = entries.map(entry => 
+                            entry.id === activeSignature.id ? { ...entry, [activeSignature.type]: data || null } : entry
+                        );
+                        setEntries(updatedEntries);
+                        
+                        try {
+                            setSaving(true);
+                            await logbookApi.syncEntries(updatedEntries, mahasiswaId);
+                            const freshEntries = await logbookApi.getEntries(mahasiswaId);
+                            if (freshEntries && freshEntries.length > 0) {
+                                setEntries(freshEntries);
+                            }
+                            showToast("Paraf berhasil disimpan!", "success");
+                        } catch (error) {
+                            showToast("Gagal menyimpan paraf", "destructive");
+                        } finally {
+                            setSaving(false);
+                        }
                     }
                 }}
             />

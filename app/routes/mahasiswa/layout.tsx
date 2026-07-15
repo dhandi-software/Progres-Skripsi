@@ -8,9 +8,10 @@ import {
   Users,
   MessageCircle,
   Calendar,
-  Award,
   Trophy,
-  BookOpen
+  BookOpen,
+  Contact,
+  Clock
 } from "lucide-react";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
 import { RoleGuard } from "~/routes/RoleGuard";
@@ -20,6 +21,9 @@ import { chatService } from "~/services/chatService";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { acaraApi } from "~/api/acaraApi";
 import { sidangApi } from "~/api/sidangApi";
+import { sanksiApi } from "~/api/sanksiApi";
+import { jadwalKpApi } from "~/api/jadwalKpApi";
+import { pengajuanApi } from "~/api/pengajuan";
 import React from "react";
 import { io } from "socket.io-client";
 import { UPLOADS_URL } from "~/api/client";
@@ -34,11 +38,12 @@ type MenuKey =
   | "bimbingan"
   | "chat"
   | "acara"
+  | "direktori"
   | "sidang"
-  | "penilaian"
   | "profilemahasiswa"
   | "portfolio"
   | "logbook"
+  | "sanksi"
   | "logout";
 
 const pathToKey = (pathname: string): MenuKey | undefined => {
@@ -48,9 +53,10 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/mahasiswa/chat")) return "chat";
   if (pathname.startsWith("/mahasiswa/acara")) return "acara";
   if (pathname.startsWith("/mahasiswa/sidang")) return "sidang";
-  if (pathname.startsWith("/mahasiswa/penilaian")) return "penilaian";
   if (pathname.startsWith("/mahasiswa/profilemahasiswa")) return "profilemahasiswa";
   if (pathname.startsWith("/mahasiswa/logbook")) return "logbook";
+  if (pathname.startsWith("/mahasiswa/sanksi")) return "sanksi";
+  if (pathname.startsWith("/mahasiswa/direktori")) return "direktori";
   if (pathname === "/mahasiswa" || pathname.startsWith("/mahasiswa/"))
     return "dashboard";
   return undefined;
@@ -94,28 +100,34 @@ const menuItems = [
     url: "/mahasiswa/acara",
   },
   {
+    key: "direktori" as MenuKey,
+    title: "Direktori",
+    icon: Contact,
+    url: "/mahasiswa/direktori",
+  },
+  {
     key: "sidang" as MenuKey,
     title: "Jadwal Sidang",
     icon: Calendar,
     url: "/mahasiswa/sidang",
   },
   {
-    key: "penilaian" as MenuKey,
-    title: "Penilaian",
-    icon: Award,
-    url: "/mahasiswa/penilaian",
+    key: "logbook" as MenuKey,
+    title: "Logbook KP",
+    icon: BookOpen,
+    url: "/mahasiswa/logbook",
+  },
+  {
+    key: "sanksi" as MenuKey,
+    title: "Sanksi Administrasi",
+    icon: FileText,
+    url: "/mahasiswa/sanksi",
   },
   {
     key: "profilemahasiswa" as MenuKey,
     title: "Profil Mahasiswa",
     icon: Trophy,
     url: "/mahasiswa/profilemahasiswa",
-  },
-  {
-    key: "logbook" as MenuKey,
-    title: "Logbook KP",
-    icon: BookOpen,
-    url: "/mahasiswa/logbook",
   },
 ];
 
@@ -132,6 +144,10 @@ export function AppSidebar() {
   const [bimbinganBadgeCount, setBimbinganBadgeCount] = React.useState(0);
   const [acaraBadgeCount, setAcaraBadgeCount] = React.useState(0);
   const [sidangBadgeCount, setSidangBadgeCount] = React.useState(0);
+  const [sanksiBadgeCount, setSanksiBadgeCount] = React.useState(0);
+  const [dashboardBadgeCount, setDashboardBadgeCount] = React.useState(0);
+  const [sidangMenuTitle, setSidangMenuTitle] = React.useState("Pengumpulan Laporan Sidang");
+  const [isPengajuanPending, setIsPengajuanPending] = React.useState(false);
 
   React.useEffect(() => {
     if (!user) return;
@@ -141,42 +157,81 @@ export function AppSidebar() {
         .then(data => setUnreadCount(data.count || 0))
         .catch(err => console.error("Sidebar Chat Error:", err));
 
+      // Fetch Pengajuan Status
+      pengajuanApi.getProfile()
+        .then((profileRes: any) => {
+          if (profileRes.pengajuanJudul && profileRes.pengajuanJudul.length > 0) {
+            const latestPengajuan = profileRes.pengajuanJudul[0];
+            setIsPengajuanPending(latestPengajuan.status === 'PENDING');
+          }
+        })
+        .catch((err: any) => console.error("Sidebar Pengajuan Error:", err));
+
       // Fetch Bimbingan Tasks
       bimbinganApi.getMahasiswaAllTasks()
         .then(tasks => {
-            if (tasks && Array.isArray(tasks)) {
-                const grouped = tasks.reduce((acc: any, task: any) => {
-                    if (!acc[task.topik] || task.versi > acc[task.topik].versi) acc[task.topik] = task;
-                    return acc;
-                }, {});
-                const uniqueTasks: any[] = Object.values(grouped);
-                const active = uniqueTasks.find((t: any) => t.status !== 'APPROVED');
-                setBimbinganBadgeCount(active && (active.status === 'ASSIGNED' || active.status === 'REVISION') ? 1 : 0);
-            }
+          if (tasks && Array.isArray(tasks)) {
+            const grouped = tasks.reduce((acc: any, task: any) => {
+              if (!acc[task.topik] || task.versi > acc[task.topik].versi) acc[task.topik] = task;
+              return acc;
+            }, {});
+            const uniqueTasks: any[] = Object.values(grouped);
+            const active = uniqueTasks.find((t: any) => t.status !== 'APPROVED');
+            setBimbinganBadgeCount(active && (active.status === 'ASSIGNED' || active.status === 'REVISION') ? 1 : 0);
+          }
         })
         .catch(err => console.error("Sidebar Bimbingan Error:", err));
 
       // Fetch Acara Unread Count
       acaraApi.getUnreadCount()
         .then(data => {
-            setAcaraBadgeCount(data.count || 0);
+          setAcaraBadgeCount(data.count || 0);
         })
         .catch(err => console.error("Sidebar Acara Error:", err));
 
       // Fetch Sidang Notification
       sidangApi.getSidangMahasiswa()
         .then(data => {
-            if (data && Array.isArray(data) && data.length > 0) {
-                const latest = data[0];
-                // Show badge if not seen by student
-                if (!latest.mahasiswaSeen) {
-                    setSidangBadgeCount(1);
-                } else {
-                    setSidangBadgeCount(0);
-                }
+          if (data && Array.isArray(data) && data.length > 0) {
+            const latest = data[0];
+            // Show badge if not seen by student
+            if (!latest.mahasiswaSeen) {
+              setSidangBadgeCount(1);
+            } else {
+              setSidangBadgeCount(0);
             }
+
+            if (latest.status === 'TERJADWAL') {
+              setSidangMenuTitle("Jadwal Sidang");
+            } else {
+              setSidangMenuTitle("Pengumpulan Laporan Sidang");
+            }
+          } else {
+            setSidangMenuTitle("Pengumpulan Laporan Sidang");
+          }
         })
         .catch(err => console.error("Sidebar Sidang Error:", err));
+
+      // Fetch Sanksi count
+      sanksiApi.getAllSanksi()
+        .then(data => {
+          if (data && Array.isArray(data)) {
+            setSanksiBadgeCount(data.length);
+          }
+        })
+        .catch(err => console.error("Sidebar Sanksi Error:", err));
+
+      // Fetch Jadwal KP & Sidang for notifications
+      jadwalKpApi.getAllJadwalKp()
+        .then((data: any) => {
+          if (data && Array.isArray(data)) {
+            const now = new Date();
+            const activePengarahanKp = data.some((j: any) => j.tipe === 'PENGARAHAN_KP' && now <= new Date(j.tanggalSelesai));
+            const activePengarahanSidang = data.some((j: any) => j.tipe === 'PENGARAHAN_SIDANG' && now <= new Date(j.tanggalSelesai));
+            setDashboardBadgeCount((activePengarahanKp ? 1 : 0) + (activePengarahanSidang ? 1 : 0));
+          }
+        })
+        .catch((err: any) => console.error("Sidebar Jadwal Error:", err));
     };
     fetchData();
     const intervalId = setInterval(fetchData, 30000);
@@ -186,42 +241,42 @@ export function AppSidebar() {
   // Real-time socket notifications
   React.useEffect(() => {
     if (!user) return;
-    
+
     // Connect to the socket server
     const socket = io(UPLOADS_URL);
-    
+
     // Join user-specific room for private notifications
     socket.emit('join', user.id);
 
     const refetchCount = () => {
-        acaraApi.getUnreadCount().then(data => {
-            setAcaraBadgeCount(data.count || 0);
-        });
+      acaraApi.getUnreadCount().then(data => {
+        setAcaraBadgeCount(data.count || 0);
+      });
     };
-    
+
     // Handle local sync from the timeline component
     const handleLocalRead = () => {
-        // Optimistically decrement for immediate feedback
-        setAcaraBadgeCount(prev => Math.max(0, prev - 1));
-        // Verify with server after a small delay
-        setTimeout(refetchCount, 1000);
+      // Optimistically decrement for immediate feedback
+      setAcaraBadgeCount(prev => Math.max(0, prev - 1));
+      // Verify with server after a small delay
+      setTimeout(refetchCount, 1000);
     };
 
     socket.on('new_acara', () => {
-        refetchCount();
-        
-        // Native browser notification
-        if ("Notification" in window && Notification.permission === "granted") {
-            new Notification("Pengumuman Baru", {
-                body: "Ada instruksi atau pengumuman baru dari dosen di timeline.",
-                icon: "/favicon.ico"
-            });
-        }
+      refetchCount();
+
+      // Native browser notification
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("Pengumuman Baru", {
+          body: "Ada instruksi atau pengumuman baru dari dosen di timeline.",
+          icon: "/favicon.ico"
+        });
+      }
     });
 
     // Handle sync when an item is read (from other devices)
     socket.on('acara_read', () => {
-        refetchCount();
+      refetchCount();
     });
 
     // Handle local sync from the timeline component
@@ -229,12 +284,12 @@ export function AppSidebar() {
 
     // Request permission on mount
     if ("Notification" in window && Notification.permission === "default") {
-        Notification.requestPermission();
+      Notification.requestPermission();
     }
 
     return () => {
-        socket.disconnect();
-        window.removeEventListener('update-unread-count', handleLocalRead);
+      socket.disconnect();
+      window.removeEventListener('update-unread-count', handleLocalRead);
     };
   }, [user]);
 
@@ -247,12 +302,12 @@ export function AppSidebar() {
     }
 
     if (key === "logout") {
-        logout();
+      logout();
     }
   };
 
   return (
-    <Sidebar className="border-r border-[#E5E5E5] bg-white overflow-y-hidden">
+    <Sidebar className="border-r border-[#E5E5E5] bg-white overflow-y-hidden print:hidden">
       <SidebarContent className="bg-[#FAFAFA] flex flex-col py-8 px-6 custom-scrollbar">
         {/* Logo Section */}
         <div className="mb-8 px-2">
@@ -297,11 +352,21 @@ export function AppSidebar() {
                           isActive ? "text-[#D25026]" : "text-[#A1A1A1] group-hover:text-gray-600"
                         )}
                       >
-                        {item.title}
+                        {item.key === 'sidang' ? sidangMenuTitle : item.title}
                       </span>
+                      {item.key === "dashboard" && dashboardBadgeCount > 0 && (
+                        <div className="bg-[#D25026] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px] shadow-sm shadow-red-200">
+                          {dashboardBadgeCount}
+                        </div>
+                      )}
                       {item.key === "bimbingan" && bimbinganBadgeCount > 0 && (
                         <div className="bg-[#D25026] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
                           {bimbinganBadgeCount}
+                        </div>
+                      )}
+                      {item.key === "pengajuan" && isPengajuanPending && (
+                        <div className="bg-blue-500 text-white p-1 rounded-full flex items-center justify-center shrink-0 shadow-sm shadow-blue-200" title="Menunggu Persetujuan">
+                          <Clock className="w-3.5 h-3.5" />
                         </div>
                       )}
                       {item.key === "chat" && unreadCount > 0 && (
@@ -317,6 +382,11 @@ export function AppSidebar() {
                       {item.key === "sidang" && sidangBadgeCount > 0 && (
                         <div className="bg-[#FF7A00] text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
                           {sidangBadgeCount}
+                        </div>
+                      )}
+                      {item.key === "sanksi" && sanksiBadgeCount > 0 && (
+                        <div className="bg-red-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center justify-center shrink-0 min-w-[20px]">
+                          {sanksiBadgeCount}
                         </div>
                       )}
                     </div>
@@ -349,22 +419,22 @@ export default function MahasiswaLayout() {
     <ProtectedRoute>
       <RoleGuard allowedRoles={["mahasiswa"]}>
         <SidebarProvider isMobile={isMobile}>
-          <div className="flex w-full h-screen overflow-hidden bg-neutral-50">
+          <div className="flex w-full h-screen overflow-hidden bg-neutral-50 print:h-auto print:overflow-visible print:bg-white">
             <AppSidebar />
             <main className={cn(
-              "flex-1 w-full h-full overflow-y-auto",
+              "flex-1 w-full h-full overflow-y-auto print:h-auto print:overflow-visible print:p-0 print:pb-0",
               location.pathname.includes("/chat") ? "pb-0" : "pb-12"
             )}>
               {/* Mobile Header with Hamburger Menu */}
               {isMobile && !location.pathname.includes("/chat") && (
-                <div className="md:hidden flex items-center p-4 bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
+                <div className="md:hidden flex items-center p-4 bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm print:hidden">
                   <SidebarTrigger className="p-2 -ml-2 text-gray-700" />
                   <span className="ml-2 font-bold text-[#119DA4] text-lg tracking-tight">Kerja Praktik</span>
                 </div>
               )}
               {isMobile && location.pathname.includes("/chat") && (
-                <div className="md:hidden absolute top-4 left-4 z-50">
-                   <SidebarTrigger className="p-2 bg-white rounded-full shadow-md text-gray-700" />
+                <div className="md:hidden absolute top-4 left-4 z-50 print:hidden">
+                  <SidebarTrigger className="p-2 bg-white rounded-full shadow-md text-gray-700" />
                 </div>
               )}
               <Outlet context={{ isMobile }} />

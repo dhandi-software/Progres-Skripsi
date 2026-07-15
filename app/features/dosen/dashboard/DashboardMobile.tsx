@@ -4,6 +4,8 @@ import { useNavigate } from "react-router";
 import { pengajuanApi } from "~/api/pengajuan";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { chatService } from "~/services/chatService";
+import { jadwalKpApi } from "~/api/jadwalKpApi";
+import type { JadwalKp } from "~/api/jadwalKpApi";
 import { 
     FileText, 
     CheckCircle, 
@@ -11,7 +13,8 @@ import {
     Users as UsersIcon, 
     MessageSquare,
     BarChart3,
-    TrendingUp
+    TrendingUp,
+    Calendar
 } from "lucide-react";
 
 export function DashboardMobile() {
@@ -20,6 +23,7 @@ export function DashboardMobile() {
     const [activities, setActivities] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showAllActivities, setShowAllActivities] = useState(false);
+    const [upcomingJadwal, setUpcomingJadwal] = useState<JadwalKp[]>([]);
 
     const [activeBimbinganCount, setActiveBimbinganCount] = useState(0);
     const [unreadMessages, setUnreadMessages] = useState(0);
@@ -82,6 +86,14 @@ export function DashboardMobile() {
                 }
                 const sortedActs = allActs.sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
                 setActivities(sortedActs);
+
+                // Jadwal KP
+                const jadwalData = await jadwalKpApi.getAllJadwalKp();
+                if (jadwalData && Array.isArray(jadwalData)) {
+                    const now = new Date();
+                    const upcoming = jadwalData.filter(j => new Date(j.tanggal) >= now && j.tipe === 'PENGARAHAN_KP').sort((a, b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime());
+                    setUpcomingJadwal(upcoming);
+                }
 
             } catch (err) {
                 console.error(err);
@@ -149,6 +161,29 @@ export function DashboardMobile() {
                     )}
                 </div>
             </div>
+
+            {/* Notification Banner for Upcoming Jadwal Mobile */}
+            {upcomingJadwal.map((jadwal, index) => (
+                <div key={`jadwal-${index}`} className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 shadow-sm relative overflow-hidden animate-in fade-in slide-in-from-top-2 duration-500">
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 bg-emerald-100 rounded-full text-emerald-600 shrink-0">
+                            <Calendar className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-emerald-800 font-bold text-sm">{jadwal.judul}</h3>
+                            <p className="text-emerald-600 text-[10px] mt-1 pr-2 leading-relaxed font-semibold">
+                                Jadwal {jadwal.tipe === 'PENGARAHAN_KP' ? 'Pengarahan KP' : 'Pengumpulan Sidang'}: {new Date(jadwal.tanggal).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                            {jadwal.deskripsi && (
+                                <div 
+                                    className="text-emerald-700 text-[10px] mt-2 pr-2 leading-relaxed italic prose prose-sm max-w-none prose-emerald"
+                                    dangerouslySetInnerHTML={{ __html: jadwal.deskripsi }} 
+                                />
+                            )}
+                        </div>
+                    </div>
+                </div>
+            ))}
 
             {/* Status Summary (Compact) */}
             <div className="grid grid-cols-2 gap-3">
@@ -276,3 +311,4 @@ export function DashboardMobile() {
         </div>
     );
 }
+

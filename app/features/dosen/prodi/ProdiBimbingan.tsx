@@ -121,7 +121,7 @@ export function ProdiBimbingan() {
             setDetailTab("target");
             setIsHistoryLoading(true);
             
-            const historyData = await bimbinganApi.getBimbinganByMahasiswa(student.mahasiswa.id);
+            const historyData = await bimbinganApi.getBimbinganByMahasiswa(student.mahasiswa.nim);
             
             const topicOrder: Record<string, number> = {
                 "Bab 1: Pendahuluan": 1,

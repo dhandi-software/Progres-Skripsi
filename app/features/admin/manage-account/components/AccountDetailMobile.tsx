@@ -7,12 +7,13 @@ import { useSidebar } from "~/components/ui/sidebar";
 import { Toast } from "~/components/ui/toast";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 import { Button } from "~/components/ui/button";
+import { MultipleCombobox, type ComboboxOption } from "~/components/ui/Multiple-combobox";
 
 export const AccountDetailMobile = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const { setOpenMobile } = useSidebar();
-  const { getUserById, updateUserRole, deleteAccount } = useManageAccount();
+  const { getUserById, updateUserRole, updateUser, deleteAccount } = useManageAccount();
   const [user, setUser] = useState<UserAccount | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -22,6 +23,17 @@ export const AccountDetailMobile = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
 
+  const [peminatanOptions, setPeminatanOptions] = useState<ComboboxOption[]>([
+    { id: "ds", label: "Data Science", checked: false },
+    { id: "ai", label: "Artificial Intelligence", checked: false },
+    { id: "se", label: "Software Engineering", checked: false },
+    { id: "ncs", label: "Network and Cyber Security", checked: false },
+  ]);
+
+  const handlePeminatanChange = (newOptions: ComboboxOption[]) => {
+    setPeminatanOptions(newOptions);
+  };
+
   useEffect(() => {
     const fetchUser = async () => {
       if (id) {
@@ -30,6 +42,12 @@ export const AccountDetailMobile = () => {
         if (data) {
           setUser(data);
           setSelectedRole(data.role);
+          if (data.peminatan) {
+            setPeminatanOptions(prev => prev.map(opt => ({
+              ...opt,
+              checked: data.peminatan.includes(opt.label)
+            })));
+          }
         }
         setIsLoading(false);
       }
@@ -71,11 +89,29 @@ export const AccountDetailMobile = () => {
   };
 
   const handleConfirmChange = async () => {
-    if (selectedRole && id) {
-      const success = await updateUserRole(id, selectedRole);
-      if (success) {
-        setShowToast(true);
-        setTimeout(() => setShowToast(false), 3000);
+    if (id) {
+      let dataToUpdate: any = {};
+      if (selectedRole !== user.role) {
+        dataToUpdate.role = selectedRole;
+      }
+      
+      const selectedPeminatan = peminatanOptions.filter(opt => opt.checked).map(opt => opt.label);
+      
+      let isPeminatanChanged = false;
+      if (user.role === 'dosen') {
+        const initialPeminatan = (user as any).peminatan || [];
+        isPeminatanChanged = JSON.stringify(selectedPeminatan.sort()) !== JSON.stringify(initialPeminatan.sort());
+        if (isPeminatanChanged) {
+          dataToUpdate.peminatan = selectedPeminatan;
+        }
+      }
+
+      if (Object.keys(dataToUpdate).length > 0) {
+        const success = await updateUser(id, dataToUpdate);
+        if (success) {
+          setShowToast(true);
+          setTimeout(() => setShowToast(false), 3000);
+        }
       }
     }
   };
@@ -108,7 +144,7 @@ export const AccountDetailMobile = () => {
       {showToast && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in slide-in-from-top-4 duration-300 w-auto">
           <Toast
-            title="Role successfully changed!"
+            title="Account updated successfully!"
             variant="success"
             className="shadow-md border border-[#22C55E]/10 px-4 py-3 rounded-xl bg-white/95 backdrop-blur-sm"
             onClose={() => setShowToast(false)}
@@ -128,12 +164,13 @@ export const AccountDetailMobile = () => {
         }
         description={
           <span>
-            Are you sure you want to delete this Publishing Team? This action cannot be undone.
+            Are you sure you want to delete this Account? This action cannot be undone.
           </span>
         }
         confirmText="Delete"
         cancelText="Cancel"
       />
+      
       {/* Header Section */}
       <div className="px-6 mb-8 flex items-center gap-3">
         <button
@@ -195,7 +232,7 @@ export const AccountDetailMobile = () => {
 
           {[
             { label: "Name", value: user.name },
-            { label: "Email", value: user.email },
+            { label: "Email", value: user.email || (user as any).mahasiswa?.email || (user as any).dosen?.email || (user as any).staf?.email },
             { label: "Username", value: user.username },
             { label: "Password", value: user.password },
           ].map((field) => (
@@ -207,9 +244,21 @@ export const AccountDetailMobile = () => {
             </div>
           ))}
 
+          {user.role === "dosen" && (
+            <div className="flex flex-col gap-2">
+              <label className="text-[0.875rem] font-medium text-[#18181B]">Peminatan</label>
+              <MultipleCombobox
+                options={peminatanOptions}
+                onOptionsChange={handlePeminatanChange}
+                placeholder="Pilih Peminatan"
+                className="w-full"
+              />
+            </div>
+          )}
+
           <div className="flex flex-col gap-2">
             <label className="text-[0.875rem] font-medium text-[#18181B]">Bio</label>
-            <div className="w-full px-4 py-3.5 rounded-xl border border-[#F4F4F5] bg-[#FAFAFA] text-[#18181B] text-[0.875rem] leading-relaxed min-h-[6.25rem]">
+            <div className="w-full px-4 py-3.5 rounded-xl border border-[#F4F4F5] bg-[#FAFAFA] text-[#18181B] text-[0.875rem] leading-relaxed min-h-[6rem]">
               {user.bio}
             </div>
           </div>
@@ -226,16 +275,19 @@ export const AccountDetailMobile = () => {
           </Button>
           <Button
             onClick={handleDelete}
-            className="h-[2.625rem] px-4 rounded-xl bg-[#EF4444] text-white text-[0.8125rem] font-semibold hover:bg-[#DC2626] flex-shrink-0"
+            className="h-[2.625rem] px-4 rounded-xl bg-[#EF4444] hover:bg-[#DC2626] text-white text-[0.8125rem] font-semibold flex-shrink-0"
           >
-            Delete Account
+            Delete
           </Button>
           <Button
             onClick={handleConfirmChange}
-            disabled={selectedRole === user.role}
-            className="h-[2.625rem] px-4 rounded-xl bg-[#FDBC74] text-white text-[0.8125rem] font-semibold hover:bg-[#FDB15A] disabled:opacity-50 flex-shrink-0"
+            className="h-[2.625rem] px-4 rounded-xl bg-[#FDBC74] hover:bg-[#FDB15A] text-white text-[0.8125rem] font-semibold whitespace-nowrap flex-shrink-0"
+            disabled={
+              selectedRole === user.role && 
+              (user.role !== 'dosen' || JSON.stringify(peminatanOptions.filter(opt => opt.checked).map(opt => opt.label).sort()) === JSON.stringify(((user as any).peminatan || []).sort()))
+            }
           >
-            Confirmation of Changes
+            Save Changes
           </Button>
         </div>
       </div>

@@ -1,20 +1,40 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { Pengajuan, User } from "~/api/types";
 import { pengajuanApi } from "~/api/pengajuan";
 
 export function usePeninjauan(user: User | null) {
+    const [searchParams, setSearchParams] = useSearchParams();
+
     const [originalList, setOriginalList] = useState<Pengajuan[]>([]);
     const [filteredList, setFilteredList] = useState<Pengajuan[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const [searchQuery, setSearchQuery] = useState("");
-    const [filterStatus, setFilterStatus] = useState<string>("ALL");
-    const [sortOrder, setSortOrder] = useState<"TERBARU" | "TERLAMA">("TERBARU");
+    const searchQuery = searchParams.get("search") || "";
+    const filterStatus = searchParams.get("status") || "ALL";
+    const sortOrder = (searchParams.get("sort") as "TERBARU" | "TERLAMA") || "TERBARU";
+    const currentPage = parseInt(searchParams.get("page") || "1", 10);
 
-    const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
+
+    const updateParams = (updates: Record<string, string>) => {
+        const newParams = new URLSearchParams(searchParams);
+        for (const [key, value] of Object.entries(updates)) {
+            if (value) {
+                newParams.set(key, value);
+            } else {
+                newParams.delete(key);
+            }
+        }
+        setSearchParams(newParams);
+    };
+
+    const setSearchQuery = (val: string) => updateParams({ search: val, page: "1" });
+    const setFilterStatus = (val: string) => updateParams({ status: val, page: "1" });
+    const setSortOrder = (val: "TERBARU" | "TERLAMA") => updateParams({ sort: val, page: "1" });
+    const setCurrentPage = (val: number) => updateParams({ page: val.toString() });
 
     useEffect(() => {
         const fetchPengajuanList = async () => {
@@ -67,17 +87,44 @@ export function usePeninjauan(user: User | null) {
             );
         }
 
-        if (sortOrder === "TERBARU") {
-            result.sort((a, b) => b.id - a.id);
+        // Kalau Semua Status biarkan yang sudah di acc (APPROVED) duluan didepan, lalu pending, dst.
+        // The user request: "kalau semua role biarkan yang sudah di acc duluan didepan"
+        if (filterStatus === "ALL") {
+            // Urutan kustom: APPROVED di depan
+            const statusOrder: Record<string, number> = {
+                "APPROVED": 1,
+                "PENDING": 2,
+                "REVISION": 3,
+                "REJECTED": 4
+            };
+            result.sort((a, b) => {
+                const orderA = statusOrder[a.status] || 99;
+                const orderB = statusOrder[b.status] || 99;
+                if (orderA !== orderB) {
+                    return orderA - orderB;
+                }
+                // Jika status sama, ikuti sortOrder
+                if (sortOrder === "TERBARU") {
+                    return b.id - a.id;
+                } else {
+                    return a.id - b.id;
+                }
+            });
         } else {
-            result.sort((a, b) => a.id - b.id);
+            // Sort standard
+            if (sortOrder === "TERBARU") {
+                result.sort((a, b) => b.id - a.id);
+            } else {
+                result.sort((a, b) => a.id - b.id);
+            }
         }
 
         setFilteredList(result);
-        setCurrentPage(1); 
+        // Do NOT reset currentPage here when using searchParams, because it will override the user's page choice if they navigate back.
+        // It's already handled by the setter functions (setSearchQuery etc reset page to 1).
     }, [searchQuery, filterStatus, sortOrder, originalList]);
 
-    const totalPages = Math.ceil(filteredList.length / itemsPerPage);
+    const totalPages = Math.ceil(filteredList.length / itemsPerPage) || 1;
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     const paginatedList = filteredList.slice(startIndex, endIndex);

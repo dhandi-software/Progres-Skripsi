@@ -4,7 +4,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { adminApi } from "~/api/admin";
 import { cn } from "~/lib/utils";
-import { Link, useSearchParams, useNavigate } from "react-router";
+import { Link, useSearchParams, useNavigate, useLocation } from "react-router";
 import { DataTable, type Column } from "~/components/ui/table-user-dosen";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "~/components/ui/pagination";
 import { DeleteConfirmationModal } from "~/components/ui/delete-confirmation-modal";
@@ -15,6 +15,7 @@ import { Toast, type ToastProps } from "~/components/ui/toast";
 
 export function UserListDesktop() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get("tab") as "mahasiswa" | "dosen" | "staf") || "mahasiswa";
 
@@ -47,6 +48,14 @@ export function UserListDesktop() {
     setToastProps({ title, variant });
     setTimeout(() => setToastProps(null), 5000);
   };
+
+  useEffect(() => {
+    if (location.state?.toast) {
+      showToast(location.state.toast.title, location.state.toast.variant);
+      // Clear location state to prevent toast from reappearing on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -329,14 +338,14 @@ export function UserListDesktop() {
     {
       header: "Email",
       accessorKey: "email", 
-      cell: (user) => <span className="text-gray-600">{user.email || user.user?.email || "-"}</span>,
+      cell: (user) => <span className="text-gray-600">{user.email || user.user?.mahasiswa?.email || user.user?.dosen?.email || user.user?.staf?.email || user.user?.email || "-"}</span>,
     },
-    ...(activeTab !== "staf" ? [{
-      header: activeTab === "mahasiswa" ? "Jurusan" : "Jabatan",
-      accessorKey: activeTab === "mahasiswa" ? "jurusan" : "jabatan",
+    ...(activeTab === "dosen" ? [{
+      header: "Jabatan",
+      accessorKey: "jabatan",
       cell: (user: any) => (
         <span className="inline-flex px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">
-          {activeTab === "mahasiswa" ? user.jurusan : user.jabatan}
+          {user.jabatan}
         </span>
       ),
     }] : []),
@@ -448,15 +457,15 @@ export function UserListDesktop() {
 
       // Define columns and rows
       const tableColumn = activeTab === "mahasiswa"
-        ? ["No", "Name", "NIM", "Email", "Jurusan", "Tahun Masuk"]
+        ? ["No", "Name", "NIM", "Email", "Tahun Masuk"]
         : activeTab === "dosen"
             ? ["No", "Name", "NIDN", "Email", "Jabatan"]
             : ["No", "Name", "Username", "Email"];
 
       const tableRows = users.map((u, index) => {
-        const email = u.email || u.user?.email || "-";
+        const email = u.email || u.user?.mahasiswa?.email || u.user?.dosen?.email || u.user?.staf?.email || u.user?.email || "-";
         if (activeTab === "mahasiswa") {
-          return [index + 1, u.nama, u.nim, email, u.jurusan, u.tahunMasuk];
+          return [index + 1, u.nama, u.nim, email, u.tahunMasuk];
         } else if (activeTab === "dosen") {
           return [index + 1, u.nama, u.nidn, email, u.jabatan];
         } else {
@@ -770,7 +779,7 @@ export function UserListDesktop() {
         />
 
         {/* Pagination */}
-        {filteredUsers.length > itemsPerPage && !loading && (
+        {totalPages > 1 && !loading && (
             <Pagination>
                 <PaginationContent>
                     <PaginationItem>
@@ -781,24 +790,37 @@ export function UserListDesktop() {
                         />
                     </PaginationItem>
                     
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                         if (totalPages > 7 && Math.abs(page - currentPage) > 2 && page !== 1 && page !== totalPages) {
-                             if (Math.abs(page - currentPage) === 3) return <PaginationEllipsis key={page} />;
-                             return null;
-                         }
+                    {(() => {
+                        let pages: (number | string)[] = [];
+                        if (totalPages <= 7) {
+                            pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+                        } else {
+                            if (currentPage <= 4) {
+                                pages = [1, 2, 3, 4, 5, 'ellipsis-1', totalPages];
+                            } else if (currentPage >= totalPages - 3) {
+                                pages = [1, 'ellipsis-2', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+                            } else {
+                                pages = [1, 'ellipsis-1', currentPage - 1, currentPage, currentPage + 1, 'ellipsis-2', totalPages];
+                            }
+                        }
 
-                         return (
-                            <PaginationItem key={page}>
-                                <PaginationLink 
-                                    href="#" 
-                                    isActive={currentPage === page}
-                                    onClick={(e) => { e.preventDefault(); handlePageChange(page); }}
-                                >
-                                    {page}
-                                </PaginationLink>
-                            </PaginationItem>
-                         )
-                    })}
+                        return pages.map((page, idx) => {
+                            if (typeof page === 'string') {
+                                return <PaginationEllipsis key={`ellipsis-${idx}`} />;
+                            }
+                            return (
+                                <PaginationItem key={page}>
+                                    <PaginationLink 
+                                        href="#" 
+                                        isActive={currentPage === page}
+                                        onClick={(e) => { e.preventDefault(); handlePageChange(page as number); }}
+                                    >
+                                        {page}
+                                    </PaginationLink>
+                                </PaginationItem>
+                            );
+                        });
+                    })()}
 
                     <PaginationItem>
                         <PaginationNext 

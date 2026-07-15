@@ -28,14 +28,16 @@ export const pengajuanApi = {
         return response.data;
     },
 
-    updateStatus: async (id: number, status: 'APPROVED' | 'REJECTED' | 'REVISION', remarks?: string) => {
-        const response = await client.put(`/pengajuan/${id}/status`, { status, remarks });
+    updateStatus: async (id: number, status: 'APPROVED' | 'REJECTED' | 'REVISION', remarks?: string, deadlineRevisi?: string) => {
+        const response = await client.put(`/pengajuan/${id}/status`, { status, remarks, deadlineRevisi });
         return response.data;
     },
 
-    updateProfile: async (data: { nama?: string, photo?: File }) => {
+    updateProfile: async (data: { nama?: string, email?: string, nomorTelepon?: string, photo?: File }) => {
         const formData = new FormData();
         if (data.nama) formData.append('nama', data.nama);
+        if (data.email) formData.append('email', data.email);
+        if (data.nomorTelepon) formData.append('nomorTelepon', data.nomorTelepon);
         if (data.photo) formData.append('photo', data.photo);
 
         const response = await client.put("/pengajuan/profile", formData, {
@@ -49,10 +51,12 @@ export const pengajuanApi = {
         return response.data;
     },
 
-    updateDosenProfile: async (data: { nama?: string, jabatan?: string, photo?: File }) => {
+    updateDosenProfile: async (data: { nama?: string, jabatan?: string, email?: string, nomorTelepon?: string, photo?: File }) => {
         const formData = new FormData();
         if (data.nama) formData.append('nama', data.nama);
         if (data.jabatan) formData.append('jabatan', data.jabatan);
+        if (data.email) formData.append('email', data.email);
+        if (data.nomorTelepon) formData.append('nomorTelepon', data.nomorTelepon);
         if (data.photo) formData.append('photo', data.photo);
 
         const response = await client.put("/pengajuan/profile/dosen", formData, {
@@ -72,10 +76,11 @@ export const pengajuanApi = {
         return response.data;
     },
 
-    updateStafProfile: async (data: { nama?: string, email?: string, photo?: File }) => {
+    updateStafProfile: async (data: { nama?: string, email?: string, nomorTelepon?: string, photo?: File }) => {
         const formData = new FormData();
         if (data.nama) formData.append('nama', data.nama);
         if (data.email) formData.append('email', data.email);
+        if (data.nomorTelepon) formData.append('nomorTelepon', data.nomorTelepon);
         if (data.photo) formData.append('photo', data.photo);
 
         const response = await client.put("/pengajuan/profile/staf", formData, {

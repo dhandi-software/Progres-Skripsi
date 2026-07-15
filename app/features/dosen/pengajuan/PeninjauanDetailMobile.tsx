@@ -1,11 +1,12 @@
 import * as React from "react";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 import { pengajuanApi } from "~/api/pengajuan";
 import { ChevronLeft, Check, X, Loader2, RotateCcw } from "lucide-react";
 import { Link } from "react-router";
 import { Toast } from "~/components/ui/toast";
 import { Button } from "~/components/ui/button";
+import { MonthYearFilter } from "~/components/ui/calendar";
 
 interface PengajuanDetail {
     id: number;
@@ -13,7 +14,6 @@ interface PengajuanDetail {
     mahasiswa: {
         nama: string;
         nim: string;
-        jurusan: string;
     };
     status: string;
     peminatan: string;
@@ -23,13 +23,18 @@ interface PengajuanDetail {
     sksDicapai: string;
     sksNilaiD?: string;
     batasStudi?: string;
+    remarks?: string;
+    deadlineRevisi?: string;
 }
 
 export function PeninjauanDetailMobile({ id }: { id: string }) {
     const navigate = useNavigate();
+    const location = useLocation();
     const [detail, setDetail] = useState<PengajuanDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [remarks, setRemarks] = useState("");
+    const [deadlineRevisi, setDeadlineRevisi] = useState<Date | undefined>(undefined);
+    const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [toast, setToast] = useState<{ title: string; variant: "success" | "destructive" | "default" } | null>(null);
 
@@ -45,7 +50,7 @@ export function PeninjauanDetailMobile({ id }: { id: string }) {
             } catch (error) {
                 console.error("Failed to fetch detail", error);
                 alert("Gagal memuat detail pengajuan.");
-                navigate("/dosen/peninjauan");
+                navigate(`/dosen/peninjauan${location.search}`);
             } finally {
                 setLoading(false);
             }
@@ -56,10 +61,12 @@ export function PeninjauanDetailMobile({ id }: { id: string }) {
     const handleAction = async (status: 'APPROVED' | 'REJECTED' | 'REVISION') => {
         setSubmitting(true);
         try {
-            await pengajuanApi.updateStatus(parseInt(id), status, remarks);
+            const deadlineStr = deadlineRevisi ? deadlineRevisi.toISOString() : undefined;
+            await pengajuanApi.updateStatus(parseInt(id), status, remarks, deadlineStr);
             const label = status === 'APPROVED' ? 'disetujui' : status === 'REJECTED' ? 'ditolak' : 'diminta revisi';
             showToast(`Pengajuan berhasil ${label}.`, "success");
-            setTimeout(() => navigate("/dosen/peninjauan"), 1800);
+            setIsRevisionModalOpen(false);
+            setTimeout(() => navigate(`/dosen/peninjauan${location.search}`), 1800);
         } catch (error: any) {
             showToast("Gagal memproses aksi: " + (error.response?.data?.message || error.message), "destructive");
         } finally {
@@ -92,7 +99,7 @@ export function PeninjauanDetailMobile({ id }: { id: string }) {
             )}
             {/* Mobile Header */}
             <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 flex items-center gap-3">
-                 <Link to="/dosen/peninjauan" className="p-2 -ml-2 text-gray-600">
+                 <Link to={`/dosen/peninjauan${location.search}`} className="p-2 -ml-2 text-gray-600">
                     <ChevronLeft size={24} />
                  </Link>
                  <h1 className="text-lg font-bold text-gray-900 flex-1">Peninjauan Judul</h1>
@@ -127,13 +134,6 @@ export function PeninjauanDetailMobile({ id }: { id: string }) {
                         <h3 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-2">Info Akademik</h3>
                         
                         <div className="space-y-3">
-                            <div>
-                                <label className="text-xs font-medium text-gray-500 mb-1 block">Program Studi</label>
-                                <div className="p-3 bg-gray-50 rounded-lg text-sm font-medium text-gray-700 border border-gray-100">
-                                    {detail.mahasiswa.jurusan || "-"}
-                                </div>
-                            </div>
-                            
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="text-xs font-medium text-gray-500 mb-1 block">Semester</label>
@@ -219,13 +219,37 @@ export function PeninjauanDetailMobile({ id }: { id: string }) {
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="text-xs font-medium text-gray-500 mb-1 block">Batas Studi</label>
-                                <div className="p-3 bg-gray-50 rounded-lg text-sm font-bold text-gray-800 border border-gray-100 text-center">
-                                    {detail.batasStudi || "-"}
-                                </div>
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Batas Studi</label>
+                                <div className="text-sm font-semibold text-gray-900 bg-gray-50 p-3 rounded-lg border border-gray-100">{detail.batasStudi || "-"}</div>
                             </div>
                         </div>
+
+                        {detail.status === 'REVISION' && (
+                            <div className="mt-6 pt-6 border-t border-gray-100">
+                                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                                    <h3 className="font-bold text-yellow-800 mb-3 text-sm">Informasi Revisi</h3>
+                                    <div className="flex flex-col gap-4">
+                                        <div className="flex flex-col gap-1.5">
+                                            <label className="text-xs font-semibold text-yellow-700 uppercase tracking-wider">Catatan Revisi</label>
+                                            <div className="text-sm text-yellow-900 bg-white p-3 rounded-lg border border-yellow-200 min-h-[60px]">
+                                                {detail.remarks || "-"}
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col gap-1.5">
+                                            <label className="text-xs font-semibold text-yellow-700 uppercase tracking-wider">Batas Waktu Revisi</label>
+                                            <div className="text-sm font-bold text-yellow-900 bg-white p-3 rounded-lg border border-yellow-200">
+                                                {detail.deadlineRevisi ? new Date(detail.deadlineRevisi).toLocaleDateString('id-ID', {
+                                                    day: 'numeric',
+                                                    month: 'long',
+                                                    year: 'numeric'
+                                                }) : "-"}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Action Block */}
@@ -235,15 +259,14 @@ export function PeninjauanDetailMobile({ id }: { id: string }) {
                                 <Check size={16} strokeWidth={3} />
                                 Tindakan Persetujuan
                             </h3>
-                            
-                            <div>
-                                <label className="text-xs font-medium text-gray-500 mb-1 block">Catatan (Opsional)</label>
+                            <div className="mb-4 flex flex-col gap-1.5">
+                                <label className="text-sm font-semibold text-gray-700">Catatan (Opsional)</label>
                                 <textarea
                                     value={remarks}
                                     onChange={(e) => setRemarks(e.target.value)}
-                                    className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:border-[#D25026] focus:ring-1 focus:ring-[#D25026] outline-none transition-all resize-none"
+                                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D25026]/20 focus:border-[#D25026] outline-none transition-all resize-none text-sm"
                                     rows={3}
-                                    placeholder="Alasan penolakan / catatan revisi..."
+                                    placeholder="Tuliskan catatan..."
                                     disabled={submitting}
                                 />
                             </div>
@@ -261,10 +284,10 @@ export function PeninjauanDetailMobile({ id }: { id: string }) {
                                 </Button>
                                 <Button
                                     variant="outline"
-                                    size="lg"
-                                    onClick={() => handleAction('REVISION')}
+                                    size="md"
+                                    onClick={() => setIsRevisionModalOpen(true)}
                                     disabled={submitting || !remarks.trim()}
-                                    className="w-full border-yellow-500 text-yellow-700 hover:bg-yellow-50 font-bold"
+                                    className="border-yellow-500 text-yellow-700 hover:bg-yellow-50 flex-1 font-bold h-11"
                                     title={!remarks.trim() ? 'Isi catatan terlebih dahulu untuk mengirim revisi' : ''}
                                 >
                                     <RotateCcw size={18} />
@@ -287,6 +310,50 @@ export function PeninjauanDetailMobile({ id }: { id: string }) {
                     <div className="h-4"></div>
                 </div>
             </div>
+
+            {/* Revision Modal Mobile */}
+            {isRevisionModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity p-4 animate-in fade-in-0">
+                    <div className="w-full bg-white rounded-xl shadow-lg border border-gray-100 p-5 flex flex-col gap-4 relative animate-in zoom-in-95 duration-200">
+                        <div className="flex flex-col gap-1.5">
+                            <h3 className="text-[17px] font-bold text-gray-900 flex items-center gap-2">
+                                <RotateCcw className="w-5 h-5 text-yellow-600" />
+                                Tentukan Batas Waktu Revisi
+                            </h3>
+                            <p className="text-xs text-gray-500 leading-relaxed">
+                                Silakan pilih tanggal maksimal mahasiswa dapat mengumpulkan perbaikan usulan judul mereka.
+                            </p>
+                        </div>
+                        
+                        <div className="flex flex-col gap-1.5 py-2">
+                            <MonthYearFilter 
+                                date={deadlineRevisi} 
+                                setDate={setDeadlineRevisi} 
+                                showLabel={true}
+                                minDate={new Date()}
+                                maxDate={new Date(new Date().getFullYear(), 11, 31)}
+                                className="w-full"
+                            />
+                        </div>
+
+                        <div className="flex flex-col gap-2.5 mt-2">
+                            <button
+                                onClick={() => handleAction('REVISION')}
+                                disabled={!deadlineRevisi || submitting}
+                                className="w-full px-4 py-3 bg-yellow-500 text-white rounded-lg text-[15px] font-bold hover:bg-yellow-600 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {submitting ? 'Menyimpan...' : 'Kirim Revisi'}
+                            </button>
+                            <button
+                                onClick={() => setIsRevisionModalOpen(false)}
+                                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-[15px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
+                            >
+                                Batal
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

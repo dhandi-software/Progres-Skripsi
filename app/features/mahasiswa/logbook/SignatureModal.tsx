@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { X, Eraser, Check } from 'lucide-react';
+import { X, Eraser, Check, Upload } from 'lucide-react';
 import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { cn } from "~/lib/utils";
 
 interface SignatureModalProps {
     isOpen: boolean;
@@ -11,9 +12,20 @@ interface SignatureModalProps {
 export function SignatureModal({ isOpen, onClose, onSave }: SignatureModalProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isDrawing, setIsDrawing] = useState(false);
+    const [activeTab, setActiveTab] = useState<'draw' | 'upload'>('draw');
+    const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+    const [uploadError, setUploadError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (isOpen && canvasRef.current) {
+        if (isOpen) {
+            setActiveTab('draw');
+            setUploadedImage(null);
+            setUploadError(null);
+        }
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (isOpen && activeTab === 'draw' && canvasRef.current) {
             const canvas = canvasRef.current;
             const ctx = canvas.getContext('2d');
             if (ctx) {
@@ -23,7 +35,7 @@ export function SignatureModal({ isOpen, onClose, onSave }: SignatureModalProps)
                 ctx.lineJoin = 'round';
             }
         }
-    }, [isOpen]);
+    }, [isOpen, activeTab]);
 
     const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
         setIsDrawing(true);
@@ -72,27 +84,53 @@ export function SignatureModal({ isOpen, onClose, onSave }: SignatureModalProps)
     };
 
     const clearCanvas = () => {
-        const canvas = canvasRef.current;
-        const ctx = canvas?.getContext('2d');
-        if (canvas && ctx) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (activeTab === 'draw') {
+            const canvas = canvasRef.current;
+            const ctx = canvas?.getContext('2d');
+            if (canvas && ctx) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        } else {
+            setUploadedImage(null);
+            setUploadError(null);
+        }
+    };
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                setUploadError("Ukuran gambar maksimal 5MB");
+                return;
+            }
+            setUploadError(null);
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                setUploadedImage(event.target?.result as string);
+            };
+            reader.readAsDataURL(file);
         }
     };
 
     const handleSave = () => {
-        const canvas = canvasRef.current;
-        if (canvas) {
-            // Check if canvas is empty before saving
-            const blank = document.createElement('canvas');
-            blank.width = canvas.width;
-            blank.height = canvas.height;
-            if (canvas.toDataURL() === blank.toDataURL()) {
-                 // Empty canvas
-                 onSave(""); // Pass empty string if they want to clear
-            } else {
-                const dataUrl = canvas.toDataURL('image/png');
-                onSave(dataUrl);
+        if (activeTab === 'draw') {
+            const canvas = canvasRef.current;
+            if (canvas) {
+                // Check if canvas is empty before saving
+                const blank = document.createElement('canvas');
+                blank.width = canvas.width;
+                blank.height = canvas.height;
+                if (canvas.toDataURL() === blank.toDataURL()) {
+                     // Empty canvas
+                     onSave(""); // Pass empty string if they want to clear
+                } else {
+                    const dataUrl = canvas.toDataURL('image/png');
+                    onSave(dataUrl);
+                }
+                onClose();
             }
+        } else {
+            onSave(uploadedImage || "");
             onClose();
         }
     };
@@ -127,33 +165,95 @@ export function SignatureModal({ isOpen, onClose, onSave }: SignatureModalProps)
                             </DialogPrimitive.Close>
                         </div>
 
-                        <div className="p-8 space-y-8 bg-white w-full">
+                        <div className="p-8 space-y-6 bg-white w-full">
                             <div className="space-y-4 text-center w-full">
                                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-orange-50 text-[#D25026] rounded-full text-[10px] font-bold uppercase tracking-widest border border-orange-100">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg>
-                                    Input Paraf Mahasiswa
+                                    Input Paraf / TTD
                                 </div>
-                                <p className="text-sm font-medium text-gray-400">Silakan gambar paraf Anda di bawah ini.</p>
                                 
-                                <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl overflow-hidden touch-none relative group transition-all hover:border-[#D25026]/40 shadow-inner w-full aspect-[4/2.2]">
-                                    <canvas
-                                        ref={canvasRef}
-                                        width={400}
-                                        height={220}
-                                        onMouseDown={startDrawing}
-                                        onMouseMove={draw}
-                                        onMouseUp={stopDrawing}
-                                        onMouseLeave={stopDrawing}
-                                        onTouchStart={startDrawing}
-                                        onTouchMove={draw}
-                                        onTouchEnd={stopDrawing}
-                                        className="w-full h-full cursor-crosshair bg-white"
-                                        style={{ touchAction: 'none', display: 'block' }}
-                                    />
-                                    <div className="absolute top-3 right-3 opacity-20 pointer-events-none">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M10 13l2 2 4-4"></path></svg>
-                                    </div>
+                                {/* Tabs Header */}
+                                <div className="flex border-b border-gray-200 w-full">
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveTab('draw')}
+                                        className={cn(
+                                            "flex-1 pb-2 text-sm font-bold border-b-2 text-center transition-all outline-none",
+                                            activeTab === 'draw' ? "border-[#D25026] text-[#D25026]" : "border-transparent text-gray-400 hover:text-gray-600"
+                                        )}
+                                    >
+                                        Tulis TTD
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveTab('upload')}
+                                        className={cn(
+                                            "flex-1 pb-2 text-sm font-bold border-b-2 text-center transition-all outline-none",
+                                            activeTab === 'upload' ? "border-[#D25026] text-[#D25026]" : "border-transparent text-gray-400 hover:text-gray-600"
+                                        )}
+                                    >
+                                        Unggah Gambar
+                                    </button>
                                 </div>
+
+                                {activeTab === 'draw' ? (
+                                    <div className="space-y-4">
+                                        <p className="text-sm font-medium text-gray-400">Silakan gambar tanda tangan / paraf Anda di bawah ini.</p>
+                                        <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl overflow-hidden touch-none relative group transition-all hover:border-[#D25026]/40 shadow-inner w-full aspect-[4/2.2]">
+                                            <canvas
+                                                ref={canvasRef}
+                                                width={400}
+                                                height={220}
+                                                onMouseDown={startDrawing}
+                                                onMouseMove={draw}
+                                                onMouseUp={stopDrawing}
+                                                onMouseLeave={stopDrawing}
+                                                onTouchStart={startDrawing}
+                                                onTouchMove={draw}
+                                                onTouchEnd={stopDrawing}
+                                                className="w-full h-full cursor-crosshair bg-white"
+                                                style={{ touchAction: 'none', display: 'block' }}
+                                            />
+                                            <div className="absolute top-3 right-3 opacity-20 pointer-events-none">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M10 13l2 2 4-4"></path></svg>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <p className="text-sm font-medium text-gray-400">Unggah berkas gambar tanda tangan (Format: PNG, JPG, JPEG. Maksimal 5MB).</p>
+                                        <div className="flex flex-col items-center justify-center bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl overflow-hidden p-6 transition-all hover:border-[#D25026]/40 shadow-inner w-full aspect-[4/2.2] relative">
+                                            {uploadedImage ? (
+                                                <div className="w-full h-full flex flex-col items-center justify-center relative">
+                                                    <img src={uploadedImage} alt="Uploaded signature" className="max-w-full max-h-full object-contain" />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setUploadedImage(null)}
+                                                        className="absolute top-2 right-2 bg-red-100 text-red-600 p-1.5 rounded-full hover:bg-red-200 transition-colors shadow-sm"
+                                                    >
+                                                        <X size={14} />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <label className="flex flex-col items-center justify-center cursor-pointer w-full h-full space-y-2 group">
+                                                    <div className="w-12 h-12 rounded-full bg-orange-50 border border-orange-100 flex items-center justify-center text-[#D25026] group-hover:scale-110 transition-transform">
+                                                        <Upload size={20} />
+                                                    </div>
+                                                    <span className="text-xs font-bold text-gray-500 group-hover:text-[#D25026] transition-colors">Pilih gambar tanda tangan</span>
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        onChange={handleImageUpload}
+                                                        className="hidden"
+                                                    />
+                                                </label>
+                                            )}
+                                        </div>
+                                        {uploadError && (
+                                            <p className="text-xs font-bold text-red-500 text-center">{uploadError}</p>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="flex gap-4 pt-2">

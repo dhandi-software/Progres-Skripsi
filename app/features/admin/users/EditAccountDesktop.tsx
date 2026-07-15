@@ -2,6 +2,7 @@ import { useNavigate, useParams } from "react-router"; // Keep for types if need
 import { ArrowLeft, ChevronDown, Eye, EyeOff, Save } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { CustomSelect } from "~/components/ui/custom-select";
+import { MultipleCombobox } from "~/components/ui/Multiple-combobox";
 import { useEditAccount } from "./UseEditAccount";
 
 export function EditAccountDesktop() {
@@ -126,20 +127,7 @@ export function EditAccountDesktop() {
                                 className="w-full px-5 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-base disabled:opacity-50 disabled:bg-gray-50 bg-white"
                             />
                         </div>
-                        <div className="flex flex-col gap-3">
-                            <label className="text-base font-semibold text-[#18181B]">
-                                Jurusan
-                            </label>
-                            <input
-                                type="text"
-                                name="jurusan"
-                                value={formData.jurusan}
-                                onChange={handleInputChange}
-                                placeholder="e.g. Teknik Informatika"
-                                disabled={isLoading}
-                                className="w-full px-5 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-base disabled:opacity-50 disabled:bg-gray-50 bg-white"
-                            />
-                        </div>
+
                         <div className="flex flex-col gap-3">
                             <label className="text-base font-semibold text-[#18181B]">
                                 Tahun Masuk
@@ -208,6 +196,26 @@ export function EditAccountDesktop() {
                                     className="w-full px-5 py-3 h-auto"
                                 />
                             </div>
+                        </div>
+                        <div className="flex flex-col gap-3">
+                            <label className="text-base font-semibold text-[#18181B]">
+                                Peminatan
+                            </label>
+                            <MultipleCombobox
+                                options={[
+                                    { label: "Software Engineering", id: "Software Engineering", checked: formData.peminatan.includes("Software Engineering") },
+                                    { label: "Artificial Intelligence", id: "Artificial Intelligence", checked: formData.peminatan.includes("Artificial Intelligence") },
+                                    { label: "Cyber Security", id: "Cyber Security", checked: formData.peminatan.includes("Cyber Security") },
+                                    { label: "Data Science", id: "Data Science", checked: formData.peminatan.includes("Data Science") },
+                                ]}
+                                onOptionsChange={(newOptions) => {
+                                    const selected = newOptions.filter(o => o.checked).map(o => o.id);
+                                    handleInputChange({
+                                        target: { name: "peminatan", value: selected },
+                                    } as any);
+                                }}
+                                placeholder="Select peminatan..."
+                            />
                         </div>
                     </div>
                 )}

@@ -28,6 +28,15 @@ const getStatusPenilaian = (status: string) => {
     }
 };
 
+const parseCatatan = (catatan: string) => {
+    if (!catatan) return { nilai: null, text: "" };
+    const match = catatan.match(/^\[NILAI:\s*(\d+)\]\s*(.*)$/s);
+    if (match) {
+        return { nilai: parseInt(match[1]), text: match[2] };
+    }
+    return { nilai: null, text: catatan };
+};
+
 const getTimeRemaining = (deadline?: string) => {
     if (!deadline) return { text: "-", isLate: false, isWarning: false };
     const now = new Date();
@@ -266,7 +275,7 @@ export function BimbinganDesktop() {
                                                 </div>
                                                 <input 
                                                     type="file" 
-                                                    accept=".pdf,application/pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
+                                                    accept="application/pdf"
                                                     onChange={handleFileChange}
                                                     disabled={getTimeRemaining(activeTask.jadwalBimbingan).isLate}
                                                     className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-[#e6f4f5] file:text-[#119DA4] hover:file:bg-[#d0ebed] cursor-pointer disabled:opacity-50 mb-4 bg-white border border-gray-200 p-2 rounded-lg"
@@ -340,13 +349,25 @@ export function BimbinganDesktop() {
                                                     <tr className="bg-gray-50/50">
                                                         <th className="py-4 px-6 font-bold text-gray-700 w-1/3 border-r border-gray-200">Komentar & Catatan</th>
                                                         <td className="py-4 px-6 text-gray-900 bg-white">
-                                                            {activeTask.catatan && activeTask.catatan !== "Task Assigned" ? (
-                                                                <div className="p-3 bg-orange-50 rounded border border-orange-100 text-orange-800 text-sm">
-                                                                    "{activeTask.catatan}"
-                                                                </div>
-                                                            ) : (
-                                                                <span className="text-gray-400 italic">Belum ada komentar</span>
-                                                            )}
+                                                            {(() => {
+                                                                const parsed = parseCatatan(activeTask.catatan);
+                                                                return (
+                                                                    <div className="space-y-3">
+                                                                        {parsed.nilai !== null && (
+                                                                            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 border border-green-200 text-green-700 rounded-full font-bold text-xs shadow-sm">
+                                                                                Nilai Bimbingan: {parsed.nilai} / 100
+                                                                            </div>
+                                                                        )}
+                                                                        {parsed.text && parsed.text !== "Task Assigned" ? (
+                                                                            <div className="p-3 bg-orange-50 rounded border border-orange-100 text-orange-800 text-sm">
+                                                                                "{parsed.text}"
+                                                                            </div>
+                                                                        ) : (
+                                                                            parsed.nilai === null && <span className="text-gray-400 italic">Belum ada komentar</span>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                             
                                                             {activeTask.fileDosen && (
                                                                 <a href={`${UPLOADS_URL}${activeTask.fileDosen}`} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-xs font-bold transition-colors">
@@ -432,35 +453,43 @@ export function BimbinganDesktop() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {completedTasks.map(task => (
-                                <div key={task.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-                                    <div className="h-2 w-full bg-green-500"></div>
-                                    <div className="p-6">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
-                                                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                            {completedTasks.map(task => {
+                                const parsed = parseCatatan(task.catatan);
+                                return (
+                                    <div key={task.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                                        <div className="h-2 w-full bg-green-500"></div>
+                                        <div className="p-6">
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
+                                                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                                                </div>
+                                                <div className="flex flex-col items-end gap-1.5">
+                                                    <span className="text-[10px] font-bold px-2 py-1 bg-green-100 text-green-700 rounded-full">SELESAI (ACC)</span>
+                                                    {parsed.nilai !== null && (
+                                                        <span className="text-xs font-bold px-2.5 py-0.5 bg-blue-100 text-blue-700 rounded-full shadow-sm">Nilai: {parsed.nilai}</span>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <span className="text-[10px] font-bold px-2 py-1 bg-green-100 text-green-700 rounded-full">SELESAI (ACC)</span>
-                                        </div>
-                                        <h3 className="text-lg font-bold text-gray-900 mb-2">{task.topik}</h3>
-                                        <p className="text-xs text-gray-500 mb-4 flex items-center gap-1.5">
-                                            <Calendar className="w-3.5 h-3.5" /> Disetujui: {new Date(task.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                        </p>
-                                        <div className="flex flex-col gap-2 pt-4 border-t border-gray-100">
-                                            {task.fileDosen && (
-                                                <a href={`${UPLOADS_URL}${task.fileDosen}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full py-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-bold transition-colors">
-                                                    <Download className="w-4 h-4" /> File Final (Dosen)
-                                                </a>
-                                            )}
-                                            {task.fileMahasiswa?.toLowerCase().endsWith('.pdf') && (
-                                                <button onClick={() => handleOpenViewer(task.id, task.topik)} className="flex items-center justify-center gap-2 w-full py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-xs font-bold transition-colors">
-                                                    <Eye className="w-4 h-4" /> Lihat Dokumen (ACC)
-                                                </button>
-                                            )}
+                                            <h3 className="text-lg font-bold text-gray-900 mb-2">{task.topik}</h3>
+                                            <p className="text-xs text-gray-500 mb-4 flex items-center gap-1.5">
+                                                <Calendar className="w-3.5 h-3.5" /> Disetujui: {new Date(task.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                            </p>
+                                            <div className="flex flex-col gap-2 pt-4 border-t border-gray-100">
+                                                {task.fileDosen && (
+                                                    <a href={`${UPLOADS_URL}${task.fileDosen}`} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full py-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-bold transition-colors">
+                                                        <Download className="w-4 h-4" /> File Final (Dosen)
+                                                    </a>
+                                                )}
+                                                {task.fileMahasiswa?.toLowerCase().endsWith('.pdf') && (
+                                                    <button onClick={() => handleOpenViewer(task.id, task.topik)} className="flex items-center justify-center gap-2 w-full py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-xs font-bold transition-colors">
+                                                        <Eye className="w-4 h-4" /> Lihat Dokumen (ACC)
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>

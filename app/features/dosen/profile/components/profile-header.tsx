@@ -82,9 +82,9 @@ export function ProfileHeader({ profile, onUpdate }: ProfileHeaderProps) {
                         )}
                         onClick={handlePhotoClick}
                     >
-                        {profile?.user?.photo ? (
+                        {profile?.photo ? (
                             <img 
-                                src={profileApi.getProfilePhotoUrl(profile.user.photo)} 
+                                src={profileApi.getProfilePhotoUrl(profile.photo)} 
                                 alt={profile.nama}
                                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                             />
@@ -141,7 +141,7 @@ export function ProfileHeader({ profile, onUpdate }: ProfileHeaderProps) {
                             <Mail className="w-6 h-6 text-[#D25026]" />
                             <div className="flex flex-col">
                                 <span className="text-[10px] uppercase font-black text-gray-400 tracking-widest">Email</span>
-                                <span className="font-bold text-gray-800 text-lg leading-none">{profile?.user?.email || "-"}</span>
+                                <span className="font-bold text-gray-800 text-lg leading-none">{profile?.email || "-"}</span>
                             </div>
                         </div>
                     </div>

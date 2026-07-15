@@ -30,6 +30,15 @@ const getStatusPenilaian = (status: string) => {
     }
 };
 
+const parseCatatan = (catatan: string) => {
+    if (!catatan) return { nilai: null, text: "" };
+    const match = catatan.match(/^\[NILAI:\s*(\d+)\]\s*(.*)$/s);
+    if (match) {
+        return { nilai: parseInt(match[1]), text: match[2] };
+    }
+    return { nilai: null, text: catatan };
+};
+
 const getTimeRemaining = (deadline?: string) => {
     if (!deadline) return { text: "-", isLate: false, isWarning: false };
     const now = new Date();
@@ -256,7 +265,7 @@ export function BimbinganMobile() {
                                                 </div>
                                                 <input 
                                                     type="file" 
-                                                    accept=".pdf,application/pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
+                                                    accept="application/pdf" 
                                                     onChange={handleFileChange}
                                                     disabled={getTimeRemaining(activeTask.jadwalBimbingan).isLate}
                                                     className="w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:bg-[#e6f4f5] file:text-[#119DA4] hover:file:bg-[#d0ebed] cursor-pointer disabled:opacity-50 mb-3 bg-white border border-gray-200 p-1.5 rounded-lg"
@@ -330,13 +339,25 @@ export function BimbinganMobile() {
                                                     <tr className="bg-gray-50/50">
                                                         <th className="py-2.5 px-3 font-bold text-gray-700 w-2/5 border-r border-gray-200 align-top">Catatan</th>
                                                         <td className="py-2.5 px-3 text-gray-900 bg-white">
-                                                            {activeTask.catatan && activeTask.catatan !== "Task Assigned" ? (
-                                                                <div className="p-2 bg-orange-50 rounded border border-orange-100 text-orange-800 text-[10px]">
-                                                                    "{activeTask.catatan}"
-                                                                </div>
-                                                            ) : (
-                                                                <span className="text-gray-400 italic">Belum ada</span>
-                                                            )}
+                                                            {(() => {
+                                                                const parsed = parseCatatan(activeTask.catatan);
+                                                                return (
+                                                                    <div className="space-y-2">
+                                                                        {parsed.nilai !== null && (
+                                                                            <div className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-green-50 border border-green-200 text-green-700 rounded-full font-bold text-[9px] shadow-sm">
+                                                                                Nilai Bimbingan: {parsed.nilai} / 100
+                                                                            </div>
+                                                                        )}
+                                                                        {parsed.text && parsed.text !== "Task Assigned" ? (
+                                                                            <div className="p-2 bg-orange-50 rounded border border-orange-100 text-orange-800 text-[10px]">
+                                                                                "{parsed.text}"
+                                                                            </div>
+                                                                        ) : (
+                                                                            parsed.nilai === null && <span className="text-gray-400 italic">Belum ada</span>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                             
                                                             {activeTask.fileDosen && (
                                                                 <a href={`${UPLOADS_URL}${activeTask.fileDosen}`} target="_blank" rel="noreferrer" className="mt-2 text-center w-full block py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-[10px] font-bold transition-colors">
@@ -419,16 +440,23 @@ export function BimbinganMobile() {
                             </div>
                         ) : (
                             <div className="flex flex-col gap-4">
-                                {completedTasks.map(task => (
-                                    <div key={task.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden min-h-[140px] flex flex-col justify-between">
-                                        <div className="h-1.5 w-full bg-green-500 shrink-0"></div>
-                                        <div className="p-4 flex-1 flex flex-col">
-                                            <div className="flex justify-between items-start mb-3">
-                                                <div className="w-8 h-8 bg-green-50 rounded-md flex items-center justify-center">
-                                                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                {completedTasks.map(task => {
+                                    const parsed = parseCatatan(task.catatan);
+                                    return (
+                                        <div key={task.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden min-h-[140px] flex flex-col justify-between">
+                                            <div className="h-1.5 w-full bg-green-500 shrink-0"></div>
+                                            <div className="p-4 flex-1 flex flex-col">
+                                                <div className="flex justify-between items-start mb-3">
+                                                    <div className="w-8 h-8 bg-green-50 rounded-md flex items-center justify-center">
+                                                        <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                                    </div>
+                                                    <div className="flex flex-col items-end gap-1">
+                                                        <span className="text-[9px] font-bold px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full">SELESAI</span>
+                                                        {parsed.nilai !== null && (
+                                                            <span className="text-[9px] font-bold px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full shadow-sm">Nilai: {parsed.nilai}</span>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <span className="text-[9px] font-bold px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full">SELESAI</span>
-                                            </div>
                                             <h3 className="text-sm font-bold text-gray-900 mb-1">{task.topik}</h3>
                                             <p className="text-[10px] text-gray-500 mb-3 flex items-center gap-1.5 mt-auto pt-2">
                                                 <Calendar className="w-3 h-3" /> ACC: {new Date(task.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -447,11 +475,12 @@ export function BimbinganMobile() {
                                             </div>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            )}
             </div>
 
             {/* Viewer Modal */}

@@ -9,8 +9,8 @@ export default function LogbookIdRoute() {
   if (!id) return null;
 
   return isMobile ? (
-    <LogbookMobile mahasiswaId={parseInt(id)} />
+    <LogbookMobile mahasiswaId={id} />
   ) : (
-    <LogbookDesktop mahasiswaId={parseInt(id)} />
+    <LogbookDesktop mahasiswaId={id} />
   );
 }

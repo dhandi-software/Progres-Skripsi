@@ -16,6 +16,9 @@ import {
 } from "lucide-react";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { acaraApi } from "~/api/acaraApi";
+import { jadwalKpApi } from "~/api/jadwalKpApi";
+import type { JadwalKp } from "~/api/jadwalKpApi";
+import { sanksiApi } from "~/api/sanksiApi";
 
 export function DashboardMobile() {
     const { user } = useAuth();
@@ -24,6 +27,8 @@ export function DashboardMobile() {
     const [bimbinganTasks, setBimbinganTasks] = useState<any[]>([]);
     const [acaras, setAcaras] = useState<any[]>([]);
     const [unreadAcaraCount, setUnreadAcaraCount] = useState(0);
+    const [upcomingJadwal, setUpcomingJadwal] = useState<JadwalKp[]>([]);
+    const [sanksiList, setSanksiList] = useState<any[]>([]);
     const [showAllActivities, setShowAllActivities] = useState(false);
 
     const fetchAcaraData = () => {
@@ -52,6 +57,15 @@ export function DashboardMobile() {
                 .catch(console.error);
             
             fetchAcaraData();
+            jadwalKpApi.getAllJadwalKp()
+                .then((data: JadwalKp[]) => {
+                    const now = new Date();
+                    const upcoming = data.filter(j => new Date(j.tanggal) >= now && j.tipe !== 'JADWAL_SIDANG').sort((a, b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime());
+                    setUpcomingJadwal(upcoming);
+                })
+                .catch(console.error);
+
+            sanksiApi.getAllSanksi().then(setSanksiList).catch(console.error);
         }
     }, [user?.id]);
 
@@ -160,6 +174,19 @@ export function DashboardMobile() {
             });
         });
 
+        // 5. Sanksi Administrasi
+        sanksiList.forEach(s => {
+            activities.push({
+                title: "Peringatan Sanksi Administrasi",
+                desc: `Peringatan pengumpulan hardcover untuk sidang tanggal ${s.tanggalSidang}.`,
+                time: new Date(s.createdAt).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric' }),
+                icon: AlertCircle,
+                color: "text-red-600",
+                rawDate: new Date(s.createdAt),
+                onClick: () => navigate("/mahasiswa/sanksi")
+            });
+        });
+
         return activities.sort((a, b) => b.rawDate.getTime() - a.rawDate.getTime());
     };
 
@@ -188,6 +215,70 @@ export function DashboardMobile() {
                     </button>
                 </div>
             </div>
+
+            {/* Notification Banner for Sanksi Administrasi Mobile */}
+            {sanksiList.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 shadow-sm relative overflow-hidden animate-in fade-in slide-in-from-top-2 duration-500">
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 bg-red-100 rounded-full text-red-600 shrink-0">
+                            <AlertCircle className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-red-800 font-bold text-sm">Peringatan Administrasi!</h3>
+                            <p className="text-red-700 text-[10px] mt-1 pr-2 leading-relaxed">
+                                Anda memiliki <span className="font-bold">{sanksiList.length} peringatan</span> terkait pengumpulan Hardcover Laporan KP.
+                            </p>
+                            <button 
+                                onClick={() => navigate("/mahasiswa/sanksi")}
+                                className="mt-3 px-4 py-2 bg-red-600 hover:bg-red-700 active:bg-red-800 transition-colors text-white text-xs font-bold rounded-lg shadow-sm w-full"
+                            >
+                                Lihat Detail
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Notification Banner for Upcoming Jadwal Mobile */}
+            {upcomingJadwal.map((jadwal, index) => (
+                <div key={`jadwal-${index}`} className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 shadow-sm relative overflow-hidden animate-in fade-in slide-in-from-top-2 duration-500">
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 bg-emerald-100 rounded-full text-emerald-600 shrink-0">
+                            <Calendar className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1.5">
+                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${jadwal.tipe === 'PENGARAHAN_KP' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                                    {jadwal.tipe === 'PENGARAHAN_KP' ? 'Pengarahan KP' : 'Pengumpulan Laporan Sidang'}
+                                </span>
+                            </div>
+                            <h3 className="text-emerald-800 font-bold text-sm">{jadwal.judul}</h3>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                <span className="bg-emerald-600 text-white font-black text-sm px-3 py-1 rounded-lg shadow-sm">
+                                    {new Date(jadwal.tanggal).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                </span>
+                                <span className="bg-emerald-100 text-emerald-800 font-black text-sm px-3 py-1 rounded-lg border border-emerald-200">
+                                    {new Date(jadwal.tanggal).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                            </div>
+                            {jadwal.deskripsi && (
+                                <div 
+                                    className="text-emerald-700 text-[10px] mt-2 pr-2 leading-relaxed italic prose prose-sm max-w-none prose-emerald"
+                                    dangerouslySetInnerHTML={{ __html: jadwal.deskripsi }} 
+                                />
+                            )}
+                            {jadwal.tipe === 'PENGARAHAN_SIDANG' && (
+                                <button 
+                                    onClick={() => navigate("/mahasiswa/sidang")}
+                                    className="mt-3 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 transition-colors text-white text-xs font-bold rounded-lg shadow-sm w-full"
+                                >
+                                    Kumpul Laporan
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            ))}
 
             {/* Notification Banner for Rejected Applications Mobile */}
             {profile?.pengajuanJudul && profile.pengajuanJudul.length > 0 && profile.pengajuanJudul[0].status === 'REJECTED' && (
@@ -284,7 +375,7 @@ export function DashboardMobile() {
                         <div className="flex-1">
                             <h3 className="text-blue-800 font-bold text-sm">Pengumuman Baru</h3>
                             <p className="text-blue-600 text-[10px] mt-1 pr-2 leading-relaxed">
-                                Ada {unreadAcaraCount} pengumuman atau berita acara baru yang belum Anda baca.
+                                Ada {unreadAcaraCount} pengumuman atau berita acara baru dari dosen pembimbing yang belum Anda baca.
                             </p>
                             <button 
                                 onClick={() => navigate("/mahasiswa/acara")}
@@ -297,13 +388,36 @@ export function DashboardMobile() {
                 </div>
             )}
 
+            {/* Notification Banner for Missing Pengajuan Mobile */}
+            {(!profile?.pengajuanJudul || profile.pengajuanJudul.length === 0) && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 shadow-sm relative overflow-hidden animate-in fade-in slide-in-from-top-2 duration-500">
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 bg-amber-100 rounded-full text-amber-600 shrink-0">
+                            <AlertCircle className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-amber-800 font-bold text-sm">Lengkapi Pengajuan Formulir</h3>
+                            <p className="text-amber-600 text-[10px] mt-1 pr-2 leading-relaxed">
+                                Silakan lengkapi pengajuan formulir untuk melakukan bimbingan.
+                            </p>
+                            <button 
+                                onClick={() => navigate("/mahasiswa/pengajuan")}
+                                className="mt-3 px-4 py-2 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 transition-colors text-white text-xs font-bold rounded-lg shadow-sm w-full"
+                            >
+                                Lengkapi Sekarang
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Status Summary (Compact) */}
             <div className="grid grid-cols-2 gap-3">
                 <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
                     <span className="text-gray-400 text-xs font-medium uppercase">SKS Tempuh</span>
                     <div className="flex items-center gap-2 mt-1">
                         <BookOpen className="w-4 h-4 text-blue-600" />
-                        <span className="text-lg font-bold text-gray-800">110</span>
+                        <span className="text-lg font-bold text-gray-800">{profile?.pengajuanJudul && profile.pengajuanJudul.length > 0 ? profile.pengajuanJudul[0].sksDicapai || 0 : 0}</span>
                     </div>
                 </div>
                 <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
@@ -395,7 +509,7 @@ export function DashboardMobile() {
                                             <h4 className="font-semibold text-gray-900 flex items-center gap-2">
                                                 {item.title}
                                                 {item.isRead === false && (
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-sm animate-pulse" />
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-sm" />
                                                 )}
                                             </h4>
                                             <p className="text-[10px] text-gray-500 mt-0.5 line-clamp-2 pr-2">{item.desc || ''}</p>
@@ -413,3 +527,4 @@ export function DashboardMobile() {
         </div>
     );
 }
+

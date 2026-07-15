@@ -12,8 +12,8 @@ export default function BimbinganReviewRoute() {
   }
 
   return isMobile ? (
-    <BimbinganReviewMobile mahasiswaId={parseInt(mahasiswaId)} taskId={parseInt(taskId)} />
+    <BimbinganReviewMobile mahasiswaId={mahasiswaId} taskId={parseInt(taskId)} />
   ) : (
-    <BimbinganReviewDesktop mahasiswaId={parseInt(mahasiswaId)} taskId={parseInt(taskId)} />
+    <BimbinganReviewDesktop mahasiswaId={mahasiswaId} taskId={parseInt(taskId)} />
   );
 }

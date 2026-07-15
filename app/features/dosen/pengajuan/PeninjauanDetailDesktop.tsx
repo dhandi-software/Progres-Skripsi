@@ -1,10 +1,11 @@
 import * as React from "react";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 import { pengajuanApi } from "~/api/pengajuan";
 import { ChevronLeft, Check, X, Loader2, RotateCcw } from "lucide-react";
 import { Toast } from "~/components/ui/toast";
 import { Button } from "~/components/ui/button";
+import { MonthYearFilter } from "~/components/ui/calendar";
 
 interface PengajuanDetail {
     id: number;
@@ -12,7 +13,6 @@ interface PengajuanDetail {
     mahasiswa: {
         nama: string;
         nim: string;
-        jurusan: string;
     };
     status: string;
     peminatan: string;
@@ -22,13 +22,18 @@ interface PengajuanDetail {
     sksDicapai: string;
     sksNilaiD?: string;
     batasStudi?: string;
+    remarks?: string;
+    deadlineRevisi?: string;
 }
 
 export function PeninjauanDetailDesktop({ id }: { id: string }) {
     const navigate = useNavigate();
+    const location = useLocation();
     const [detail, setDetail] = useState<PengajuanDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [remarks, setRemarks] = useState("");
+    const [deadlineRevisi, setDeadlineRevisi] = useState<Date | undefined>(undefined);
+    const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [toast, setToast] = useState<{ title: string; variant: "success" | "destructive" | "default" } | null>(null);
 
@@ -44,7 +49,7 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
             } catch (error) {
                 console.error("Failed to fetch detail", error);
                 alert("Gagal memuat detail pengajuan.");
-                navigate("/dosen/peninjauan");
+                navigate(`/dosen/peninjauan${location.search}`);
             } finally {
                 setLoading(false);
             }
@@ -55,10 +60,12 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
     const handleAction = async (status: 'APPROVED' | 'REJECTED' | 'REVISION') => {
         setSubmitting(true);
         try {
-            await pengajuanApi.updateStatus(parseInt(id), status, remarks);
+            const deadlineStr = deadlineRevisi ? deadlineRevisi.toISOString() : undefined;
+            await pengajuanApi.updateStatus(parseInt(id), status, remarks, deadlineStr);
             const label = status === 'APPROVED' ? 'disetujui' : status === 'REJECTED' ? 'ditolak' : 'diminta revisi';
             showToast(`Pengajuan berhasil ${label}.`, "success");
-            setTimeout(() => navigate("/dosen/peninjauan"), 1800);
+            setIsRevisionModalOpen(false);
+            setTimeout(() => navigate(`/dosen/peninjauan${location.search}`), 1800);
         } catch (error: any) {
             showToast("Gagal memproses aksi: " + (error.response?.data?.message || error.message), "destructive");
         } finally {
@@ -90,7 +97,7 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
                 </div>
             )}
             <button 
-                onClick={() => navigate("/dosen/peninjauan")}
+                onClick={() => navigate(`/dosen/peninjauan${location.search}`)}
                 className="flex items-center text-gray-600 hover:text-gray-900 mb-6 transition-colors font-medium"
             >
                 <ChevronLeft className="w-5 h-5 mr-1" />
@@ -139,15 +146,6 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
                     {/* Section 1: Academic Info */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-4">
-                            <div className="flex flex-col gap-1.5">
-                                <label className="text-sm font-semibold text-gray-700">Program Studi</label>
-                                <input 
-                                    type="text" 
-                                    value={detail.mahasiswa.jurusan || "-"} 
-                                    readOnly 
-                                    className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 font-medium"
-                                />
-                            </div>
                             <div className="flex flex-col gap-1.5">
                                 <label className="text-sm font-semibold text-gray-700">Semester</label>
                                 <input 
@@ -267,6 +265,32 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
                         </div>
                     </div>
 
+                    {detail.status === 'REVISION' && (
+                        <div className="border-t-2 border-dashed border-gray-200 mt-8 pt-8 pb-4">
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+                                <h3 className="font-bold text-yellow-800 mb-4">Informasi Revisi</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-sm font-semibold text-yellow-700">Catatan Revisi</label>
+                                        <div className="px-4 py-3 bg-white border border-yellow-200 rounded-lg text-yellow-900 min-h-[60px]">
+                                            {detail.remarks || "-"}
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col gap-1.5">
+                                        <label className="text-sm font-semibold text-yellow-700">Batas Waktu Revisi</label>
+                                        <div className="px-4 py-3 bg-white border border-yellow-200 rounded-lg text-yellow-900">
+                                            {detail.deadlineRevisi ? new Date(detail.deadlineRevisi).toLocaleDateString('id-ID', {
+                                                day: 'numeric',
+                                                month: 'long',
+                                                year: 'numeric'
+                                            }) : "-"}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {detail.status === 'PENDING' && (
                         <div className="border-t-2 border-dashed border-gray-200 mt-8 pt-8 pb-4">
                             <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
@@ -301,7 +325,7 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
                                     <Button
                                         variant="outline"
                                         size="md"
-                                        onClick={() => handleAction('REVISION')}
+                                        onClick={() => setIsRevisionModalOpen(true)}
                                         disabled={submitting || !remarks.trim()}
                                         className="border-yellow-500 text-yellow-700 hover:bg-yellow-50 font-bold"
                                         title={!remarks.trim() ? 'Isi catatan terlebih dahulu untuk mengirim revisi' : ''}
@@ -325,6 +349,51 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
                     )}
                 </div>
             </div>
+
+            {/* Revision Modal */}
+            {isRevisionModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity animate-in fade-in-0">
+                    <div className="w-[450px] bg-white rounded-xl shadow-lg border border-gray-100 p-6 flex flex-col gap-4 relative animate-in zoom-in-95 duration-200">
+                        <div className="flex flex-col gap-2">
+                            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                <RotateCcw className="w-5 h-5 text-yellow-600" />
+                                Tentukan Batas Waktu Revisi
+                            </h3>
+                            <p className="text-sm text-gray-500">
+                                Silakan pilih tanggal maksimal mahasiswa dapat mengumpulkan perbaikan usulan judul mereka.
+                            </p>
+                        </div>
+                        
+                        <div className="flex flex-col gap-1.5 py-4">
+                            <MonthYearFilter 
+                                date={deadlineRevisi} 
+                                setDate={setDeadlineRevisi} 
+                                showLabel={true}
+                                minDate={new Date()}
+                                maxDate={new Date(new Date().getFullYear(), 11, 31)}
+                                className="w-full"
+                            />
+                        </div>
+
+                        <div className="flex gap-3 w-full mt-2">
+                            <button
+                                onClick={() => setIsRevisionModalOpen(false)}
+                                className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                onClick={() => handleAction('REVISION')}
+                                disabled={!deadlineRevisi || submitting}
+                                className="flex-1 px-4 py-2.5 bg-yellow-500 text-white rounded-lg text-sm font-medium hover:bg-yellow-600 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed font-bold"
+                            >
+                                {submitting ? 'Menyimpan...' : 'Kirim Revisi'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Space at the bottom */}
             <div className="h-12"></div>
         </div>

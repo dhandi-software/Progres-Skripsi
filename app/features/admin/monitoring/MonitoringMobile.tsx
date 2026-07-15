@@ -105,7 +105,7 @@ export function MonitoringMobile() {
         try {
             setSelectedStudentForHistory(student.mahasiswa);
             setIsHistoryLoading(true);
-            const historyData = await bimbinganApi.getBimbinganByMahasiswa(student.mahasiswa.id);
+            const historyData = await bimbinganApi.getBimbinganByMahasiswa(student.mahasiswa.nim);
             setHistory(historyData);
         } catch (error) {
             console.error("Fetch History Error:", error);

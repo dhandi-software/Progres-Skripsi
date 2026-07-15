@@ -70,6 +70,7 @@ export function CustomSelect({
         align="start"
       >
         <Command className="w-full">
+          <CommandInput placeholder={searchPlaceholder} />
           <CommandList className="w-full max-h-[300px] overflow-auto p-1">
             <CommandEmpty className="py-3 text-center text-sm text-gray-500">{emptyMessage}</CommandEmpty>
             <CommandGroup>

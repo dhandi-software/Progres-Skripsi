@@ -73,26 +73,26 @@ export function PeninjauanMobile({
                  {/* Filters */}
                  <div className="flex gap-3">
                      <div className="w-1/2">
-                         <CustomSelect 
-                             value={filterStatus}
-                             onChange={(val) => setFilterStatus(val)}
+                         <CustomSelect
                              options={[
-                                 { value: "ALL", label: "Semua" },
-                                 { value: "PENDING", label: "Pending" },
-                                 { value: "APPROVED", label: "Disetujui" }
+                                 { label: "Semua", value: "ALL" },
+                                 { label: "Pending", value: "PENDING" },
+                                 { label: "Disetujui", value: "APPROVED" },
                              ]}
-                             placeholder="Status"
+                             value={filterStatus}
+                             onChange={(val) => setFilterStatus(val || "ALL")}
+                             placeholder="Pilih Status"
                          />
                      </div>
 
                      <div className="w-1/2">
-                         <CustomSelect 
-                             value={sortOrder}
-                             onChange={(val) => setSortOrder(val as any)}
+                         <CustomSelect
                              options={[
-                                 { value: "TERBARU", label: "Terbaru" },
-                                 { value: "TERLAMA", label: "Terlama" }
+                                 { label: "Terbaru", value: "TERBARU" },
+                                 { label: "Terlama", value: "TERLAMA" },
                              ]}
+                             value={sortOrder}
+                             onChange={(val) => setSortOrder(val as any || "TERBARU")}
                              placeholder="Urutkan"
                          />
                      </div>
@@ -112,6 +112,10 @@ export function PeninjauanMobile({
                             ) : item.status === 'REJECTED' ? (
                                 <div className="inline-flex px-2.5 py-1 bg-white border border-gray-200 rounded-md items-center">
                                     <span className="text-gray-800 text-[10px] font-bold uppercase tracking-wider">REJECTED</span>
+                                </div>
+                            ) : item.status === 'REVISION' ? (
+                                <div className="inline-flex px-2.5 py-1 bg-white border border-gray-200 rounded-md items-center">
+                                    <span className="text-gray-800 text-[10px] font-bold uppercase tracking-wider">REVISION</span>
                                 </div>
                             ) : (
                                 <div className="inline-flex px-2.5 py-1 bg-white border border-gray-200 rounded-md items-center">
@@ -133,7 +137,7 @@ export function PeninjauanMobile({
                                     )}
                                 </div>
                                 <span className="text-xs text-gray-400 mt-1">NIM: {item.mahasiswa.nim}</span>
-                                <span className="text-[11px] text-gray-400 line-clamp-1">{item.mahasiswa.jurusan}</span>
+
                             </div>
                         </div>
 
@@ -170,7 +174,7 @@ export function PeninjauanMobile({
                             <Button 
                                 variant="outline" 
                                 className="w-full text-gray-700 border-gray-200 bg-white hover:bg-gray-50 text-sm font-bold h-11 shadow-sm rounded-xl"
-                                onClick={() => navigate(`/dosen/peninjauan/${item.id}`)}
+                                onClick={() => navigate(`/dosen/peninjauan/${item.id}${window.location.search}`)}
                             >
                                 <Pencil size={16} className="mr-2 text-gray-500" />
                                 Tinjau Formulir

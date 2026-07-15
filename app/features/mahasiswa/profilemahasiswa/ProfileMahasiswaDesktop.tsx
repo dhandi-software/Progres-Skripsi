@@ -3,6 +3,7 @@ import { useAuth } from "~/hooks/useAuth";
 import { pengajuanApi } from "~/api/pengajuan";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { ProfileHeader } from "./components/profile-header";
+import { ProfileDetails } from "./components/profile-details";
 import { BadgeWall } from "./components/badge-wall";
 import { ProgressStats } from "./components/progress-stats";
 import { PasswordSection } from "~/components/profile/password-section";
@@ -32,6 +33,7 @@ export function ProfileMahasiswaDesktop() {
     return (
         <div className="p-8 lg:p-12 space-y-12 mx-auto font-geist animate-in fade-in duration-700">
             <ProfileHeader profile={profile} onUpdate={fetchData} />
+            <ProfileDetails profile={profile} onUpdate={fetchData} />
             <ProgressStats bimbinganTasks={bimbinganTasks} />
             <BadgeWall bimbinganTasks={bimbinganTasks} />
             

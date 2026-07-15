@@ -4,6 +4,9 @@ import { useAuth } from "~/hooks/useAuth";
 import { pengajuanApi } from "~/api/pengajuan";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { acaraApi } from "~/api/acaraApi";
+import { jadwalKpApi } from "~/api/jadwalKpApi";
+import type { JadwalKp } from "~/api/jadwalKpApi";
+import { sanksiApi } from "~/api/sanksiApi";
 import {
     BookOpen,
     Calendar,
@@ -25,6 +28,8 @@ export function DashboardDesktop() {
     const [bimbinganTasks, setBimbinganTasks] = useState<any[]>([]);
     const [acaras, setAcaras] = useState<any[]>([]);
     const [unreadAcaraCount, setUnreadAcaraCount] = useState(0);
+    const [upcomingJadwal, setUpcomingJadwal] = useState<JadwalKp[]>([]);
+    const [sanksiList, setSanksiList] = useState<any[]>([]);
     const [showAllActivities, setShowAllActivities] = useState(false);
 
     const fetchAcaraData = () => {
@@ -53,6 +58,15 @@ export function DashboardDesktop() {
                 .catch(console.error);
             
             fetchAcaraData();
+            jadwalKpApi.getAllJadwalKp()
+                .then((data: JadwalKp[]) => {
+                    const now = new Date();
+                    const upcoming = data.filter(j => new Date(j.tanggal) >= now && j.tipe !== 'JADWAL_SIDANG').sort((a, b) => new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime());
+                    setUpcomingJadwal(upcoming);
+                })
+                .catch(console.error);
+
+            sanksiApi.getAllSanksi().then(setSanksiList).catch(console.error);
         }
     }, [user?.id]);
 
@@ -175,6 +189,19 @@ export function DashboardDesktop() {
             });
         });
 
+        // 5. Sanksi Administrasi
+        sanksiList.forEach(s => {
+            activities.push({
+                title: "Peringatan Sanksi Administrasi",
+                desc: `Peringatan pengumpulan hardcover untuk sidang tanggal ${s.tanggalSidang}.`,
+                time: new Date(s.createdAt).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric' }),
+                icon: AlertCircle,
+                color: "text-red-600",
+                rawDate: new Date(s.createdAt),
+                onClick: () => navigate("/mahasiswa/sanksi")
+            });
+        });
+
         // Sort by rawDate descending
         return activities.sort((a, b) => b.rawDate.getTime() - a.rawDate.getTime());
     };
@@ -197,6 +224,69 @@ export function DashboardDesktop() {
                 <div className="absolute right-0 top-0 h-full w-1/3 bg-white/10 skew-x-12 translate-x-12" />
                 <div className="absolute right-20 bottom-0 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
             </div>
+
+            {/* Notification Banner for Sanksi Administrasi */}
+            {sanksiList.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-red-100 rounded-full text-red-600 shrink-0">
+                            <AlertCircle className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="text-red-800 font-bold text-lg">Peringatan Administrasi!</h3>
+                            <p className="text-red-700 text-sm mt-1">Anda memiliki <span className="font-bold">{sanksiList.length} peringatan</span> terkait pengumpulan Hardcover Laporan KP.</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => navigate("/mahasiswa/sanksi")}
+                        className="w-full sm:w-auto px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-colors shadow-sm whitespace-nowrap"
+                    >
+                        Lihat Detail
+                    </button>
+                </div>
+            )}
+
+            {/* Notification Banner for Upcoming Jadwal */}
+            {upcomingJadwal.map((jadwal, index) => (
+                <div key={`jadwal-${index}`} className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-emerald-100 rounded-full text-emerald-600 shrink-0">
+                            <Calendar className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${jadwal.tipe === 'PENGARAHAN_KP' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                                    {jadwal.tipe === 'PENGARAHAN_KP' ? 'Pengarahan KP' : 'Pengumpulan Laporan Sidang'}
+                                </span>
+                            </div>
+                            <h3 className="text-emerald-800 font-bold text-lg">{jadwal.judul}</h3>
+                            <div className="mt-3 flex items-center gap-2">
+                                <span className="bg-emerald-600 text-white font-black text-lg px-4 py-1.5 rounded-xl shadow-md">
+                                    {new Date(jadwal.tanggal).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                </span>
+                                <span className="bg-emerald-100 text-emerald-800 font-black text-lg px-4 py-1.5 rounded-xl border border-emerald-200">
+                                    {new Date(jadwal.tanggal).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                            </div>
+                            {jadwal.deskripsi && (
+                                <div 
+                                    className="text-emerald-700 text-xs mt-3 italic prose prose-sm max-w-none prose-emerald"
+                                    dangerouslySetInnerHTML={{ __html: jadwal.deskripsi }} 
+                                />
+                            )}
+                        </div>
+                    </div>
+                    {jadwal.tipe === 'PENGARAHAN_SIDANG' && (
+                        <button 
+                            onClick={() => navigate("/mahasiswa/sidang")}
+                            className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition-colors shadow-sm whitespace-nowrap"
+                        >
+                            Kumpul Laporan
+                        </button>
+                    )}
+                </div>
+            ))}
+
 
             {/* Notification Banner for Rejected Applications */}
             {profile?.pengajuanJudul && profile.pengajuanJudul.length > 0 && profile.pengajuanJudul[0].status === 'REJECTED' && (
@@ -303,6 +393,27 @@ export function DashboardDesktop() {
                     </button>
                 </div>
             )}
+
+            {/* Notification Banner for Missing Pengajuan */}
+            {(!profile?.pengajuanJudul || profile.pengajuanJudul.length === 0) && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-amber-100 rounded-full text-amber-600 shrink-0">
+                            <AlertCircle className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="text-amber-800 font-bold text-lg">Lengkapi Pengajuan Formulir</h3>
+                            <p className="text-amber-600 text-sm mt-1 mb-0">Silakan lengkapi pengajuan formulir untuk melakukan bimbingan.</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => navigate("/mahasiswa/pengajuan")}
+                        className="w-full sm:w-auto px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-xl transition-colors shadow-sm whitespace-nowrap"
+                    >
+                        Lengkapi Sekarang
+                    </button>
+                </div>
+            )}
  
             {/* Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -316,14 +427,14 @@ export function DashboardDesktop() {
                     },
                     {
                         title: "SKS Tempuh",
-                        value: "110 SKS",
+                        value: `${profile?.pengajuanJudul && profile.pengajuanJudul.length > 0 ? profile.pengajuanJudul[0].sksDicapai || 0 : 0} SKS`,
                         icon: BookOpen,
                         color: "text-blue-600",
                         bg: "bg-blue-50",
                     },
                     {
                         title: "Bimbingan",
-                        value: "3 Kali",
+                        value: `${bimbinganTasks.filter(t => t.status === 'APPROVED').length} Kali`,
                         icon: UsersIcon,
                         color: "text-orange-600",
                         bg: "bg-orange-50",
@@ -396,7 +507,7 @@ export function DashboardDesktop() {
                                     <h4 className="font-semibold text-gray-900 flex items-center gap-2">
                                         {item.title}
                                         {item.isRead === false && (
-                                            <span className="w-2 h-2 rounded-full bg-orange-500 shadow-sm animate-pulse" />
+                                            <span className="w-2 h-2 rounded-full bg-orange-500 shadow-sm" />
                                         )}
                                     </h4>
                                     <p className="text-sm text-gray-500 mt-1">
@@ -506,3 +617,4 @@ function UsersIcon(props: any) {
         </svg>
     );
 }
+

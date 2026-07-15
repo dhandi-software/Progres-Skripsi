@@ -18,10 +18,10 @@ export const useEditAccount = () => {
         role: "mahasiswa",
         // Specific fields
         nim: "",
-        jurusan: "",
         tahunMasuk: "",
         nidn: "",
         jabatan: "",
+        peminatan: [] as string[],
     });
 
     const [initialLoading, setInitialLoading] = useState(true);
@@ -50,15 +50,15 @@ export const useEditAccount = () => {
             const user = res.data;
 
             setFormData({
-                email: user.email,
+                email: user.mahasiswa?.email || user.dosen?.email || user.staf?.email || user.email || "",
                 name: user.nama || user.name || "",
                 password: "********", // Show placeholder password
                 role: user.role,
                 nim: user.nim || "",
-                jurusan: user.jurusan || "",
                 tahunMasuk: user.tahunMasuk || "",
                 nidn: user.nidn || "",
                 jabatan: user.jabatan || "",
+                peminatan: user.peminatan || [],
             });
         } catch (error) {
             console.error("Failed to fetch user", error);
@@ -83,6 +83,11 @@ export const useEditAccount = () => {
             return; // Ignore non-numeric input
         }
 
+        // Prevent spaces in email
+        if (name === "email" && value.includes(" ")) {
+            return;
+        }
+
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
@@ -105,6 +110,14 @@ export const useEditAccount = () => {
     };
 
     const handleSubmit = async () => {
+        if (formData.email) {
+            const allowedDomains = ["@student.univ.ac.id", "@univ.ac.id", "@gmail.com"];
+            const isValidDomain = allowedDomains.some(domain => formData.email.toLowerCase().endsWith(domain));
+            if (!isValidDomain) {
+                showToast("Email harus berakhiran @student.univ.ac.id, @univ.ac.id, atau @gmail.com", "destructive");
+                return;
+            }
+        }
         setIsLoading(true);
         try {
             const payload: any = {
@@ -143,6 +156,7 @@ export const useEditAccount = () => {
         togglePasswordVisibility,
         generatePassword,
         handleSubmit,
-        navigate
+        navigate,
+        setFormData
     };
 };

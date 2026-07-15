@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, type ReactNode } from "react";
+import React, { createContext, useState, useEffect, type ReactNode, useContext } from "react";
 import { authService } from "~/services/authService";
 import type { User, LoginCredentials } from "~/types/auth";
 import { useNavigate, useLocation } from "react-router";
@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // If the backend expects 'username' but the form uses 'email', we might need to adjust.
         // Let's assume the user enters 'username' in the email field for now, or we map it.
         const payload = {
-            username: data.email, // using email field as username for now as per backend mock
+            username: data.email || data.username, // using email field as username for now as per backend mock
             password: data.password
         };
 
@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Redirect based on role
             switch (role) {
                 case 'kaprodi':
-                    navigate("/kaprodi"); // Updated to simplified path
+                    navigate("/kaprodi");
                     break;
                 case 'dosen': 
                 case 'dosen_pembimbing':
@@ -123,4 +123,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 }

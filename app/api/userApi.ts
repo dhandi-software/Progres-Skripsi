@@ -213,16 +213,30 @@ export const userApi = {
         }
     },
 
-    /**
-     * Update user role
-     * PUT /api/v1/admin/:id
-     */
     updateUserRole: async (id: string, role: string): Promise<any> => {
         try {
             const response = await client.put(`/admin/${id}`, { role });
             return response.data;
         } catch (error: any) {
              console.error("❌ Update user role error:", {
+                status: error.response?.status,
+                data: error.response?.data,
+                message: error.message,
+            });
+            throw error;
+        }
+    },
+
+    /**
+     * Update user details
+     * PUT /api/v1/admin/:id
+     */
+    updateUser: async (id: string, data: any): Promise<any> => {
+        try {
+            const response = await client.put(`/admin/${id}`, data);
+            return response.data;
+        } catch (error: any) {
+             console.error("❌ Update user error:", {
                 status: error.response?.status,
                 data: error.response?.data,
                 message: error.message,

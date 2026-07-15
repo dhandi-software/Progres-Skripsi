@@ -1,6 +1,7 @@
 import { ArrowLeft, ChevronDown, Eye, EyeOff, Loader2, Save } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { CustomSelect } from "~/components/ui/custom-select";
+import { MultipleCombobox } from "~/components/ui/Multiple-combobox";
 import { useEditAccount } from "./UseEditAccount";
 
 export function EditAccountMobile() {
@@ -48,7 +49,7 @@ export function EditAccountMobile() {
          <button onClick={() => navigate(`/admin/users?tab=${formData.role}`)} className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors">
             <ArrowLeft size={20} className="text-gray-600" />
          </button>
-         <h1 className="text-lg font-bold text-gray-900">Edit {formData.role === 'mahasiswa' ? 'Mahasiswa' : 'Dosen'}</h1>
+         <h1 className="text-lg font-bold text-gray-900">Edit {formData.role === 'mahasiswa' ? 'Mahasiswa' : formData.role === 'dosen' ? 'Dosen' : 'Staf'}</h1>
       </div>
 
       <div className="p-4 flex flex-col gap-5">
@@ -80,79 +81,89 @@ export function EditAccountMobile() {
          </div>
 
          {/* Academic Info Card */}
-         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4">
-             <h2 className="text-sm font-bold text-gray-900 mb-1">Academic Information</h2>
-             
-             {formData.role === 'mahasiswa' ? (
-                 <>
-                    <div className="flex flex-col gap-2">
-                        <label className="text-sm font-medium text-gray-700">NIM</label>
-                         <input 
-                            type="text"
-                            name="nim"
-                            value={formData.nim}
-                            onChange={handleInputChange}
-                            placeholder="Numeric NIM"
-                            inputMode="numeric"
-                            className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500/10 focus:border-pink-500 transition-all text-sm"
-                         />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                        <label className="text-sm font-medium text-gray-700">Jurusan</label>
-                         <input 
-                            type="text"
-                            name="jurusan"
-                            value={formData.jurusan}
-                            onChange={handleInputChange}
-                            placeholder="Department"
-                            className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500/10 focus:border-pink-500 transition-all text-sm"
-                         />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                        <label className="text-sm font-medium text-gray-700">Tahun Masuk</label>
-                         <input 
-                            type="text"
-                            name="tahunMasuk"
-                            value={formData.tahunMasuk}
-                            onChange={handleInputChange}
-                            placeholder="Year"
-                            inputMode="numeric"
-                            className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500/10 focus:border-pink-500 transition-all text-sm"
-                         />
-                    </div>
-                 </>
-             ) : (
-                 <>
-                    <div className="flex flex-col gap-2">
-                        <label className="text-sm font-medium text-gray-700">NIDN</label>
-                         <input 
-                            type="text"
-                            name="nidn"
-                            value={formData.nidn}
-                            onChange={handleInputChange}
-                            placeholder="Numeric NIDN"
-                            inputMode="numeric"
-                            className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500/10 focus:border-pink-500 transition-all text-sm"
-                         />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                        <label className="text-sm font-medium text-gray-700">Jabatan</label>
-                        <CustomSelect
-                                value={formData.jabatan}
-                                onChange={(value) => handleInputChange({ target: { name: "jabatan", value } } as any)}
+         {formData.role !== 'staf' && (
+             <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4">
+                 <h2 className="text-sm font-bold text-gray-900 mb-1">Academic Information</h2>
+                 
+                 {formData.role === 'mahasiswa' ? (
+                     <>
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm font-medium text-gray-700">NIM</label>
+                             <input 
+                                type="text"
+                                name="nim"
+                                value={formData.nim}
+                                onChange={handleInputChange}
+                                placeholder="Numeric NIM"
+                                inputMode="numeric"
+                                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500/10 focus:border-pink-500 transition-all text-sm"
+                             />
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm font-medium text-gray-700">Tahun Masuk</label>
+                             <input 
+                                type="text"
+                                name="tahunMasuk"
+                                value={formData.tahunMasuk}
+                                onChange={handleInputChange}
+                                placeholder="Year"
+                                inputMode="numeric"
+                                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500/10 focus:border-pink-500 transition-all text-sm"
+                             />
+                        </div>
+                     </>
+                 ) : (
+                     <>
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm font-medium text-gray-700">NIDN</label>
+                             <input 
+                                type="text"
+                                name="nidn"
+                                value={formData.nidn}
+                                onChange={handleInputChange}
+                                placeholder="Numeric NIDN"
+                                inputMode="numeric"
+                                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500/10 focus:border-pink-500 transition-all text-sm"
+                             />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm font-medium text-gray-700">Jabatan</label>
+                            <CustomSelect
+                                    value={formData.jabatan}
+                                    onChange={(value) => handleInputChange({ target: { name: "jabatan", value } } as any)}
+                                    options={[
+                                        { label: "Dosen Reguler", value: "Dosen Reguler" },
+                                        { label: "Pejabat Prodi", value: "Pejabat Prodi" },
+                                        { label: "Koordinator KP", value: "Koordinator KP" },
+                                        { label: "Dosen Pembimbing", value: "Dosen Pembimbing" },
+                                    ]}
+                                    placeholder="Select Jabatan"
+                                    className="w-full px-4 py-2.5 h-auto text-sm"
+                                />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm font-medium text-gray-700">Peminatan</label>
+                            <MultipleCombobox
                                 options={[
-                                    { label: "Dosen Reguler", value: "Dosen Reguler" },
-                                    { label: "Pejabat Prodi", value: "Pejabat Prodi" },
-                                    { label: "Koordinator KP", value: "Koordinator KP" },
-                                    { label: "Dosen Pembimbing", value: "Dosen Pembimbing" },
+                                    { label: "Software Engineering", id: "Software Engineering", checked: formData.peminatan.includes("Software Engineering") },
+                                    { label: "Artificial Intelligence", id: "Artificial Intelligence", checked: formData.peminatan.includes("Artificial Intelligence") },
+                                    { label: "Cyber Security", id: "Cyber Security", checked: formData.peminatan.includes("Cyber Security") },
+                                    { label: "Data Science", id: "Data Science", checked: formData.peminatan.includes("Data Science") },
                                 ]}
-                                placeholder="Select Jabatan"
-                                className="w-full px-4 py-2.5 h-auto text-sm"
+                                onOptionsChange={(newOptions) => {
+                                    const selected = newOptions.filter(o => o.checked).map(o => o.id);
+                                    handleInputChange({
+                                        target: { name: "peminatan", value: selected },
+                                    } as any);
+                                }}
+                                placeholder="Select peminatan..."
                             />
-                    </div>
-                 </>
-             )}
-         </div>
+                        </div>
+                     </>
+                 )}
+             </div>
+         )}
 
          {/* Security Card */}
          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex flex-col gap-4">

@@ -5,14 +5,16 @@ import { bimbinganApi } from "~/api/bimbinganApi";
 import { 
     Calendar, Clock, MapPin, CheckCircle, AlertCircle, 
     MoreVertical, Edit3, Trash2, Search, User, Filter,
-    Check, X, Save, ArrowRight, Users
+    Check, X, Save, ArrowRight, Users, FileText, CheckCircle2, XCircle
 } from "lucide-react";
+import { UPLOADS_URL } from "~/api/client";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { format } from "date-fns";
 import { id } from "date-fns/locale/id";
 import { SidangPengajuanForm } from "./SidangPengajuanForm";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext } from "~/components/ui/pagination";
 
 interface SidangItem {
     id: number;
@@ -34,8 +36,8 @@ interface SidangItem {
     lokasi: string | null;
     status: string;
     pembimbingApproved: boolean;
-    prodiApproved: boolean;
     catatan: string | null;
+    laporanUrl?: string;
 }
 
 export function SidangMobile() {
@@ -57,6 +59,13 @@ export function SidangMobile() {
     const [searchQuery, setSearchQuery] = useState("");
     const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
     
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 5;
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery]);
+    
     // Scheduling Form
     const [schedData, setSchedData] = useState({
         tanggalSidang: "",
@@ -72,7 +81,7 @@ export function SidangMobile() {
                     userRole === "kaprodi";
                     
     const isKaprodi = userRole === "kaprodi" || 
-                      userJabatan.includes("prodi") ||
+                      userJabatan.includes("kepala program studi") ||
                       userJabatan.includes("kaprodi");
 
     const fetchData = async () => {
@@ -104,11 +113,14 @@ export function SidangMobile() {
     const handleApply = async (formData: { tanggalSidang: string; waktuSidang: string; lokasi: string }) => {
         if (!isApplying) return;
         try {
-            await sidangApi.applyForSidang({
-                mahasiswaId: isApplying.mahasiswa.id,
-                judul: isApplying.judul || "Skripsi",
-                ...formData
-            });
+            const formDataData = new FormData();
+            formDataData.append("mahasiswaId", isApplying.mahasiswa.id.toString());
+            formDataData.append("judul", isApplying.judul || "Skripsi");
+            formDataData.append("tanggalSidang", formData.tanggalSidang);
+            formDataData.append("waktuSidang", formData.waktuSidang);
+            formDataData.append("lokasi", formData.lokasi);
+
+            await sidangApi.applyForSidang(formDataData);
             setIsApplying(null);
             fetchData();
             showToast("success", "Berhasil diajukan!");
@@ -145,15 +157,16 @@ export function SidangMobile() {
     const getStatusInfo = (status: string) => {
         switch (status) {
             case "MENUNGGU_PERSETUJUAN_PEMBIMBING":
-                return { label: "Menunggu ACC Pembimbing", color: "text-amber-600 bg-amber-50" };
+                return { label: "MENUNGGU ACC", color: "text-amber-600 bg-amber-50" };
             case "MENUNGGU_PENJADWALAN_PRODI":
-                return { label: "Menunggu Jadwal Prodi", color: "text-blue-600 bg-blue-50" };
+            case "MENUNGGU_PENJADWALAN_KOORDINATOR":
+                return { label: "MENUNGGU PRODI", color: "text-white bg-blue-600 shadow-sm shadow-blue-200" };
             case "TERJADWAL":
-                return { label: "Terjadwal", color: "text-emerald-600 bg-emerald-50" };
+                return { label: "TERJADWAL", color: "text-emerald-600 bg-emerald-50" };
             case "SELESAI":
-                return { label: "Selesai", color: "text-slate-600 bg-slate-50" };
+                return { label: "SELESAI", color: "text-white bg-slate-600 shadow-sm shadow-slate-200" };
             default:
-                return { label: status, color: "text-slate-600 bg-slate-50" };
+                return { label: status, color: "text-white bg-slate-600 shadow-sm shadow-slate-200" };
         }
     };
 
@@ -161,6 +174,9 @@ export function SidangMobile() {
         s.mahasiswa.nama.toLowerCase().includes(searchQuery.toLowerCase()) || 
         s.mahasiswa.nim.includes(searchQuery)
     );
+
+    const totalPages = Math.ceil(filteredSidangs.length / ITEMS_PER_PAGE);
+    const paginatedSidangs = filteredSidangs.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
     return (
         <div className="flex flex-col min-h-screen bg-slate-50">
@@ -215,7 +231,7 @@ export function SidangMobile() {
                                 </div>
                                 <h3 className="text-sm font-bold text-slate-400">Tidak ada data sidang</h3>
                             </div>
-                        ) : filteredSidangs.map(item => (
+                        ) : paginatedSidangs.map(item => (
                             <div key={item.id} className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden w-full">
                                 <div className="p-5 border-b border-slate-50">
                                     <div className="flex items-start justify-between gap-4">
@@ -223,13 +239,13 @@ export function SidangMobile() {
                                             <div className="w-10 h-10 rounded-2xl bg-brand-primary/10 flex items-center justify-center text-brand-primary font-black shrink-0">
                                                 {item.mahasiswa.nama.substring(0, 1)}
                                             </div>
-                                            <div className="flex flex-col min-w-0">
-                                                <span className="text-sm font-black text-slate-900 truncate tracking-tight">{item.mahasiswa.nama}</span>
+                                            <div className="flex flex-col min-w-0 w-full">
+                                                <span className="text-sm font-black text-slate-900 tracking-tight leading-tight w-full">{item.mahasiswa.nama}</span>
                                                 <span className="text-[10px] font-bold text-slate-400 uppercase">{item.mahasiswa.nim}</span>
                                             </div>
                                         </div>
-                                        <span className={cn("text-[9px] font-black uppercase px-2 py-1 rounded-full shrink-0", getStatusInfo(item.status).color)}>
-                                            {item.status === 'TERJADWAL' ? 'Terjadwal' : item.status === 'MENUNGGU_PENJADWALAN_PRODI' ? 'Menunggu Prodi' : 'Menunggu ACC'}
+                                        <span className={cn("text-[9px] font-black uppercase px-2.5 py-1 rounded-full shrink-0 tracking-wider", getStatusInfo(item.status).color)}>
+                                            {getStatusInfo(item.status).label}
                                         </span>
                                     </div>
                                     <p className="text-[11px] text-slate-500 italic mt-3 line-clamp-1">"{item.judul}"</p>
@@ -256,12 +272,25 @@ export function SidangMobile() {
                                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Lokasi</span>
                                         <div className="flex items-center gap-2 text-slate-900 font-bold text-[11px]">
                                             <MapPin size={12} className="text-slate-400" />
-                                            {item.lokasi || "Belum ditentukan"}
+                                            {item.lokasi || "Ditentukan Prodi/Koordinator"}
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="p-3 border-t border-slate-50 flex items-center justify-end gap-2">
+                                <div className="p-3 border-t border-slate-50 flex flex-wrap items-center justify-end gap-2">
+                                    {/* Lihat Laporan (Koordinator / Kaprodi) */}
+                                    {item.laporanUrl && isProdi && (
+                                        <a 
+                                            href={`${UPLOADS_URL}${item.laporanUrl}`} 
+                                            target="_blank" 
+                                            rel="noreferrer"
+                                            className="bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl h-9 px-4 font-black text-[10px] gap-1.5 flex items-center justify-center border border-blue-100 transition-colors shadow-sm"
+                                            title="Lihat Laporan Sidang"
+                                        >
+                                            <FileText size={12} /> Laporan
+                                        </a>
+                                    )}
+
                                     {/* Action for Supervisor */}
                                     {item.status === "MENUNGGU_PERSETUJUAN_PEMBIMBING" && item.dosen.userId === user?.id && (
                                         <Button 
@@ -272,22 +301,58 @@ export function SidangMobile() {
                                         </Button>
                                     )}
 
-                                    {/* Action for Prodi - Hanya muncul untuk Koordinator, bukan Kaprodi */}
-                                    {isProdi && !isKaprodi && item.status === "MENUNGGU_PENJADWALAN_PRODI" && (
+                                    {/* Atur Jadwal (Koordinator) */}
+                                    {item.status === "MENUNGGU_PENJADWALAN_KOORDINATOR" && isProdi && !isKaprodi && (
                                         <Button 
                                             onClick={() => {
                                                 setIsScheduling(item);
                                                 setSchedData({
-                                                    tanggalSidang: "",
-                                                    waktuSidang: item.waktuSidang || "09:00 - 11:00",
+                                                    tanggalSidang: item.tanggalSidang || "",
+                                                    waktuSidang: item.waktuSidang || "09:00",
                                                     lokasi: item.lokasi || "Ruang Sidang Lt. 3",
                                                     catatan: item.catatan || ""
                                                 });
                                             }}
-                                            className="bg-brand-primary text-white rounded-xl h-9 px-4 font-black text-[10px] gap-2 flex-1 shadow-lg shadow-brand-primary/20"
+                                            className="bg-brand-primary hover:bg-orange-600 text-white rounded-xl h-9 px-4 font-black text-[10px] gap-1.5 shadow-md shadow-brand-primary/30 transition-all"
                                         >
-                                            <Calendar size={14} /> Jadwalkan
+                                            <Calendar size={12} /> Jadwalkan
                                         </Button>
+                                    )}
+
+                                    {/* Action for Kaprodi Verification */}
+                                    {item.status === "MENUNGGU_VERIFIKASI_KAPRODI" && isKaprodi && (
+                                        <div className="flex gap-2 w-full">
+                                            <Button 
+                                                onClick={async () => {
+                                                     try {
+                                                         await sidangApi.verifyByKaprodi(item.id);
+                                                         fetchData();
+                                                         showToast("success", "Verifikasi berhasil!");
+                                                     } catch (e) {
+                                                         showToast("error", "Gagal verifikasi.");
+                                                     }
+                                                }}
+                                                className="bg-purple-600 text-white rounded-xl h-9 px-4 font-black text-[10px] gap-1 flex-1 shadow-lg shadow-purple-200"
+                                            >
+                                                <CheckCircle2 size={14} /> Verifikasi
+                                            </Button>
+                                            <Button 
+                                                onClick={async () => {
+                                                     try {
+                                                         await sidangApi.deleteSidang(item.id);
+                                                         fetchData();
+                                                         showToast("success", "Pengajuan ditolak!");
+                                                     } catch (e) {
+                                                         showToast("error", "Gagal menolak.");
+                                                     }
+                                                }}
+                                                variant="outline"
+                                                className="rounded-xl h-9 px-4 font-black text-[10px] gap-1 border-rose-200 text-rose-500 hover:bg-rose-50 hover:text-rose-600"
+                                                title="Tolak Pengajuan"
+                                            >
+                                                <XCircle size={14} /> Tolak
+                                            </Button>
+                                        </div>
                                     )}
 
                                     {/* Action for Kaprodi Confirmation */}
@@ -308,27 +373,60 @@ export function SidangMobile() {
                                          </Button>
                                     )}
 
-                                    {/* Tombol Ubah Jadwal hanya untuk Dosen Pembimbing */}
-                                    {item.dosen.userId === user?.id && item.status === "TERJADWAL" && (
+                                    {/* Tombol Ubah Jadwal untuk Pembimbing atau Koordinator */}
+                                    {(item.dosen.userId === user?.id || (isProdi && !isKaprodi)) && item.status === "TERJADWAL" && (
                                         <Button 
                                             onClick={() => {
                                                 setIsScheduling(item);
                                                 setSchedData({
-                                                    tanggalSidang: item.tanggalSidang ? format(new Date(item.tanggalSidang), "yyyy-MM-dd", { locale: id }) : "",
-                                                    waktuSidang: item.waktuSidang || "",
-                                                    lokasi: item.lokasi || "",
+                                                    tanggalSidang: item.tanggalSidang || "",
+                                                    waktuSidang: item.waktuSidang || "09:00 - 11:00",
+                                                    lokasi: item.lokasi || "Ruang Sidang Lt. 3",
                                                     catatan: item.catatan || ""
                                                 });
                                             }}
                                             variant="outline"
-                                            className="rounded-xl h-9 px-4 font-bold text-[10px] gap-2 flex-1 border-slate-200"
+                                            className="rounded-xl h-9 px-4 font-black text-[10px] gap-2 border-slate-200 flex-1"
                                         >
-                                            <Edit3 size={12} /> Ubah Jadwal
+                                            <Edit3 size={14} /> Ubah Jadwal
                                         </Button>
                                     )}
                                 </div>
                             </div>
                         ))}
+                        {totalPages > 1 && (
+                            <div className="pt-2 flex justify-center pb-6">
+                                <Pagination>
+                                    <PaginationContent>
+                                        <PaginationItem>
+                                            <PaginationPrevious
+                                                href="#"
+                                                onClick={(e) => { e.preventDefault(); setCurrentPage(p => Math.max(1, p - 1)) }}
+                                                className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                                            />
+                                        </PaginationItem>
+                                        {Array.from({ length: totalPages }).map((_, i) => (
+                                            <PaginationItem key={i}>
+                                                <PaginationLink
+                                                    href="#"
+                                                    isActive={currentPage === i + 1}
+                                                    onClick={(e) => { e.preventDefault(); setCurrentPage(i + 1) }}
+                                                >
+                                                    {i + 1}
+                                                </PaginationLink>
+                                            </PaginationItem>
+                                        ))}
+                                        <PaginationItem>
+                                            <PaginationNext
+                                                href="#"
+                                                onClick={(e) => { e.preventDefault(); setCurrentPage(p => Math.min(totalPages, p + 1)) }}
+                                                className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                                            />
+                                        </PaginationItem>
+                                    </PaginationContent>
+                                </Pagination>
+                            </div>
+                        )}
                     </>
                 ) : (
                     <div className="grid grid-cols-1 gap-4 w-full">

@@ -94,7 +94,7 @@ export interface UserAccount {
     id: string;
     email: string;
     name: string;
-    role: "admin" | "writer" | "editor";
+    role: "admin" | "writer" | "editor" | "mahasiswa" | "dosen" | "staf";
     created_at: string;
     updated_at: string;
     avatar?: string;
@@ -102,6 +102,9 @@ export interface UserAccount {
     username?: string;
     password?: string;
     bio?: string;
+    mahasiswa?: any;
+    dosen?: any;
+    staf?: any;
 }
 
 export interface UserAccountResponse {
@@ -137,7 +140,6 @@ export interface Pengajuan {
     mahasiswa: {
         nama: string;
         nim: string;
-        jurusan: string;
     };
     judul: string;
     peminatan: string;
@@ -146,9 +148,11 @@ export interface Pengajuan {
     ipk?: number;
     sksDicapai?: number;
     sksNilaiD?: number;
-    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVISION';
     dosenId: string;
     batasStudi?: string;
+    remarks?: string;
+    deadlineRevisi?: string;
     createdAt?: string;
     updatedAt?: string;
 }
