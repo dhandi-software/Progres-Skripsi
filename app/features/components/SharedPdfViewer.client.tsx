@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback, memo } from "react";
 import { PdfLoader, PdfHighlighter, Highlight, Popup, AreaHighlight } from "react-pdf-highlighter";
 import type { IHighlight, NewHighlight } from "react-pdf-highlighter";
+import "react-pdf-highlighter/dist/esm/style/AreaHighlight.css";
+import "react-pdf-highlighter/dist/esm/style/Highlight.css";
+import "react-pdf-highlighter/dist/esm/style/PdfHighlighter.css";
 import { Loader2, Trash2, Maximize2, MessageSquarePlus } from "lucide-react";
 
 interface SharedPdfViewerProps {
@@ -13,30 +16,75 @@ interface SharedPdfViewerProps {
 
 const getNextId = () => String(Math.random()).slice(2);
 
+const GlobalPdfStyles = () => (
+    <style>{`
+        /* Fix for pdf.js textLayer causing stretched highlights */
+        .textLayer {
+            opacity: 1 !important;
+            line-height: 1.0;
+        }
+        .textLayer > span {
+            color: transparent !important;
+            position: absolute !important;
+            white-space: pre !important;
+            cursor: text;
+            transform-origin: 0% 0%;
+        }
+        /* Prevent highlight from extending to the end of the line (usually caused by br tags or trailing space) */
+        .textLayer br {
+            display: none !important;
+        }
+        .textLayer ::selection {
+            background: rgba(255, 255, 0, 0.3) !important;
+        }
+        /* Make highlight thicker (solid) */
+        .Highlight__part {
+            background-color: #facc15 !important; /* Tailwind yellow-400 for a solid, thick yellow */
+            mix-blend-mode: multiply !important;
+            border-radius: 2px !important;
+        }
+    `}</style>
+);
+
 const HighlightPopup = ({
     comment,
 }: {
     comment: { text: string };
 }) =>
     comment?.text ? (
-        <div className="p-2 bg-gray-800 text-white text-xs rounded shadow-lg w-max max-w-[280px] break-words z-[200] relative">
+        <div className="p-2 bg-gray-800 text-white text-xs rounded shadow-lg w-max max-w-[280px] break-words whitespace-normal z-[200] relative">
             {comment.text}
         </div>
     ) : null;
 
-const TipComponent = ({ content, position, hideTipAndSelection, addHighlight }: any) => {
+const TipComponent = ({ content, position, hideTipAndSelection, addHighlight, onStartSidebarComment }: any) => {
     const [isCommenting, setIsCommenting] = useState(false);
+
+    // Automatically prepare the sidebar comment when this tip is mounted
+    useEffect(() => {
+        onStartSidebarComment({ content, position, hideTipAndSelection });
+        return () => {
+            // When TipComponent unmounts (because user clicked away or started a new selection),
+            // we MUST clear the sidebar comment so they don't get locked!
+            onStartSidebarComment(null);
+        };
+    }, [content, position, hideTipAndSelection, onStartSidebarComment]);
 
     if (!isCommenting) {
         return (
-            <div 
-                className="bg-white shadow-xl rounded-full p-2 cursor-pointer hover:bg-gray-100 border border-gray-200 flex items-center justify-center w-12 h-12 z-[200] relative group mt-2"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    setIsCommenting(true);
-                }}
-            >
-                <MessageSquarePlus className="w-6 h-6 text-blue-600 group-hover:scale-110 transition-transform" />
+            <div className="flex gap-2 z-[200] relative group mt-1">
+                <div 
+                    className="bg-white shadow-xl rounded-full px-4 py-2 cursor-pointer hover:bg-gray-50 border border-gray-200 flex items-center justify-center gap-2"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setIsCommenting(true);
+                        // If they choose to comment here, we can hide the sidebar one to avoid confusion
+                        onStartSidebarComment(null);
+                    }}
+                >
+                    <MessageSquarePlus className="w-4 h-4 text-blue-600 group-hover:scale-110 transition-transform" />
+                    <span className="text-xs font-semibold text-gray-700 whitespace-nowrap">Komentar di Sini</span>
+                </div>
             </div>
         );
     }
@@ -83,6 +131,11 @@ const SharedPdfViewerComponent: React.FC<SharedPdfViewerProps> = ({
     onDeleteHighlight
 }) => {
     const [highlights, setHighlights] = useState<IHighlight[]>(initialHighlights);
+    const [pendingSidebarComment, setPendingSidebarComment] = useState<{
+        content: any;
+        position: any;
+        hideTipAndSelection: () => void;
+    } | null>(null);
 
     useEffect(() => {
         setHighlights(initialHighlights);
@@ -103,6 +156,7 @@ const SharedPdfViewerComponent: React.FC<SharedPdfViewerProps> = ({
 
     return (
         <div className="flex flex-col md:flex-row h-[70vh] w-full border border-gray-200 rounded-xl overflow-hidden bg-gray-50 shadow-inner">
+            <GlobalPdfStyles />
             <div className="flex-1 relative h-full">
                 <PdfLoader 
                     url={url} 
@@ -133,6 +187,7 @@ const SharedPdfViewerComponent: React.FC<SharedPdfViewerProps> = ({
                                         position={position}
                                         hideTipAndSelection={hideTipAndSelection}
                                         addHighlight={addHighlight}
+                                        onStartSidebarComment={setPendingSidebarComment}
                                     />
                                 );
                             }}
@@ -182,9 +237,55 @@ const SharedPdfViewerComponent: React.FC<SharedPdfViewerProps> = ({
             </div>
 
             {/* Sidebar for highlights */}
-            <div className="w-full md:w-80 bg-white border-l border-gray-200 h-full overflow-y-auto p-4 shrink-0 flex flex-col gap-3">
+            <div 
+                className="w-full md:w-80 bg-white border-l border-gray-200 h-full overflow-y-auto p-4 shrink-0 flex flex-col gap-3"
+                onMouseDown={(e) => e.stopPropagation()} // Prevent clicks here from unmounting the PDF tip!
+            >
                 <h4 className="font-bold text-gray-800 text-sm border-b pb-2">Catatan Reviu ({(highlights || []).length})</h4>
-                {highlights.length === 0 ? (
+                
+                {pendingSidebarComment && (
+                    <div className="p-3 bg-orange-50 border border-orange-200 rounded-xl relative shadow-sm">
+                        <p className="text-xs text-orange-600 mb-2 font-semibold flex items-center gap-1">
+                            <MessageSquarePlus className="w-3.5 h-3.5" />
+                            Tambah Komentar Baru
+                        </p>
+                        {pendingSidebarComment.content?.text && (
+                            <blockquote className="border-l-2 border-orange-300 pl-2 text-[10px] text-gray-500 italic mb-2 line-clamp-3 break-words whitespace-normal">
+                                "{pendingSidebarComment.content.text}"
+                            </blockquote>
+                        )}
+                        <textarea
+                            className="w-full text-sm p-2 bg-white rounded-lg border border-orange-200 outline-none focus:border-orange-500 min-h-[80px]"
+                            placeholder="Ketik komentarmu di sini..."
+                            autoFocus
+                            onKeyDown={(event) => {
+                                if (event.key === "Enter" && !event.shiftKey) {
+                                    event.preventDefault();
+                                    const text = event.currentTarget.value;
+                                    if (text.trim()) {
+                                        addHighlight({
+                                            content: pendingSidebarComment.content,
+                                            position: pendingSidebarComment.position,
+                                            comment: { text, emoji: "" },
+                                        });
+                                        pendingSidebarComment.hideTipAndSelection();
+                                    }
+                                }
+                            }}
+                        />
+                        <div className="flex justify-between items-center mt-2">
+                            <p className="text-[10px] text-gray-400">Tekan Enter untuk simpan</p>
+                            <button 
+                              onClick={() => pendingSidebarComment.hideTipAndSelection()}
+                              className="text-xs text-red-500 font-medium hover:underline px-2 py-1 rounded"
+                            >
+                              Batal
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {highlights.length === 0 && !pendingSidebarComment ? (
                     <div className="text-gray-400 text-xs italic text-center mt-10">Belum ada coretan/anotasi</div>
                 ) : (
                     highlights.map((h, i) => (
@@ -194,7 +295,7 @@ const SharedPdfViewerComponent: React.FC<SharedPdfViewerProps> = ({
                             className="p-3 bg-orange-50/50 border border-orange-100 rounded-xl relative group cursor-pointer hover:bg-orange-100/50 transition-colors"
                         >
                             {h.content?.text && (
-                                <blockquote className="border-l-2 border-orange-400 pl-2 text-xs text-gray-500 italic mb-2 line-clamp-3">
+                                <blockquote className="border-l-2 border-orange-400 pl-2 text-xs text-gray-500 italic mb-2 line-clamp-3 break-words whitespace-normal">
                                     "{h.content.text}"
                                 </blockquote>
                             )}
@@ -225,7 +326,6 @@ const SharedPdfViewerComponent: React.FC<SharedPdfViewerProps> = ({
 export const SharedPdfViewer = memo(SharedPdfViewerComponent, (prevProps, nextProps) => {
     if (prevProps.url !== nextProps.url) return false;
     if (prevProps.readOnly !== nextProps.readOnly) return false;
-    // We don't check function references like onAddHighlight because they might be inline in parent
     if (prevProps.initialHighlights !== nextProps.initialHighlights) return false;
     return true;
 });

@@ -4,12 +4,23 @@ import { sidangApi } from "~/api/sidangApi";
 import { 
     Calendar, Clock, MapPin, CheckCircle2, AlertCircle, 
     User, Users, Bookmark, FileText, Info, GraduationCap,
-    Clock3, ShieldCheck, MapPinned, MessageCircle
+    Clock3, ShieldCheck, MapPinned, MessageCircle, Trash2
 } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { format } from "date-fns";
 import { id } from "date-fns/locale/id";
 import { Toast } from "~/components/ui/toast";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "~/components/ui/alert-dialog";
 
 interface SidangItem {
     id: number;
@@ -97,6 +108,13 @@ export function SidangDesktop({ title }: { title: string }) {
                     description: "Pengajuan Anda menunggu persetujuan dari Dosen Pembimbing.",
                     icon: Clock3
                 };
+            case "DITOLAK":
+                return {
+                    label: "Revisi Laporan",
+                    color: "text-red-600 bg-red-50 border-red-100",
+                    description: "Laporan sidang Anda memerlukan revisi dari Dosen Pembimbing.",
+                    icon: AlertCircle
+                };
             case "MENUNGGU_VERIFIKASI_KAPRODI":
                 return { 
                     label: "Verifikasi Kaprodi", 
@@ -105,6 +123,7 @@ export function SidangDesktop({ title }: { title: string }) {
                     icon: ShieldCheck
                 };
             case "MENUNGGU_PENJADWALAN_PRODI":
+            case "MENUNGGU_PENJADWALAN_KOORDINATOR":
                 return { 
                     label: "Penjadwalan Prodi", 
                     color: "text-blue-600 bg-blue-50 border-blue-100",
@@ -132,6 +151,21 @@ export function SidangDesktop({ title }: { title: string }) {
                     description: "Status pengajuan saat ini.",
                     icon: AlertCircle
                 };
+        }
+    };
+
+    const [isCanceling, setIsCanceling] = useState(false);
+
+    const handleCancel = async (id: number) => {
+        try {
+            setIsCanceling(true);
+            await sidangApi.deleteSidang(id);
+            setToastProps({ title: "Pengajuan sidang berhasil dibatalkan", variant: "success" });
+            fetchData();
+        } catch (error: any) {
+            setToastProps({ title: error.response?.data?.message || "Gagal membatalkan pengajuan sidang", variant: "destructive" });
+        } finally {
+            setIsCanceling(false);
         }
     };
 
@@ -176,7 +210,7 @@ export function SidangDesktop({ title }: { title: string }) {
     const isKaprodiDone = ["TERJADWAL", "SELESAI"].includes(latestSidang.status);
 
     return (
-        <div className="flex flex-col h-screen overflow-hidden bg-slate-50/50 p-6 lg:p-8 animate-in fade-in duration-700">
+        <div className="flex flex-col min-h-screen bg-slate-50/50 p-6 lg:p-8 animate-in fade-in duration-700">
             {/* Area Header: Menampilkan judul halaman dan ringkasan status dalam bentuk badge */}
             <div className="mb-6 flex items-center justify-between shrink-0">
                 <div>
@@ -192,10 +226,10 @@ export function SidangDesktop({ title }: { title: string }) {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 flex-1 min-h-0">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 flex-1">
                 {/* Kolom Utama: Menampilkan Detail Laporan dan Jadwal Pelaksanaan */}
-                <div className="xl:col-span-2 flex flex-col h-full min-h-0">
-                    <div className="bg-white rounded-3xl shadow-sm border border-slate-200 flex flex-col h-full overflow-hidden group">
+                <div className="xl:col-span-2 flex flex-col">
+                    <div className="bg-white rounded-3xl shadow-sm border border-slate-200 flex flex-col h-full group">
                         {/* Bagian Judul Laporan: Menggunakan tema gelap (Slate-900) dengan aksen oranye */}
                         <div className="bg-slate-900 p-8 text-white relative shrink-0">
                             <div className="absolute top-[-20%] right-[-5%] w-48 h-48 bg-[#FF7A00]/20 rounded-full blur-[60px] group-hover:bg-[#FF7A00]/30 transition-all duration-700" />
@@ -203,7 +237,7 @@ export function SidangDesktop({ title }: { title: string }) {
                                 <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-[10px] font-bold uppercase tracking-widest text-[#FF7A00] mb-4 border border-white/5">
                                     <Bookmark size={12} /> Judul Laporan KP
                                 </span>
-                                <h2 className="text-2xl lg:text-3xl font-black leading-snug tracking-tight mb-5 line-clamp-2">
+                                <h2 className="text-2xl lg:text-3xl font-black leading-snug tracking-tight mb-5">
                                     "{latestSidang.judul || 'Sistem Informasi Akademik'}"
                                 </h2>
                                 <div className="flex flex-wrap gap-8 pt-5 border-t border-white/10">
@@ -300,11 +334,11 @@ export function SidangDesktop({ title }: { title: string }) {
                 </div>
 
                 {/* Kolom Samping: Menampilkan Status Pengajuan dan Tombol Bantuan */}
-                <div className="flex flex-col h-full min-h-0">
-                    <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200 flex flex-col h-full overflow-hidden relative">
+                <div className="flex flex-col">
+                    <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200 flex flex-col h-full relative">
                         {/* Linimasa Status: Visualisasi progres dari ACC Pembimbing hingga Verifikasi Final */}
                         <h3 className="text-lg font-black text-slate-900 mb-6 tracking-tight">Status Pengajuan</h3>
-                        <div className="px-2 pb-6 space-y-6 relative flex-1 overflow-y-auto custom-scrollbar">
+                        <div className="px-2 pb-6 space-y-6 relative flex-1">
                             {/* Garis Vertikal Linimasa */}
                             <div className="absolute left-[23px] top-2 bottom-6 w-0.5 bg-slate-100" />
                             
@@ -377,11 +411,76 @@ export function SidangDesktop({ title }: { title: string }) {
                             </div>
                             <button 
                                 onClick={() => navigate(`/mahasiswa/chat?userId=${latestSidang.dosen.userId}`)}
-                                className="w-full bg-[#FF7A00] hover:bg-[#E66E00] text-white py-3.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all duration-300 shadow-md shadow-[#FF7A00]/20"
+                                className="w-full bg-[#FF7A00] hover:bg-[#E66E00] text-white py-3.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all duration-300 shadow-md shadow-[#FF7A00]/20 mb-2"
                             >
                                 <MessageCircle size={16} />
                                 Butuh Bantuan?
                             </button>
+                            {latestSidang.status === "MENUNGGU_PERSETUJUAN_PEMBIMBING" && (
+                                <div className="bg-[#FF7A00]/5 border border-[#FF7A00]/20 rounded-2xl p-5 flex gap-4">
+                                    <Info size={20} className="text-[#FF7A00] shrink-0 mt-0.5" />
+                                    <div>
+                                        <p className="text-slate-600 text-[13px] font-medium leading-relaxed">
+                                            Status saat ini: <strong className="text-[#FF7A00]">Menunggu ACC Pembimbing</strong>. Laporan Anda sedang menunggu persetujuan dari Dosen Pembimbing.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {["MENUNGGU_PENJADWALAN_PRODI", "MENUNGGU_PENJADWALAN_KOORDINATOR"].includes(latestSidang.status) && (
+                                <div className="bg-[#FF7A00]/5 border border-[#FF7A00]/20 rounded-2xl p-5 flex gap-4">
+                                    <Info size={20} className="text-[#FF7A00] shrink-0 mt-0.5" />
+                                    <div>
+                                        <p className="text-slate-600 text-[13px] font-medium leading-relaxed">
+                                            Status saat ini: <strong className="text-[#FF7A00]">Penjadwalan Prodi</strong>. Data Anda sedang diproses oleh Tim Prodi untuk penentuan jadwal.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {latestSidang.status === "DITOLAK" && (
+                                <div className="bg-red-50 border border-red-200 rounded-2xl p-5 flex gap-4">
+                                    <AlertCircle size={20} className="text-red-500 shrink-0 mt-0.5" />
+                                    <div>
+                                        <p className="text-red-800 text-[13px] font-bold mb-1">Catatan Revisi dari Pembimbing:</p>
+                                        <p className="text-red-700 text-[13px] font-medium leading-relaxed italic">
+                                            "{latestSidang.catatan || 'Laporan memerlukan perbaikan. Silakan hubungi dosen.'}"
+                                        </p>
+                                        <p className="text-red-600 text-xs mt-3">Batalkan laporan ini untuk mengunggah ulang versi yang sudah direvisi.</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {["MENUNGGU_PERSETUJUAN_PEMBIMBING", "MENUNGGU_PENJADWALAN_PRODI", "MENUNGGU_PENJADWALAN_KOORDINATOR", "DITOLAK"].includes(latestSidang.status) && (
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <button 
+                                            disabled={isCanceling}
+                                            className="w-full bg-white hover:bg-red-50 text-red-500 border border-red-200 hover:border-red-300 py-3.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all duration-300"
+                                        >
+                                            <Trash2 size={16} />
+                                            {isCanceling ? "Membatalkan..." : (latestSidang.status === 'DITOLAK' ? "Revisi & Ajukan Ulang" : "Batalkan Laporan")}
+                                        </button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent className="rounded-2xl">
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Batalkan Laporan?</AlertDialogTitle>
+                                            <AlertDialogDescription className="text-sm text-slate-500">
+                                                Apakah Anda yakin ingin membatalkan pengajuan sidang ini? Data yang sudah diajukan akan dihapus dan Anda harus mengisi ulang formulir dari awal.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter className="mt-4 gap-2">
+                                            <AlertDialogCancel className="mt-0">Kembali</AlertDialogCancel>
+                                            <AlertDialogAction 
+                                                onClick={() => handleCancel(latestSidang.id)}
+                                                className="bg-red-600 hover:bg-red-700 text-white"
+                                            >
+                                                Ya, Batalkan
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            )}
                         </div>
                     </div>
                 </div>

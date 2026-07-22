@@ -52,19 +52,23 @@ export function MonitoringMobile() {
     const [history, setHistory] = useState<any[]>([]);
     const [isHistoryLoading, setIsHistoryLoading] = useState(false);
 
+    // Fuzzy-match topik ke skor progres — menangani berbagai format string di DB
+    const getTopikScore = (topik: string): number => {
+        if (!topik) return 0;
+        const t = topik.toLowerCase();
+        if (t.includes('laporan akhir') || t.includes('finalisasi')) return 100;
+        if (t.includes('bab 5') || t.includes('bab v') || t.includes('kesimpulan')) return 90;
+        if (t.includes('bab 4') || t.includes('bab iv') || t.includes('hasil dan pembahasan') || t.includes('hasil & pembahasan')) return 70;
+        if (t.includes('bab 3') || t.includes('bab iii') || t.includes('metodologi')) return 50;
+        if (t.includes('bab 2') || t.includes('bab ii') || t.includes('tinjauan pustaka') || t.includes('kajian pustaka')) return 30;
+        if (t.includes('bab 1') || t.includes('bab i') || t.includes('pendahuluan')) return 15;
+        return 0;
+    };
+
     const fetchData = async () => {
         try {
             setIsLoading(true);
             const response = await bimbinganApi.getAllProdiBimbingan();
-            
-            const topiks: Record<string, number> = {
-                "Bab 1: Pendahuluan": 15,
-                "Bab 2: Tinjauan Pustaka": 30,
-                "Bab 3: Metodologi": 50,
-                "Bab 4: Hasil dan Pembahasan": 70,
-                "Bab 5: Kesimpulan dan Saran": 90,
-                "Laporan Akhir (Finalisasi)": 100,
-            };
 
             const calibratedData = response?.map((dosenData: BimbinganData) => {
                 if (!dosenData.students || dosenData.students.length === 0) {
@@ -75,9 +79,9 @@ export function MonitoringMobile() {
                 dosenData.students.forEach((student: any) => {
                     const activeTask = student.mahasiswa?.bimbingan?.[0];
                     if (activeTask && activeTask.topik) {
-                        let score = topiks[activeTask.topik] || 0;
-                        if (activeTask.status === 'APPROVED' && activeTask.topik !== "Laporan Akhir (Finalisasi)") {
-                            score += 10; 
+                        let score = getTopikScore(activeTask.topik);
+                        if (activeTask.status === 'APPROVED' && score < 100) {
+                            score = Math.min(100, score + 10);
                         }
                         totalScore += score;
                     }
@@ -114,109 +118,314 @@ export function MonitoringMobile() {
         }
     };
 
-    const handleDownloadProgress = () => {
-        if (!selectedDosen) return;
+    const [isDownloading, setIsDownloading] = useState(false);
 
-        const doc = new jsPDF();
-        
-        doc.setFontSize(20);
-        doc.setTextColor(15, 23, 42); // slate-900
-        doc.text("Laporan Progres Bimbingan", 14, 22);
-        
-        doc.setFontSize(11);
-        doc.setTextColor(100, 116, 139); // slate-500
-        doc.text(`Dosen Pembimbing: ${selectedDosen.dosen.nama}`, 14, 30);
-        doc.text(`Total Mahasiswa: ${selectedDosen.totalStudents}`, 14, 36);
+    const BAB_LIST = [
+        "Bab 1: Pendahuluan",
+        "Bab 2: Tinjauan Pustaka",
+        "Bab 3: Metodologi",
+        "Bab 4: Hasil dan Pembahasan",
+        "Bab 5: Kesimpulan dan Saran",
+        "Laporan Akhir (Finalisasi)",
+    ];
 
-        const tableColumn = ["No", "Nama Mahasiswa", "NIM", "Topik / Bab Saat Ini", "Status"];
-        const tableRows: any[] = [];
-
-        selectedDosen.students.forEach((student, index) => {
-            const activeTask = student.mahasiswa?.bimbingan?.[0];
-            const studentData = [
-                index + 1,
-                student.mahasiswa.nama,
-                student.mahasiswa.nim,
-                activeTask?.topik || "Belum Ada Tugas",
-                activeTask?.status === 'APPROVED' ? 'Disetujui' : 
-                activeTask?.status === 'SUBMITTED' ? 'Direviu' : 
-                activeTask?.status === 'REVISION' ? 'Revisi' : 'Belum Mulai'
-            ];
-            tableRows.push(studentData);
-        });
-
-        autoTable(doc, {
-            head: [tableColumn],
-            body: tableRows,
-            startY: 45,
-            theme: 'grid',
-            headStyles: { fillColor: [15, 23, 42] } // slate-900 color
-        });
-
-        doc.save(`Laporan_Bimbingan_${selectedDosen.dosen.nama.replace(/\s+/g, '_')}.pdf`);
+    const getStatusLabel = (status?: string) => {
+        if (!status) return "Belum Mulai";
+        if (status === 'APPROVED') return 'Disetujui';
+        if (status === 'SUBMITTED') return 'Direviu';
+        if (status === 'REVISION') return 'Revisi';
+        if (status === 'ASSIGNED') return 'Sedang Berjalan';
+        return status;
     };
 
-    const handleDownloadAllProgress = () => {
-        if (!data || data.length === 0) return;
+    const normalizeBab = (topik: string): string => {
+        const t = topik.toLowerCase();
+        if (t.includes('laporan akhir') || t.includes('finalisasi')) return "Laporan Akhir (Finalisasi)";
+        if (t.includes('bab 5') || t.includes('bab v') || t.includes('kesimpulan')) return "Bab 5: Kesimpulan dan Saran";
+        if (t.includes('bab 4') || t.includes('bab iv') || t.includes('hasil')) return "Bab 4: Hasil dan Pembahasan";
+        if (t.includes('bab 3') || t.includes('bab iii') || t.includes('metodologi')) return "Bab 3: Metodologi";
+        if (t.includes('bab 2') || t.includes('bab ii') || t.includes('tinjauan') || t.includes('kajian')) return "Bab 2: Tinjauan Pustaka";
+        if (t.includes('bab 1') || t.includes('bab i') || t.includes('pendahuluan')) return "Bab 1: Pendahuluan";
+        return topik;
+    };
 
-        const doc = new jsPDF();
-        
-        doc.setFontSize(20);
-        doc.setTextColor(15, 23, 42); // slate-900
-        doc.text("Laporan Progres Monitoring Keseluruhan", 14, 22);
-        
-        doc.setFontSize(11);
-        doc.setTextColor(100, 116, 139); // slate-500
-        doc.text(`Total Dosen: ${data.length}`, 14, 30);
-        const totalMahasiswa = data.reduce((acc, curr) => acc + curr.totalStudents, 0);
-        doc.text(`Total Mahasiswa Bimbingan: ${totalMahasiswa}`, 14, 36);
+    const handleDownloadProgress = async () => {
+        if (!selectedDosen || isDownloading) return;
+        setIsDownloading(true);
 
-        let currentY = 45;
-
-        data.forEach((dosenData) => {
-            // Write Dosen Header
-            doc.setFontSize(12);
-            doc.setTextColor(15, 23, 42);
-            doc.text(`Dosen Pembimbing: ${dosenData.dosen.nama}`, 14, currentY);
-            
-            const tableColumn = ["No", "Nama Mahasiswa", "NIM", "Topik / Bab Saat Ini", "Status"];
-            const tableRows: any[] = [];
-
-            if (dosenData.students.length === 0) {
-                tableRows.push(["-", "Belum ada mahasiswa bimbingan", "-", "-", "-"]);
-            } else {
-                dosenData.students.forEach((student, idx) => {
-                    const activeTask = student.mahasiswa?.bimbingan?.[0];
-                    tableRows.push([
-                        (idx + 1).toString(),
-                        student.mahasiswa.nama,
-                        student.mahasiswa.nim,
-                        activeTask?.topik || "Belum Ada Tugas",
-                        activeTask?.status === 'APPROVED' ? 'Disetujui' : 
-                        activeTask?.status === 'SUBMITTED' ? 'Direviu' : 
-                        activeTask?.status === 'REVISION' ? 'Revisi' : 'Belum Mulai'
-                    ]);
-                });
+        try {
+            const studentHistories: { student: any; history: any[] }[] = [];
+            for (const student of selectedDosen.students) {
+                try {
+                    const historyData = await bimbinganApi.getBimbinganByMahasiswa(student.mahasiswa.nim);
+                    studentHistories.push({ student: student.mahasiswa, history: historyData || [] });
+                } catch {
+                    studentHistories.push({ student: student.mahasiswa, history: [] });
+                }
             }
 
-            autoTable(doc, {
-                head: [tableColumn],
-                body: tableRows,
-                startY: currentY + 4,
-                theme: 'grid',
-                headStyles: { fillColor: [15, 23, 42] },
-                margin: { bottom: 20 }
+            const doc = new jsPDF({ orientation: 'landscape' });
+            const pageW = doc.internal.pageSize.getWidth();
+            const tanggal = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+            doc.setFillColor(15, 23, 42);
+            doc.rect(0, 0, pageW, 30, 'F');
+            doc.setFontSize(16);
+            doc.setTextColor(255, 255, 255);
+            doc.setFont('helvetica', 'bold');
+            doc.text('LAPORAN MONITORING BIMBINGAN', 14, 13);
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Dosen Pembimbing: ${selectedDosen.dosen.nama}  |  Total Mahasiswa: ${selectedDosen.totalStudents}  |  Tanggal: ${tanggal}`, 14, 22);
+
+            let currentY = 40;
+
+            studentHistories.forEach(({ student, history }, sIdx) => {
+                if (currentY > doc.internal.pageSize.getHeight() - 70) {
+                    doc.addPage();
+                    currentY = 20;
+                }
+
+                doc.setFillColor(241, 245, 249);
+                doc.roundedRect(14, currentY, pageW - 28, 14, 3, 3, 'F');
+                doc.setFontSize(11);
+                doc.setTextColor(15, 23, 42);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`${sIdx + 1}. ${student.nama}`, 20, currentY + 9);
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(9);
+                doc.setTextColor(100, 116, 139);
+                doc.text(`NIM: ${student.nim}`, pageW - 14 - 60, currentY + 9, { align: 'right' });
+                currentY += 18;
+
+                const babStatus: Record<string, string> = {};
+                const babTanggal: Record<string, string> = {};
+                const babCatatan: Record<string, string> = {};
+                history.forEach((item: any) => {
+                    const canonical = normalizeBab(item.topik);
+                    const prev = babStatus[canonical];
+                    const priority: Record<string, number> = { APPROVED: 4, SUBMITTED: 3, REVISION: 2, ASSIGNED: 1 };
+                    const pNew = priority[item.status] || 0;
+                    const pPrev = prev ? (priority[prev] || 0) : -1;
+                    if (pNew > pPrev) {
+                        babStatus[canonical] = item.status;
+                        babTanggal[canonical] = item.tanggal ? new Date(item.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
+                        babCatatan[canonical] = item.catatan || '';
+                    }
+                });
+
+                const tableRows = BAB_LIST.map((bab, bIdx) => {
+                    const status = babStatus[bab];
+                    return [
+                        (bIdx + 1).toString(),
+                        bab,
+                        status ? getStatusLabel(status) : 'Belum Mulai',
+                        babTanggal[bab] || '-',
+                        babCatatan[bab] ? babCatatan[bab].substring(0, 60) + (babCatatan[bab].length > 60 ? '...' : '') : '-'
+                    ];
+                });
+
+                autoTable(doc, {
+                    head: [['No', 'Bab / Topik', 'Status', 'Tanggal', 'Catatan Dosen']],
+                    body: tableRows,
+                    startY: currentY,
+                    theme: 'grid',
+                    headStyles: { fillColor: [15, 23, 42], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+                    bodyStyles: { fontSize: 8, textColor: [30, 41, 59] },
+                    columnStyles: {
+                        0: { cellWidth: 10 },
+                        1: { cellWidth: 65 },
+                        2: { cellWidth: 30 },
+                        3: { cellWidth: 35 },
+                        4: { cellWidth: 'auto' },
+                    },
+                    didParseCell: (data: any) => {
+                        if (data.section === 'body' && data.column.index === 2) {
+                            const val = data.cell.text[0];
+                            if (val === 'Disetujui') data.cell.styles.textColor = [5, 150, 105];
+                            else if (val === 'Direviu') data.cell.styles.textColor = [37, 99, 235];
+                            else if (val === 'Revisi') data.cell.styles.textColor = [217, 119, 6];
+                            else if (val === 'Belum Mulai') data.cell.styles.textColor = [148, 163, 184];
+                        }
+                    },
+                    margin: { left: 14, right: 14 },
+                });
+
+                currentY = (doc as any).lastAutoTable.finalY + 12;
             });
 
-            currentY = (doc as any).lastAutoTable.finalY + 12;
-
-            if (currentY > 270) {
-                doc.addPage();
-                currentY = 20;
+            const totalPages = (doc as any).internal.getNumberOfPages();
+            for (let i = 1; i <= totalPages; i++) {
+                doc.setPage(i);
+                doc.setFontSize(7);
+                doc.setTextColor(148, 163, 184);
+                doc.text(`Halaman ${i} dari ${totalPages}  —  ${selectedDosen.dosen.nama}`, 14, doc.internal.pageSize.getHeight() - 5);
             }
-        });
 
-        doc.save(`Laporan_Monitoring_Keseluruhan.pdf`);
+            doc.save(`Laporan_Bimbingan_${selectedDosen.dosen.nama.replace(/\s+/g, '_')}.pdf`);
+        } finally {
+            setIsDownloading(false);
+        }
+    };
+
+    const [isDownloadingAll, setIsDownloadingAll] = useState(false);
+
+    const handleDownloadAllProgress = async () => {
+        if (!data || data.length === 0 || isDownloadingAll) return;
+        setIsDownloadingAll(true);
+
+        try {
+            const doc = new jsPDF({ orientation: 'landscape' });
+            const pageW = doc.internal.pageSize.getWidth();
+            const pageH = doc.internal.pageSize.getHeight();
+            const tanggal = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            const totalMahasiswa = data.reduce((acc, curr) => acc + curr.totalStudents, 0);
+
+            // Cover header
+            doc.setFillColor(15, 23, 42);
+            doc.rect(0, 0, pageW, 34, 'F');
+            doc.setFontSize(17);
+            doc.setTextColor(255, 255, 255);
+            doc.setFont('helvetica', 'bold');
+            doc.text('LAPORAN MONITORING BIMBINGAN KESELURUHAN', 14, 14);
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Total Dosen: ${data.length}  |  Total Mahasiswa: ${totalMahasiswa}  |  Tanggal: ${tanggal}`, 14, 24);
+
+            let currentY = 44;
+            let dosenIndex = 0;
+
+            for (const dosenData of data) {
+                if (currentY > pageH - 50) { doc.addPage(); currentY = 14; }
+
+                doc.setFillColor(30, 41, 59);
+                doc.rect(0, currentY, pageW, 12, 'F');
+                doc.setFontSize(10);
+                doc.setTextColor(255, 255, 255);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`${dosenIndex + 1}. Dosen Pembimbing: ${dosenData.dosen.nama}  (${dosenData.totalStudents} Mahasiswa)`, 14, currentY + 8);
+                currentY += 16;
+                dosenIndex++;
+
+                if (dosenData.students.length === 0) {
+                    doc.setFontSize(9);
+                    doc.setTextColor(148, 163, 184);
+                    doc.setFont('helvetica', 'italic');
+                    doc.text('Belum ada mahasiswa bimbingan.', 20, currentY + 6);
+                    currentY += 14;
+                    continue;
+                }
+
+                let studentIndex = 0;
+                for (const student of dosenData.students) {
+                    let history: any[] = [];
+                    try {
+                        history = await bimbinganApi.getBimbinganByMahasiswa(student.mahasiswa.nim) || [];
+                    } catch { /* skip */ }
+
+                    if (currentY > pageH - 70) { doc.addPage(); currentY = 14; }
+
+                    doc.setFillColor(241, 245, 249);
+                    doc.roundedRect(14, currentY, pageW - 28, 13, 2, 2, 'F');
+                    doc.setFontSize(10);
+                    doc.setTextColor(15, 23, 42);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(`  ${studentIndex + 1}. ${student.mahasiswa.nama}`, 18, currentY + 8.5);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8.5);
+                    doc.setTextColor(100, 116, 139);
+                    doc.text(`NIM: ${student.mahasiswa.nim}`, pageW - 18, currentY + 8.5, { align: 'right' });
+                    currentY += 17;
+
+                    const babStatus: Record<string, string> = {};
+                    const babTanggal: Record<string, string> = {};
+                    const babRevisi: Record<string, number> = {};
+                    const babCatatan: Record<string, string> = {};
+
+                    history.forEach((item: any) => {
+                        const canonical = normalizeBab(item.topik);
+                        const priority: Record<string, number> = { APPROVED: 4, SUBMITTED: 3, REVISION: 2, ASSIGNED: 1 };
+                        const pNew = priority[item.status] || 0;
+                        const pPrev = babStatus[canonical] ? (priority[babStatus[canonical]] || 0) : -1;
+                        if (pNew > pPrev) {
+                            babStatus[canonical] = item.status;
+                            babTanggal[canonical] = item.tanggal
+                                ? new Date(item.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+                                : '-';
+                            babCatatan[canonical] = item.catatan || '';
+                        }
+                        if (item.status === 'REVISION') {
+                            babRevisi[canonical] = (babRevisi[canonical] || 0) + 1;
+                        }
+                    });
+
+                    const tableRows = BAB_LIST.map((bab, bIdx) => {
+                        const status = babStatus[bab];
+                        const revCount = babRevisi[bab] || 0;
+                        const catatan = babCatatan[bab] || '';
+                        return [
+                            (bIdx + 1).toString(),
+                            bab,
+                            status ? getStatusLabel(status) : 'Belum Mulai',
+                            babTanggal[bab] || '-',
+                            revCount > 0 ? `${revCount}x revisi` : '-',
+                            catatan ? catatan.substring(0, 55) + (catatan.length > 55 ? '…' : '') : '-',
+                        ];
+                    });
+
+                    autoTable(doc, {
+                        head: [['No', 'Bab / Topik', 'Status', 'Tanggal', 'Revisi', 'Catatan Dosen']],
+                        body: tableRows,
+                        startY: currentY,
+                        theme: 'grid',
+                        headStyles: { fillColor: [51, 65, 85], textColor: 255, fontStyle: 'bold', fontSize: 7.5 },
+                        bodyStyles: { fontSize: 7.5, textColor: [30, 41, 59] },
+                        columnStyles: {
+                            0: { cellWidth: 8 },
+                            1: { cellWidth: 62 },
+                            2: { cellWidth: 28 },
+                            3: { cellWidth: 32 },
+                            4: { cellWidth: 22 },
+                            5: { cellWidth: 'auto' },
+                        },
+                        didParseCell: (d: any) => {
+                            if (d.section === 'body' && d.column.index === 2) {
+                                const v = d.cell.text[0];
+                                if (v === 'Disetujui') d.cell.styles.textColor = [5, 150, 105];
+                                else if (v === 'Direviu') d.cell.styles.textColor = [37, 99, 235];
+                                else if (v === 'Revisi') d.cell.styles.textColor = [217, 119, 6];
+                                else if (v === 'Belum Mulai') d.cell.styles.textColor = [148, 163, 184];
+                            }
+                            if (d.section === 'body' && d.column.index === 4 && d.cell.text[0] !== '-') {
+                                d.cell.styles.textColor = [220, 38, 38];
+                                d.cell.styles.fontStyle = 'bold';
+                            }
+                        },
+                        margin: { left: 14, right: 14 },
+                    });
+
+                    currentY = (doc as any).lastAutoTable.finalY + 10;
+                    studentIndex++;
+                }
+
+                currentY += 6;
+            }
+
+            const totalPages = (doc as any).internal.getNumberOfPages();
+            for (let i = 1; i <= totalPages; i++) {
+                doc.setPage(i);
+                doc.setFontSize(7);
+                doc.setTextColor(148, 163, 184);
+                doc.text(
+                    `Halaman ${i} dari ${totalPages}  —  Laporan Monitoring Bimbingan Keseluruhan  —  ${tanggal}`,
+                    14, pageH - 5
+                );
+            }
+
+            doc.save(`Laporan_Monitoring_Keseluruhan.pdf`);
+        } finally {
+            setIsDownloadingAll(false);
+        }
     };
 
     const filteredData = data.filter(d => 
@@ -288,8 +497,9 @@ export function MonitoringMobile() {
                                             Progres {sortConfig.key === 'progress' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                                         </button>
                                     </div>
-                                    <Button onClick={handleDownloadAllProgress} variant="outline" className="w-full gap-2 rounded-[16px] text-xs font-bold border-brand-primary text-brand-primary hover:bg-brand-primary/5 py-3 h-auto">
-                                        <Download size={14} /> Download Semua Data Dosen
+                                    <Button onClick={handleDownloadAllProgress} disabled={isDownloadingAll} variant="outline" className="w-full gap-2 rounded-[16px] text-xs font-bold border-brand-primary text-brand-primary hover:bg-brand-primary/5 py-3 h-auto disabled:opacity-70">
+                                        {isDownloadingAll ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                                        {isDownloadingAll ? 'Menyiapkan PDF...' : 'Download Semua Data Dosen'}
                                     </Button>
                                 </div>
 
@@ -370,8 +580,9 @@ export function MonitoringMobile() {
                                         <ChevronRight size={16} className="rotate-180" /> Kembali
                                     </button>
                                     
-                                    <Button onClick={handleDownloadProgress} size="sm" className="gap-1.5 rounded-full text-[10px] text-white font-bold bg-slate-800 shadow-sm">
-                                        <Download size={14} /> PDF
+                                    <Button onClick={handleDownloadProgress} disabled={isDownloading} size="sm" className="gap-1.5 rounded-full text-[10px] text-white font-bold bg-slate-800 shadow-sm disabled:opacity-70">
+                                        {isDownloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                                        {isDownloading ? '...' : 'PDF'}
                                     </Button>
                                 </div>
                                 

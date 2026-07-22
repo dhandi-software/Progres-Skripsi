@@ -104,6 +104,7 @@ export const useCreateAccount = () => {
         let namaColIdx = -1;
         let emailColIdx = -1;
         let jabatanColIdx = -1;
+        let peminatanColIdx = -1;
         
         const isMahasiswa = role === 'mahasiswa';
 
@@ -135,6 +136,9 @@ export const useCreateAccount = () => {
                   }
                   if (!isMahasiswa && (cellText === 'jabatan' || cellText === 'position')) {
                        jabatanColIdx = j;
+                  }
+                  if (!isMahasiswa && cellText.includes('peminatan')) {
+                       peminatanColIdx = j;
                   }
              }
              if (idColIdx !== -1 && namaColIdx !== -1) break;
@@ -174,6 +178,15 @@ export const useCreateAccount = () => {
                  jabatan = String(row[jabatanColIdx] || '').trim() || "Dosen";
              }
 
+             // Handle Peminatan for Dosen
+             let peminatan: string[] = [];
+             if (!isMahasiswa && peminatanColIdx !== -1) {
+                 const rawPeminatan = String(row[peminatanColIdx] || '').trim();
+                 if (rawPeminatan) {
+                     peminatan = rawPeminatan.split(',').map(p => p.trim());
+                 }
+             }
+
              // Tahun Masuk for Mahasiswa
              let tahunMasuk = "";
              if (isMahasiswa) {
@@ -200,12 +213,18 @@ export const useCreateAccount = () => {
                  item.tahunMasuk = tahunMasuk;
              } else {
                  item.jabatan = jabatan;
+                 item.peminatan = peminatan;
              }
 
              mappedData.push(item);
         }
 
         setMassData(mappedData);
+        if (mappedData.length > 0) {
+            showToast(`Berhasil membaca ${mappedData.length} baris data dari file Excel!`, "success");
+        } else {
+            showToast("Tidak ada data valid yang ditemukan di file Excel.", "destructive");
+        }
     } catch (error) {
         console.error("Error parsing excel:", error);
         showToast("Failed to parse Excel file. Make sure format is correct.", "destructive");
@@ -391,7 +410,8 @@ export const useCreateAccount = () => {
                 Nama: user.nama,
                 Email: user.email,
                 Password: user.password,
-                Jabatan: user.jabatan
+                Jabatan: user.jabatan,
+                Peminatan: user.peminatan && Array.isArray(user.peminatan) ? user.peminatan.join(", ") : ""
             };
         }
     });

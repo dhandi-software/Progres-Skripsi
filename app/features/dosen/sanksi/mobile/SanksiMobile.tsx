@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { sanksiApi, type SanksiAdministrasi, type SupervisedStudent } from "~/api/sanksiApi";
-import { Plus, Edit3, Trash2, X, Save, AlertCircle, FileText, Printer, Check, ChevronDown, User, ArrowLeft, Clock, CheckCircle2 } from "lucide-react";
+import { Plus, Edit3, Trash2, X, Save, AlertCircle, FileText, Printer, Check, ChevronDown, User, ArrowLeft, Clock, CheckCircle2, MoreHorizontal, Eye } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -21,6 +21,7 @@ interface FormState {
 
 export function SanksiMobile({ title }: { title: string }) {
     const [sanksiList, setSanksiList] = useState<SanksiAdministrasi[]>([]);
+    const [summary, setSummary] = useState({ total: 0, menunggu: 0, telat: 0, selesai: 0 });
     const [studentList, setStudentList] = useState<SupervisedStudent[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -44,14 +45,18 @@ export function SanksiMobile({ title }: { title: string }) {
     const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
     const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
+    const [searchQuery, setSearchQuery] = useState("");
+    const [statusFilter, setStatusFilter] = useState("");
+
     const fetchData = async () => {
         try {
             setIsLoading(true);
-            const [sanksiData, studentData] = await Promise.all([
-                sanksiApi.getAllSanksi(),
+            const [sanksiRes, studentData] = await Promise.all([
+                sanksiApi.getAllSanksi(searchQuery, statusFilter),
                 sanksiApi.getSupervisedStudents()
             ]);
-            setSanksiList(sanksiData);
+            setSanksiList(sanksiRes.data || []);
+            setSummary(sanksiRes.summary || { total: 0, menunggu: 0, telat: 0, selesai: 0 });
             setStudentList(studentData);
         } catch (error) {
             showToast("error", "Gagal memuat data.");
@@ -61,8 +66,12 @@ export function SanksiMobile({ title }: { title: string }) {
     };
 
     useEffect(() => {
-        fetchData();
-    }, []);
+        const delayDebounceFn = setTimeout(() => {
+            fetchData();
+        }, 300);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchQuery, statusFilter]);
 
     const showToast = (type: "success" | "error", msg: string) => {
         setToast({ type, msg });
@@ -226,14 +235,15 @@ export function SanksiMobile({ title }: { title: string }) {
         }
     };
 
-    const handleTerimaHardcover = async (id: number, e: React.MouseEvent) => {
+    const handleKonfirmasiHardcover = async (id: number, e: React.MouseEvent) => {
         e.stopPropagation();
         try {
-            await sanksiApi.terimaHardcover(id);
-            showToast("success", "Hardcover telah diterima.");
+            await sanksiApi.konfirmasiSanksi(id);
+            showToast("success", "Hardcover telah dikonfirmasi.");
             fetchData();
-        } catch (error) {
-            showToast("error", "Gagal memperbarui status hardcover.");
+        } catch (error: any) {
+            const msg = error.response?.data?.message || error.response?.data?.error || "Gagal memperbarui status hardcover.";
+            showToast("error", msg);
         }
     };
 
@@ -262,11 +272,13 @@ export function SanksiMobile({ title }: { title: string }) {
             {/* Toast feedback */}
             {toast && (
                 <div className={cn(
-                    "fixed top-4 right-4 left-4 z-[2000] flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border bg-white border-slate-100 transition-all animate-in fade-in slide-in-from-top-4 print:hidden",
-                    toast.type === "success" ? "text-emerald-700 bg-emerald-50 border-emerald-100" : "text-red-700 bg-red-50 border-red-100"
+                    "fixed top-6 left-4 right-4 z-[2000] flex items-start gap-3 px-5 py-3 rounded-xl shadow-lg border transition-all animate-in fade-in slide-in-from-top-4 print:hidden max-w-lg mx-auto min-w-[300px]",
+                    toast.type === "success" ? "bg-emerald-50 border-emerald-100 text-emerald-800" : "bg-red-50 border-red-100 text-red-800"
                 )}>
-                    {toast.type === "success" ? <Check size={16} /> : <AlertCircle size={16} />}
-                    <span className="text-xs font-bold">{toast.msg}</span>
+                    <div className="mt-0.5 shrink-0">
+                        {toast.type === "success" ? <Check size={18} /> : <AlertCircle size={18} />}
+                    </div>
+                    <span className="text-sm font-bold leading-snug">{toast.msg}</span>
                 </div>
             )}
 
@@ -358,25 +370,31 @@ export function SanksiMobile({ title }: { title: string }) {
                                             </div>
                                         )}
                                     </div>
-                                    <div className="flex flex-col gap-1 items-end">
-                                        {user?.role?.toUpperCase() === 'STAF' && item.status !== 'Selesai/Lunas' && (
+                                    <div className="flex flex-col gap-2 items-end">
+                                        {(user?.role?.toUpperCase() === 'STAF' || user?.role?.toUpperCase() === 'ADMIN') && item.status !== 'Selesai/Lunas' && (
                                             <button
-                                                onClick={(e) => handleTerimaHardcover(item.id, e)}
-                                                className="p-2 mb-1 bg-emerald-50 text-emerald-600 rounded-lg active:bg-emerald-200 transition-colors border border-emerald-100"
+                                                onClick={(e) => handleKonfirmasiHardcover(item.id, e)}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-emerald-200 text-emerald-600 bg-emerald-50/50 hover:bg-emerald-50 font-semibold text-[11px] transition-colors"
                                             >
-                                                <Check size={14} />
+                                                <CheckCircle2 size={14} /> Konfirmasi Hardcover
                                             </button>
                                         )}
-                                        <div className="flex gap-1">
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setPreviewItem(item); }}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-[11px] transition-colors"
+                                            >
+                                                <Eye size={14} /> Pratinjau
+                                            </button>
                                             <button
                                                 onClick={(e) => handleOpenEdit(item, e)}
-                                                className="p-2 bg-slate-50 text-slate-600 rounded-lg active:bg-slate-200 transition-colors"
+                                                className="p-1.5 rounded-full border border-blue-100 text-blue-500 hover:bg-blue-50 transition-colors"
                                             >
                                                 <Edit3 size={14} />
                                             </button>
                                             <button
                                                 onClick={(e) => handleDelete(item.id, e)}
-                                                className="p-2 bg-red-50 text-red-500 rounded-lg active:bg-red-200 transition-colors"
+                                                className="p-1.5 rounded-full border border-red-100 text-red-500 hover:bg-red-50 transition-colors"
                                             >
                                                 <Trash2 size={14} />
                                             </button>

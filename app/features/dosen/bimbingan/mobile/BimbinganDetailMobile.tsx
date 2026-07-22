@@ -108,6 +108,15 @@ export function BimbinganDetailMobile() {
                 setHistory(tasks.filter((t: any) => t.topik === active.topik).sort((a: any, b: any) => b.versi - a.versi));
             } else {
                 setHistory([]);
+                // Pre-fill schedule with the previous task's deadline if available
+                if (completed.length > 0 && completed[0].jadwalBimbingan) {
+                    setSelectedSchedules(prev => {
+                        if (!prev[mahasiswaId]) {
+                            return { ...prev, [mahasiswaId]: completed[0].jadwalBimbingan };
+                        }
+                        return prev;
+                    });
+                }
             }
 
             // Generate Chart Data for Timeliness
@@ -345,31 +354,48 @@ export function BimbinganDetailMobile() {
             </div>
 
             <div className="flex flex-col min-h-[calc(100vh-60px)]">
-                <div className="bg-white px-4 border-b border-gray-200 flex space-x-2 overflow-x-auto scrollbar-hide shrink-0">
-                    <button
-                        onClick={() => setActiveTab("aktif")}
-                        className={`py-3 text-sm whitespace-nowrap px-2 font-bold border-b-2 transition-colors flex-1 text-center ${activeTab === 'aktif' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-                    >
-                        Target Saat Ini
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("grafik")}
-                        className={`py-3 text-sm whitespace-nowrap px-2 font-bold border-b-2 transition-colors flex-1 text-center ${activeTab === 'grafik' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-                    >
-                        Grafik
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("portfolio")}
-                        className={`py-3 text-sm whitespace-nowrap px-2 font-bold border-b-2 transition-colors flex-1 text-center ${activeTab === 'portfolio' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-                    >
-                        Portfolio
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("riwayat")}
-                        className={`py-3 text-sm whitespace-nowrap px-2 font-bold border-b-2 transition-colors flex-1 text-center ${activeTab === 'riwayat' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-                    >
-                        Lulus
-                    </button>
+                <div className="bg-white px-4 border-b border-gray-200 flex items-center overflow-x-auto scrollbar-hide shrink-0">
+                    <div className="flex space-x-2 shrink-0 border-r border-gray-200 pr-4 mr-4">
+                        <button
+                            onClick={() => setActiveTab("aktif")}
+                            className={`py-3 text-sm whitespace-nowrap px-2 font-bold border-b-2 transition-colors flex-1 text-center ${activeTab === 'aktif' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Target Saat Ini
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("grafik")}
+                            className={`py-3 text-sm whitespace-nowrap px-2 font-bold border-b-2 transition-colors flex-1 text-center ${activeTab === 'grafik' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Grafik
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("portfolio")}
+                            className={`py-3 text-sm whitespace-nowrap px-2 font-bold border-b-2 transition-colors flex-1 text-center ${activeTab === 'portfolio' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Portfolio
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("riwayat")}
+                            className={`py-3 text-sm whitespace-nowrap px-2 font-bold border-b-2 transition-colors flex-1 text-center ${activeTab === 'riwayat' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Lulus
+                        </button>
+                    </div>
+
+                    {/* Completed Tasks Mini Cards (Mobile) */}
+                    <div className="flex items-center gap-2 shrink-0 py-2">
+                        {completedTasks.length > 0 ? (
+                            completedTasks.map((task: any) => (
+                                <div key={task.id} className="w-[120px] px-3 py-1.5 bg-white border border-green-200 shadow-[0_2px_4px_rgba(0,0,0,0.02)] rounded-lg flex flex-col justify-center border-t-2 border-t-green-500 shrink-0">
+                                    <div className="text-[8px] font-bold text-green-700 uppercase mb-0.5">Selesai (ACC)</div>
+                                    <div className="text-[11px] font-bold text-gray-800 truncate" title={task.topik}>{task.topik}</div>
+                                    <div className="text-[9px] text-gray-500 mt-0.5">{new Date(task.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                                </div>
+                            ))
+                        ) : (
+                            <span className="text-[10px] text-gray-400 italic shrink-0 pr-2">Belum ada riwayat ACC</span>
+                        )}
+                    </div>
                 </div>
 
                 <div className="p-4 flex-1">
@@ -547,7 +573,7 @@ export function BimbinganDetailMobile() {
                                             }} className="text-[10px] text-blue-600 hover:underline font-bold">Batalkan Edit</button>
                                         )}
                                     </div>
-                                    <div>
+                                    <div className="relative z-[200]">
                                         <label className="block text-[10px] font-bold text-gray-700 mb-1">Pilih Bab Target</label>
                                         <CustomSelect
                                             options={taskOptions.map(opt => ({

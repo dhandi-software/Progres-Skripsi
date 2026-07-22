@@ -272,6 +272,174 @@ export const CreateAccountMobile = () => {
         ) : (
             // MASS REGISTRATION VIEW MOBILE
             <div className="flex flex-col gap-6 mt-2">
+                
+                {/* Guide Section */}
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3 text-blue-900">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <FileSpreadsheet className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div className="flex flex-col gap-1 text-[0.8125rem]">
+                    <h4 className="font-bold">Panduan Kolom Excel ({formData.role})</h4>
+                    <p className="opacity-90 leading-tight mb-2">
+                      Pastikan baris pertama (header) file Excel Anda menggunakan format berikut.
+                    </p>
+
+                    {formData.role !== 'dosen' ? (
+                      <div className="mt-1 border border-gray-300 bg-white rounded-md overflow-hidden max-w-full overflow-x-auto shadow-sm">
+                        <table className="w-full text-left text-[10px] whitespace-nowrap">
+                          <thead className="bg-[#f3f4f6]">
+                            <tr>
+                              <th className="px-2 py-1.5 border-r border-b border-gray-300 font-semibold text-gray-700 w-6 bg-[#e5e7eb] text-center"></th>
+                              <th className="px-2 py-1.5 border-r border-b border-gray-300 font-semibold text-gray-700 text-center">A</th>
+                              <th className="px-2 py-1.5 border-r border-b border-gray-300 font-semibold text-gray-700 text-center">B</th>
+                              {formData.role === 'mahasiswa' && (
+                                <>
+                                  <th className="px-2 py-1.5 border-r border-b border-gray-300 font-semibold text-gray-700 text-center">C</th>
+                                  <th className="px-2 py-1.5 border-b border-gray-300 font-semibold text-gray-700 text-center">D</th>
+                                </>
+                              )}
+                              {formData.role === 'staf' && (
+                                 <th className="px-2 py-1.5 border-b border-gray-300 font-semibold text-gray-700 text-center">C</th>
+                              )}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td className="px-1.5 py-1 border-r border-b border-gray-300 bg-[#f3f4f6] text-gray-500 font-medium text-center w-6">1</td>
+                              <td className="px-2 py-1 border-r border-b border-gray-300 font-bold bg-blue-50/50">
+                                {formData.role === 'mahasiswa' ? 'NPM' : 'NIP'}
+                              </td>
+                              <td className="px-2 py-1 border-r border-b border-gray-300 font-bold bg-blue-50/50">Nama Lengkap</td>
+                              {formData.role === 'mahasiswa' && (
+                                <>
+                                  <td className="px-2 py-1 border-r border-b border-gray-300 font-bold bg-blue-50/50">Email</td>
+                                  <td className="px-2 py-1 border-b border-gray-300 font-bold bg-blue-50/50">Tahun Masuk</td>
+                                </>
+                              )}
+                              {formData.role === 'staf' && (
+                                 <td className="px-2 py-1 border-b border-gray-300 font-bold bg-blue-50/50">Email</td>
+                              )}
+                            </tr>
+                            <tr>
+                              <td className="px-1.5 py-1 border-r border-gray-300 bg-[#f3f4f6] text-gray-500 font-medium text-center w-6">2</td>
+                              <td className="px-2 py-1 border-r border-gray-300 text-gray-600">
+                                {formData.role === 'mahasiswa' ? '4519...' : '1988...'}
+                              </td>
+                              <td className="px-2 py-1 border-r border-gray-300 text-gray-600">
+                                {formData.role === 'mahasiswa' ? 'Budi S.' : 'Gede W.'}
+                              </td>
+                              {formData.role === 'mahasiswa' && (
+                                <>
+                                  <td className="px-2 py-1 border-r border-gray-300 text-gray-400 italic">budi@..</td>
+                                  <td className="px-2 py-1 border-gray-300 text-gray-400 italic">2023</td>
+                                </>
+                              )}
+                              {formData.role === 'staf' && (
+                                 <td className="px-2 py-1 border-gray-300 text-gray-400 italic">wahyu@..</td>
+                              )}
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      // Dosen (4 Tables stacked in Mobile)
+                      <div className="flex flex-col gap-3 mt-1">
+                        {/* Table A */}
+                        <div className="border border-gray-300 bg-white rounded-md overflow-hidden max-w-full overflow-x-auto shadow-sm">
+                          <div className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-1 border-b border-gray-300">A. Pejabat Prodi (Masekpro)</div>
+                          <table className="w-full text-left text-[9px] whitespace-nowrap">
+                            <thead className="bg-[#f3f4f6]">
+                              <tr>
+                                <th className="px-1.5 py-1 border-r border-b border-gray-300 font-semibold">NIDN</th>
+                                <th className="px-1.5 py-1 border-r border-b border-gray-300 font-semibold">Nama</th>
+                                <th className="px-1.5 py-1 border-r border-b border-gray-300 font-semibold">Jabatan</th>
+                                <th className="px-1.5 py-1 border-b border-gray-300 font-semibold">Peminatan</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td className="px-1.5 py-1 border-r border-gray-300 font-mono">031201</td>
+                                <td className="px-1.5 py-1 border-r border-gray-300">Dr. Budi</td>
+                                <td className="px-1.5 py-1 border-r border-gray-300">Pejabat Prodi</td>
+                                <td className="px-1.5 py-1">Software Eng..</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Table B */}
+                        <div className="border border-gray-300 bg-white rounded-md overflow-hidden max-w-full overflow-x-auto shadow-sm">
+                          <div className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-1 border-b border-gray-300">B. Dosen Pembimbing</div>
+                          <table className="w-full text-left text-[9px] whitespace-nowrap">
+                            <thead className="bg-[#f3f4f6]">
+                              <tr>
+                                <th className="px-1.5 py-1 border-r border-b border-gray-300 font-semibold">NIDN</th>
+                                <th className="px-1.5 py-1 border-r border-b border-gray-300 font-semibold">Nama</th>
+                                <th className="px-1.5 py-1 border-r border-b border-gray-300 font-semibold">Jabatan</th>
+                                <th className="px-1.5 py-1 border-b border-gray-300 font-semibold">Peminatan</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td className="px-1.5 py-1 border-r border-gray-300 font-mono">031202</td>
+                                <td className="px-1.5 py-1 border-r border-gray-300">Prof. Siti</td>
+                                <td className="px-1.5 py-1 border-r border-gray-300">Dosen Pemb.</td>
+                                <td className="px-1.5 py-1">Artificial Intel..</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Table C */}
+                        <div className="border border-gray-300 bg-white rounded-md overflow-hidden max-w-full overflow-x-auto shadow-sm">
+                          <div className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-1 border-b border-gray-300">C. Koordinator KP</div>
+                          <table className="w-full text-left text-[9px] whitespace-nowrap">
+                            <thead className="bg-[#f3f4f6]">
+                              <tr>
+                                <th className="px-1.5 py-1 border-r border-b border-gray-300 font-semibold">NIDN</th>
+                                <th className="px-1.5 py-1 border-r border-b border-gray-300 font-semibold">Nama</th>
+                                <th className="px-1.5 py-1 border-r border-b border-gray-300 font-semibold">Jabatan</th>
+                                <th className="px-1.5 py-1 border-b border-gray-300 font-semibold">Peminatan</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td className="px-1.5 py-1 border-r border-gray-300 font-mono">031203</td>
+                                <td className="px-1.5 py-1 border-r border-gray-300">Pak Joko</td>
+                                <td className="px-1.5 py-1 border-r border-gray-300">Koord. KP</td>
+                                <td className="px-1.5 py-1">Network/Cyber..</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Table D */}
+                        <div className="border border-gray-300 bg-white rounded-md overflow-hidden max-w-full overflow-x-auto shadow-sm">
+                          <div className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-1 border-b border-gray-300">D. Dosen Reguler (Multi-Peminatan)</div>
+                          <table className="w-full text-left text-[9px] whitespace-nowrap">
+                            <thead className="bg-[#f3f4f6]">
+                              <tr>
+                                <th className="px-1.5 py-1 border-r border-b border-gray-300 font-semibold">NIDN</th>
+                                <th className="px-1.5 py-1 border-r border-b border-gray-300 font-semibold">Nama</th>
+                                <th className="px-1.5 py-1 border-r border-b border-gray-300 font-semibold">Jabatan</th>
+                                <th className="px-1.5 py-1 border-b border-gray-300 font-semibold">Peminatan</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td className="px-1.5 py-1 border-r border-gray-300 font-mono">031204</td>
+                                <td className="px-1.5 py-1 border-r border-gray-300">Bu Ani</td>
+                                <td className="px-1.5 py-1 border-r border-gray-300">Dosen Reguler</td>
+                                <td className="px-1.5 py-1">Data Science, AI</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <div className="w-full border-2 border-dashed border-gray-300 rounded-2xl p-8 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer relative">
                     <input 
                        type="file" 

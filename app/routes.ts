@@ -107,6 +107,7 @@ export default [
             route("chat", "routes/admin/chat.tsx"),
             route("penilaian", "routes/admin/penilaian.tsx"),
             route("direktori", "routes/admin/direktori.tsx"),
+            route("laporan", "routes/admin/laporan.tsx"),
             route("sanksi", "routes/admin/sanksi.tsx"),
         ]),
     ]),

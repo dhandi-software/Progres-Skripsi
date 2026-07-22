@@ -4,12 +4,23 @@ import { sidangApi } from "~/api/sidangApi";
 import { 
     Calendar, Clock, MapPin, CheckCircle2, AlertCircle, 
     User, Bookmark, FileText, Info, GraduationCap,
-    Clock3, ShieldCheck, MapPinned, Users, ChevronRight
+    Clock3, ShieldCheck, MapPinned, Users, ChevronRight, Trash2
 } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { format } from "date-fns";
 import { id } from "date-fns/locale/id";
 import { Toast } from "~/components/ui/toast";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "~/components/ui/alert-dialog";
 
 interface SidangItem {
     id: number;
@@ -95,11 +106,24 @@ export function SidangMobile({ title }: { title: string }) {
                     color: "text-amber-600 bg-amber-50 border-amber-100",
                     icon: Clock3
                 };
+            case "DITOLAK":
+                return {
+                    label: "Revisi Laporan",
+                    color: "text-red-600 bg-red-50 border-red-100",
+                    icon: AlertCircle
+                };
             case "MENUNGGU_VERIFIKASI_KAPRODI":
                 return { 
                     label: "Verifikasi Kaprodi", 
                     color: "text-purple-600 bg-purple-50 border-purple-100",
                     icon: ShieldCheck
+                };
+            case "MENUNGGU_PENJADWALAN_KOORDINATOR":
+            case "MENUNGGU_PENJADWALAN_PRODI":
+                return {
+                    label: "Penjadwalan Prodi",
+                    color: "text-blue-600 bg-blue-50 border-blue-100",
+                    icon: Calendar
                 };
             default:
                 return { 
@@ -107,6 +131,21 @@ export function SidangMobile({ title }: { title: string }) {
                     color: "text-slate-600 bg-slate-100 border-slate-200",
                     icon: Info
                 };
+        }
+    };
+
+    const [isCanceling, setIsCanceling] = useState(false);
+
+    const handleCancel = async (id: number) => {
+        try {
+            setIsCanceling(true);
+            await sidangApi.deleteSidang(id);
+            setToastProps({ title: "Pengajuan sidang berhasil dibatalkan", variant: "success" });
+            fetchData();
+        } catch (error: any) {
+            setToastProps({ title: error.response?.data?.message || "Gagal membatalkan pengajuan sidang", variant: "destructive" });
+        } finally {
+            setIsCanceling(false);
         }
     };
 
@@ -310,6 +349,64 @@ export function SidangMobile({ title }: { title: string }) {
                             <ChevronRight size={20} />
                         </div>
                     </div>
+
+                    {latestSidang.status === "DITOLAK" && (
+                        <div className="bg-red-50 border border-red-200 p-4 rounded-2xl flex flex-col gap-2">
+                            <div className="flex items-center gap-2">
+                                <AlertCircle size={18} className="text-red-500" />
+                                <span className="font-bold text-red-800 text-xs">Catatan Revisi dari Pembimbing:</span>
+                            </div>
+                            <p className="text-red-700 text-xs leading-relaxed italic px-6">
+                                "{latestSidang.catatan || 'Laporan memerlukan perbaikan. Silakan hubungi dosen.'}"
+                            </p>
+                        </div>
+                    )}
+
+                    {["MENUNGGU_PERSETUJUAN_PEMBIMBING", "MENUNGGU_PENJADWALAN_PRODI", "MENUNGGU_PENJADWALAN_KOORDINATOR", "DITOLAK"].includes(latestSidang.status) && (
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <div 
+                                    className={cn(
+                                        "bg-white border border-red-200 rounded-2xl p-4 flex items-center justify-between shadow-sm active:scale-[0.98] transition-transform cursor-pointer hover:border-red-300 hover:bg-red-50",
+                                        isCanceling ? "opacity-50 pointer-events-none" : ""
+                                    )}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center text-red-500">
+                                            <Trash2 size={20} />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-sm font-black text-red-600 leading-none mb-1">
+                                                {isCanceling ? "Membatalkan..." : (latestSidang.status === 'DITOLAK' ? "Revisi & Ajukan Ulang" : "Batalkan Laporan")}
+                                            </h4>
+                                            <p className="text-red-500/80 text-[10px] font-medium leading-tight">
+                                                {latestSidang.status === 'DITOLAK' ? "Hapus laporan ini untuk mengunggah ulang versi yang direvisi." : "Hapus laporan dan ajukan ulang jika ada kesalahan."}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="w-[90%] max-w-sm rounded-2xl">
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Batalkan Laporan?</AlertDialogTitle>
+                                    <AlertDialogDescription className="text-sm text-slate-500">
+                                        Apakah Anda yakin ingin membatalkan pengajuan sidang ini? Data yang sudah diajukan akan dihapus dan Anda harus mengisi ulang formulir dari awal.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter className="flex-col gap-2 mt-4">
+                                    <AlertDialogAction 
+                                        onClick={() => handleCancel(latestSidang.id)}
+                                        className="bg-red-600 hover:bg-red-700 text-white w-full m-0"
+                                    >
+                                        Ya, Batalkan
+                                    </AlertDialogAction>
+                                    <AlertDialogCancel className="w-full m-0 mt-2">
+                                        Batal
+                                    </AlertDialogCancel>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    )}
                 </div>
             </div>
 

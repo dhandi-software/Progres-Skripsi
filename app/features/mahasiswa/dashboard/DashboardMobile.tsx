@@ -65,7 +65,7 @@ export function DashboardMobile() {
                 })
                 .catch(console.error);
 
-            sanksiApi.getAllSanksi().then(setSanksiList).catch(console.error);
+            sanksiApi.getAllSanksi().then(res => setSanksiList(res.data || [])).catch(console.error);
         }
     }, [user?.id]);
 
@@ -93,22 +93,68 @@ export function DashboardMobile() {
         }
         if (profile?.pengajuanJudul && profile.pengajuanJudul.length > 0) {
             const p = profile.pengajuanJudul[0];
-            let dynActivity: { title: string, time: string, color: string, rawDate: Date } | null = null;
+            let dynActivity: { title: string, desc: string, icon: any, time: string, color: string, rawDate: Date } | null = null;
             if (p.status === 'PENDING') {
-                dynActivity = { title: "Sedang Diproses", time: "Baru", color: "text-blue-500", rawDate: new Date(p.tanggal) };
+                dynActivity = {
+                    title: "Pengajuan Sedang Diproses",
+                    desc: `Usulan judul "${p.judul}" sedang menunggu persetujuan Dosen Pembimbing.`,
+                    icon: Clock,
+                    time: "Baru",
+                    color: "text-blue-500",
+                    rawDate: new Date(p.tanggal)
+                };
+            } else if (p.status === 'PENDING_KOORDINATOR') {
+                dynActivity = {
+                    title: "Menunggu Koordinator",
+                    desc: `Usulan judul "${p.judul}" sedang menunggu tinjauan Koordinator.`,
+                    icon: Clock,
+                    time: "Baru",
+                    color: "text-purple-500",
+                    rawDate: new Date(p.tanggal)
+                };
             } else if (p.status === 'APPROVED') {
-                dynActivity = { title: "Judul Disetujui", time: "Baru", color: "text-green-500", rawDate: new Date(p.tanggal) };
+                dynActivity = { title: "Judul Disetujui", desc: "Pembaruan status pengajuan judul bimbingan.", icon: FileText, time: "Baru", color: "text-green-500", rawDate: new Date(p.tanggal) };
             } else if (p.status === 'REJECTED') {
-                dynActivity = { title: "Judul Ditolak", time: "Baru", color: "text-red-500", rawDate: new Date(p.tanggal) };
+                dynActivity = {
+                    title: "Pengajuan Judul Ditolak",
+                    desc: `Usulan judul "${p.judul}" ditolak oleh Dosen Pembimbing.`,
+                    icon: XCircle,
+                    time: "Baru",
+                    color: "text-red-500",
+                    rawDate: new Date(p.tanggal)
+                };
+            } else if (p.status === 'REJECTED_KOORDINATOR') {
+                dynActivity = {
+                    title: "Pengajuan Judul Ditolak",
+                    desc: `Usulan judul "${p.judul}" ditolak oleh Koordinator.`,
+                    icon: XCircle,
+                    time: "Baru",
+                    color: "text-red-500",
+                    rawDate: new Date(p.tanggal)
+                };
             } else if (p.status === 'REVISION') {
-                dynActivity = { title: "Pengajuan Perlu Revisi", time: "Baru", color: "text-yellow-600", rawDate: new Date(p.tanggal) };
+                dynActivity = {
+                    title: "Pengajuan Perlu Revisi",
+                    desc: `Usulan judul "${p.judul}" diminta revisi oleh Dosen Pembimbing.`,
+                    icon: AlertCircle,
+                    time: "Baru",
+                    color: "text-yellow-600",
+                    rawDate: new Date(p.tanggal)
+                };
+            } else if (p.status === 'REVISION_KOORDINATOR') {
+                dynActivity = {
+                    title: "Pengajuan Perlu Revisi",
+                    desc: `Usulan judul "${p.judul}" diminta revisi oleh Koordinator.`,
+                    icon: AlertCircle,
+                    time: "Baru",
+                    color: "text-yellow-600",
+                    rawDate: new Date(p.tanggal)
+                };
             }
             if (dynActivity) {
                 dynActivity.time = new Date(p.tanggal).toLocaleDateString('id-ID', { month: 'short', day: 'numeric', year: 'numeric' });
                 activities.push({
                     ...dynActivity,
-                    desc: "Pembaruan status pengajuan judul bimbingan.",
-                    icon: FileText,
                     onClick: () => navigate("/mahasiswa/pengajuan")
                 });
             }
@@ -263,8 +309,8 @@ export function DashboardMobile() {
                             </div>
                             {jadwal.deskripsi && (
                                 <div 
-                                    className="text-emerald-700 text-[10px] mt-2 pr-2 leading-relaxed italic prose prose-sm max-w-none prose-emerald"
-                                    dangerouslySetInnerHTML={{ __html: jadwal.deskripsi }} 
+                                    className="text-emerald-800 text-sm mt-2 pr-2 leading-relaxed prose prose-sm max-w-none prose-emerald"
+                                    dangerouslySetInnerHTML={{ __html: jadwal.deskripsi.replace(/(?<!href="|src=")(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-600 font-semibold hover:underline break-all">$1</a>') }} 
                                 />
                             )}
                             {jadwal.tipe === 'PENGARAHAN_SIDANG' && (

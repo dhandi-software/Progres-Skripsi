@@ -7,6 +7,7 @@ import { Toast } from "~/components/ui/toast";
 import { MonthYearFilter } from "~/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "~/lib/utils";
+import { Button } from "~/components/ui/button";
 
 import { SignatureModal } from "./SignatureModal";
 
@@ -68,6 +69,8 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
     const [entries, setEntries] = useState<LogbookEntry[]>([]);
     const [editingRowIds, setEditingRowIds] = useState<Set<string>>(new Set());
     const [activeSignature, setActiveSignature] = useState<{ id: string, type: 'mahasiswaParaf' | 'pembimbingParaf' } | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 6;
 
     const showToast = (title: string, variant: "success" | "destructive" | "default" = "success") => {
         setToastProps({ title, variant });
@@ -153,7 +156,7 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
     // Fungsi menambah kegiatan (Mobile)
     const addEntry = () => {
         const newId = Date.now().toString();
-        setEntries([
+        const newEntries = [
             ...entries,
             {
                 id: newId,
@@ -163,8 +166,13 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                 pembimbingParaf: null,
                 catatan: ""
             }
-        ]);
+        ];
+        setEntries(newEntries);
         setEditingRowIds(prev => new Set(prev).add(newId));
+
+        // Pindah ke halaman terakhir
+        const totalPages = Math.ceil(newEntries.length / itemsPerPage);
+        setCurrentPage(totalPages);
     };
 
     // Fungsi menghapus kegiatan
@@ -441,7 +449,9 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            {entries.map((entry) => (
+                            {(() => {
+                                const paginatedEntries = entries.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+                                return paginatedEntries.map((entry) => (
                                 <div key={entry.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                                     {/* Card Header */}
                                     <div className={cn("bg-gray-50 px-4 py-3 border-b flex justify-between items-start", (entry.pembimbingParaf && !editingRowIds.has(entry.id)) && "opacity-70")}>
@@ -593,7 +603,37 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                                         </div>
                                     </div>
                                 </div>
-                            ))}
+                            ))
+                            })()}
+                        </div>
+                    )}
+
+                    {/* Pagination */}
+                    {entries.length > itemsPerPage && (
+                        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
+                            <span className="text-xs font-medium text-gray-500">
+                                Hal {currentPage} dari {Math.ceil(entries.length / itemsPerPage)}
+                            </span>
+                            <div className="flex gap-2">
+                                <Button 
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={currentPage === 1}
+                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                    className="h-8 text-xs px-3"
+                                >
+                                    Sebelumnya
+                                </Button>
+                                <Button 
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={currentPage === Math.ceil(entries.length / itemsPerPage)}
+                                    onClick={() => setCurrentPage(p => Math.min(Math.ceil(entries.length / itemsPerPage), p + 1))}
+                                    className="h-8 text-xs px-3"
+                                >
+                                    Selanjutnya
+                                </Button>
+                            </div>
                         </div>
                     )}
                 </div>

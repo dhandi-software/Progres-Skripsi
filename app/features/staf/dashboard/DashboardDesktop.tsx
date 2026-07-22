@@ -8,6 +8,16 @@ import { id as localeId } from "date-fns/locale";
 
 const ITEMS_PER_PAGE = 10;
 
+const avatarColors = [
+    'bg-blue-500', 'bg-orange-500', 'bg-emerald-500', 'bg-purple-500', 'bg-amber-500', 'bg-pink-500'
+];
+
+const getAvatarColor = (name: string = '') => {
+    if (!name) return avatarColors[0];
+    const idx = name.charCodeAt(0) % avatarColors.length;
+    return avatarColors[idx];
+};
+
 function getPaginationGroup(currentPage: number, totalPages: number) {
     if (totalPages <= 5) {
         return Array.from({ length: totalPages }, (_, i) => i + 1);
@@ -81,19 +91,18 @@ export function DashboardDesktop() {
         doc.text(`Dicetak pada: ${format(new Date(), "dd MMMM yyyy HH:mm", { locale: localeId })}`, 14, 30);
         
         const tableData = activeTab === "belum" 
-            ? studentsWithoutProposal.map((s, i) => [i + 1, s.nama, s.nim, s.email || "-"])
+            ? studentsWithoutProposal.map((s, i) => [i + 1, s.nama, s.nim, s.email || "-", s.nomorTelepon || "-"])
             : studentsWithProposal.map((s, i) => [
                 i + 1, 
                 s.mahasiswa?.nama || "-", 
                 s.mahasiswa?.nim || "-", 
                 s.judul || "-", 
-                s.dosen?.nama || "-", 
-                s.status || "-"
+                s.dosen?.nama || "-"
               ]);
               
         const head = activeTab === "belum" 
-            ? [["No", "Nama Mahasiswa", "NIM", "Email"]]
-            : [["No", "Nama Mahasiswa", "NIM", "Judul", "Dosen Pembimbing", "Status"]];
+            ? [["No", "Nama Mahasiswa", "NIM", "Email", "No. Telepon"]]
+            : [["No", "Nama Mahasiswa", "NIM", "Judul", "Dosen Pembimbing"]];
             
         autoTable(doc, {
             startY: 35,
@@ -211,14 +220,15 @@ export function DashboardDesktop() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex items-start gap-5 opacity-50 grayscale relative overflow-hidden">
-          <div className="p-4 bg-green-50 rounded-xl text-green-600 relative z-10">
-             <MessageSquare size={28} />
+        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex items-start gap-5 relative overflow-hidden group hover:border-gray-300 transition-all">
+          <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div className="p-4 bg-green-50 text-green-600 rounded-xl relative z-10 transition-colors group-hover:bg-green-500 group-hover:text-white group-hover:shadow-lg group-hover:shadow-green-500/30">
+             <Users size={28} />
           </div>
           <div className="relative z-10">
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Pesan Masuk</h3>
-            <p className="text-4xl font-black text-gray-900 tracking-tight">0</p>
-            <p className="text-xs text-gray-400 mt-2 font-medium">Belum ada pesan baru</p>
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Total Mahasiswa</h3>
+            <p className="text-4xl font-black text-gray-900 tracking-tight">{studentsWithoutProposal.length + studentsWithProposal.length}</p>
+            <p className="text-xs text-gray-400 mt-2 font-medium">Keseluruhan mahasiswa</p>
           </div>
         </div>
       </div>
@@ -275,21 +285,37 @@ export function DashboardDesktop() {
                                 <th className="px-8 py-5">Nama Mahasiswa</th>
                                 <th className="px-8 py-5">NIM</th>
                                 <th className="px-8 py-5">Email</th>
+                                <th className="px-8 py-5">No. Telepon</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 text-sm">
                             {paginatedBelum.map((student, idx) => (
-                                <tr key={student.id} className="hover:bg-gray-50/80 transition-colors group">
+                                <tr key={student.nim || student.id} className="hover:bg-gray-50/80 transition-colors group">
                                     <td className="px-8 py-5 text-gray-400 font-medium w-16">
                                         {(pageBelum - 1) * ITEMS_PER_PAGE + idx + 1}
                                     </td>
                                     <td className="px-8 py-5">
-                                        <span className="font-bold text-gray-900 group-hover:text-orange-600 transition-colors">{student.nama}</span>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-9 h-9 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center font-bold text-sm shrink-0 border border-orange-100">
+                                                {student.nama?.charAt(0) || 'M'}
+                                            </div>
+                                            <span className="font-bold text-gray-900 group-hover:text-orange-600 transition-colors">{student.nama}</span>
+                                        </div>
                                     </td>
                                     <td className="px-8 py-5">
                                         <span className="font-mono text-gray-600 bg-gray-100 px-2 py-1 rounded-md text-xs">{student.nim}</span>
                                     </td>
-                                    <td className="px-8 py-5 text-gray-500">{student.email || '-'}</td>
+                                    <td className="px-8 py-5 text-gray-500 text-sm">{student.email || <span className="text-gray-300 italic">-</span>}</td>
+                                    <td className="px-8 py-5">
+                                        {student.nomorTelepon ? (
+                                            <a href={`tel:${student.nomorTelepon}`} className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-700 hover:text-blue-600 transition-colors">
+                                                <Phone size={13} className="text-slate-400 shrink-0" />
+                                                {student.nomorTelepon}
+                                            </a>
+                                        ) : (
+                                            <span className="text-gray-300 italic text-sm">Belum diisi</span>
+                                        )}
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
@@ -308,72 +334,80 @@ export function DashboardDesktop() {
                     <table className="w-full text-left whitespace-nowrap">
                         <thead className="bg-gray-50/50 text-gray-500 text-xs font-bold uppercase tracking-wider border-b border-gray-100">
                             <tr>
-                                <th className="px-8 py-5">No</th>
+                                <th className="px-8 py-5 w-14">No</th>
                                 <th className="px-8 py-5">Mahasiswa</th>
                                 <th className="px-8 py-5">Pengajuan Judul</th>
                                 <th className="px-8 py-5">Detail KP</th>
-                                <th className="px-8 py-5">Status</th>
-                                <th className="px-8 py-5 text-right">Aksi</th>
+                                <th className="px-8 py-5 text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 text-sm">
                             {paginatedSudah.map((item, idx) => (
                                 <tr key={item.id} className="hover:bg-blue-50/30 transition-colors group">
-                                    <td className="px-8 py-5 text-gray-400 font-medium w-16">
-                                        {(pageSudah - 1) * ITEMS_PER_PAGE + idx + 1}
+                                    <td className="px-8 py-5 text-gray-400 font-medium w-14 text-center">
+                                        <span className="text-xs font-bold">  
+                                            {String((pageSudah - 1) * ITEMS_PER_PAGE + idx + 1).padStart(2, '0')}
+                                        </span>
                                     </td>
                                     <td className="px-8 py-5">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-sm shrink-0 border border-slate-200 shadow-sm">
-                                                {item.mahasiswa?.nama?.charAt(0) || 'M'}
+                                        <div className="flex items-center gap-4">
+                                            <div className={cn(
+                                                "w-10 h-10 rounded-full text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-sm",
+                                                getAvatarColor(item.mahasiswa?.nama)
+                                            )}>
+                                                {item.mahasiswa?.nama?.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() || 'M'}
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className="font-bold text-slate-900 group-hover:text-blue-700 transition-colors">{item.mahasiswa?.nama}</span>
-                                                <span className="text-xs text-slate-500 font-medium">{item.mahasiswa?.nim}</span>
+                                                <span className="font-bold text-slate-800">{item.mahasiswa?.nama}</span>
+                                                <span className="text-xs text-slate-500">{item.mahasiswa?.nim}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-8 py-5 w-[450px] whitespace-normal text-left">
+                                        <div className="flex flex-col items-start gap-2">
+                                            <p className="font-semibold text-slate-700 leading-snug">{item.judul}</p>
+                                            <div className="inline-flex px-3 py-1 rounded-full bg-blue-50 text-blue-500 font-medium text-xs w-fit">
+                                                {item.dosen?.nama || '-'}
                                             </div>
                                         </div>
                                     </td>
                                     <td className="px-8 py-5">
-                                        <div className="flex flex-col gap-1.5">
-                                            <p className="font-semibold text-slate-800">{item.judul}</p>
-                                            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-md w-fit text-slate-700 font-medium text-xs mt-1">
-                                                <Briefcase size={13} className="text-blue-500 shrink-0" />
-                                                <span>{item.dosen?.nama || '-'}</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-8 py-5">
-                                        <div className="flex items-center gap-3 text-slate-700 font-medium text-xs">
-                                            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-md">
-                                                <Building2 size={13} className={item.mahasiswa?.tempatKP?.[0]?.namaPerusahaan ? "text-orange-500 shrink-0" : "text-slate-300 shrink-0"} />
+                                        <div className="flex flex-col gap-2 items-start text-xs">
+                                            <div className={cn(
+                                                "inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-medium w-fit",
+                                                item.mahasiswa?.tempatKP?.[0]?.namaPerusahaan 
+                                                    ? "bg-green-50 text-green-600 border border-green-200" 
+                                                    : "bg-slate-50 text-slate-400 italic border border-slate-200"
+                                            )}>
+                                                <Building2 size={13} className="shrink-0" />
                                                 <span>
-                                                    {item.mahasiswa?.tempatKP?.[0]?.namaPerusahaan || <span className="text-slate-400 italic">Belum diset</span>}
+                                                    {item.mahasiswa?.tempatKP?.[0]?.namaPerusahaan || 'Belum diset'}
                                                 </span>
                                             </div>
-                                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 font-semibold shadow-sm border border-blue-100">
-                                                <FileText size={12} />
+                                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-600 border border-blue-200 font-medium w-fit">
+                                                <FileText size={13} />
                                                 <span>{item.mahasiswa?.logbook?.length || 0} Logbook</span>
                                             </div>
                                         </div>
                                     </td>
                                     <td className="px-8 py-5">
-                                        <span className={cn(
-                                            "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border flex items-center justify-center w-fit shadow-sm",
-                                            item.status === 'APPROVED' ? "bg-green-100 text-green-700 border-green-200" :
-                                            item.status === 'REJECTED' ? "bg-red-100 text-red-700 border-red-200" :
-                                            "bg-amber-100 text-amber-700 border-amber-200"
-                                        )}>
-                                            {item.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-8 py-5 text-right">
-                                        <button 
-                                            onClick={() => openDetail(item)}
-                                            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-blue-500 hover:bg-blue-50 text-slate-600 hover:text-blue-600 rounded-xl transition-all font-medium text-sm shadow-sm"
-                                        >
-                                            <Eye size={16} />
-                                            Detail
-                                        </button>
+                                        <div className="flex flex-col items-center justify-center gap-2">
+                                            <span className={cn(
+                                                "px-3 py-1 rounded-full font-bold text-[10px] tracking-wider uppercase",
+                                                item.status === 'APPROVED' ? "bg-green-50 text-green-600" :
+                                                item.status === 'REJECTED' ? "bg-red-50 text-red-600" :
+                                                "bg-amber-50 text-amber-600"
+                                            )}>
+                                                {item.status || 'PENDING'}
+                                            </span>
+                                            <button 
+                                                onClick={() => openDetail(item)}
+                                                className="inline-flex items-center gap-1.5 text-blue-500 hover:text-blue-700 transition-colors font-medium text-xs"
+                                            >
+                                                <Eye size={14} />
+                                                Detail
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

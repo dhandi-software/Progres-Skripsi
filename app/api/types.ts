@@ -148,7 +148,7 @@ export interface Pengajuan {
     ipk?: number;
     sksDicapai?: number;
     sksNilaiD?: number;
-    status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVISION';
+    status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVISION' | 'PENDING_KOORDINATOR' | 'REVISION_KOORDINATOR' | 'REJECTED_KOORDINATOR';
     dosenId: string;
     batasStudi?: string;
     remarks?: string;

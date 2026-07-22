@@ -69,6 +69,7 @@ export function PeninjauanDesktop({
                             options={[
                                 { label: "Semua Status", value: "ALL" },
                                 { label: "Pending", value: "PENDING" },
+                                { label: "Pending Koor", value: "PENDING_KOORDINATOR" },
                                 { label: "Disetujui", value: "APPROVED" },
                             ]}
                             value={filterStatus}
@@ -168,13 +169,17 @@ export function PeninjauanDesktop({
                                             <div className="inline-flex px-3 py-1.5 bg-white rounded-md border border-gray-200 items-center justify-center" title="Disetujui">
                                                 <span className="text-gray-800 text-[10px] font-bold uppercase tracking-wider font-['Noto_Sans']">VERIFIED</span>
                                             </div>
-                                        ) : item.status === 'REJECTED' ? (
+                                        ) : ['REJECTED', 'REJECTED_KOORDINATOR'].includes(item.status) ? (
                                             <div className="inline-flex px-3 py-1.5 bg-white rounded-md border border-gray-200 items-center justify-center" title="Ditolak">
                                                 <span className="text-gray-800 text-[10px] font-bold uppercase tracking-wider font-['Noto_Sans']">REJECTED</span>
                                             </div>
-                                        ) : item.status === 'REVISION' ? (
+                                        ) : ['REVISION', 'REVISION_KOORDINATOR'].includes(item.status) ? (
                                             <div className="inline-flex px-3 py-1.5 bg-white rounded-md border border-gray-200 items-center justify-center" title="Revisi">
                                                 <span className="text-gray-800 text-[10px] font-bold uppercase tracking-wider font-['Noto_Sans']">REVISION</span>
+                                            </div>
+                                        ) : item.status === 'PENDING_KOORDINATOR' ? (
+                                            <div className="inline-flex px-3 py-1.5 bg-white rounded-md border border-purple-200 items-center justify-center" title="Menunggu Koordinator">
+                                                <span className="text-purple-700 text-[10px] font-bold uppercase tracking-wider font-['Noto_Sans']">PENDING KOOR</span>
                                             </div>
                                         ) : (
                                             <div className="inline-flex px-3 py-1.5 bg-white rounded-md border border-gray-200 items-center justify-center" title="Menunggu Tinjauan">

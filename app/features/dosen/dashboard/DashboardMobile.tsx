@@ -176,8 +176,8 @@ export function DashboardMobile() {
                             </p>
                             {jadwal.deskripsi && (
                                 <div 
-                                    className="text-emerald-700 text-[10px] mt-2 pr-2 leading-relaxed italic prose prose-sm max-w-none prose-emerald"
-                                    dangerouslySetInnerHTML={{ __html: jadwal.deskripsi }} 
+                                    className="text-emerald-800 text-sm mt-2 pr-2 leading-relaxed prose prose-sm max-w-none prose-emerald"
+                                    dangerouslySetInnerHTML={{ __html: jadwal.deskripsi.replace(/(?<!href="|src=")(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-600 font-semibold hover:underline break-all">$1</a>') }} 
                                 />
                             )}
                         </div>

@@ -272,7 +272,7 @@ export function EditJadwalMobile() {
                         <div className="grid grid-cols-1 gap-5">
                             <div className="space-y-2">
                                 <label className="block text-sm font-bold text-gray-700">
-                                    Tanggal Batas Akhir
+                                    Tanggal
                                 </label>
                                 <Popover>
                                     <PopoverTrigger asChild>
@@ -294,7 +294,7 @@ export function EditJadwalMobile() {
                             </div>
                             <div className="space-y-2">
                                 <label className="block text-sm font-bold text-gray-700">
-                                    Waktu Batas Akhir
+                                    Jam
                                 </label>
                                 <input
                                     type="time"

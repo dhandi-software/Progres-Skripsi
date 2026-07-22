@@ -14,6 +14,9 @@ export interface SanksiAdministrasi {
     tanggalSurat: string;
     status?: string;
     tenggatWaktu?: string;
+    tanggalKonfirmasi?: string;
+    denda?: number;
+    keterlambatanMinggu?: number;
     createdAt: string;
     updatedAt: string;
     mahasiswa?: {
@@ -37,8 +40,8 @@ export interface SupervisedStudent {
 }
 
 export const sanksiApi = {
-    getAllSanksi: async (): Promise<SanksiAdministrasi[]> => {
-        const response = await client.get("/sanksi");
+    getAllSanksi: async (search?: string, status?: string): Promise<{ data: SanksiAdministrasi[], summary: any }> => {
+        const response = await client.get("/sanksi", { params: { search, status } });
         return response.data;
     },
 
@@ -64,6 +67,11 @@ export const sanksiApi = {
 
     terimaHardcover: async (id: number): Promise<SanksiAdministrasi> => {
         const response = await client.patch(`/sanksi/${id}/terima`);
+        return response.data;
+    },
+
+    konfirmasiSanksi: async (id: number): Promise<SanksiAdministrasi> => {
+        const response = await client.patch(`/sanksi/${id}/konfirmasi`);
         return response.data;
     }
 };

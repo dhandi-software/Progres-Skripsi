@@ -216,7 +216,7 @@ export function BimbinganDesktop() {
                                         </div>
 
                                         <p className="text-sm text-gray-600 mb-6 border-b border-gray-100 pb-6">
-                                            Silakan kumpulkan draf laporan Anda dalam bentuk PDF untuk mendapatkan reviu dari dosen pembimbing.
+                                            Silakan kumpulkan draf laporan Anda dalam bentuk PDF, DOC, atau DOCX untuk mendapatkan reviu dari dosen pembimbing.
                                         </p>
 
                                         {activeTask.status === 'REVISION' && (

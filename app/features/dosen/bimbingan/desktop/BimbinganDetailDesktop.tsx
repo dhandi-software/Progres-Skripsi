@@ -55,6 +55,15 @@ const parseCatatan = (catatan: string) => {
     return { nilai: null, text: catatan };
 };
 
+const TASK_OPTIONS = [
+    { label: "Bab 1: Pendahuluan", value: "Bab 1: Pendahuluan" },
+    { label: "Bab 2: Tinjauan Pustaka", value: "Bab 2: Tinjauan Pustaka" },
+    { label: "Bab 3: Metodologi", value: "Bab 3: Metodologi" },
+    { label: "Bab 4: Hasil dan Pembahasan", value: "Bab 4: Hasil dan Pembahasan" },
+    { label: "Bab 5: Kesimpulan dan Saran", value: "Bab 5: Kesimpulan dan Saran" },
+    { label: "Laporan Akhir (Finalisasi)", value: "Laporan Akhir (Finalisasi)" },
+];
+
 export function BimbinganDetailDesktop() {
     const navigate = useNavigate();
     const location = useLocation();
@@ -123,17 +132,19 @@ export function BimbinganDetailDesktop() {
                 setHistory(tasks.filter((t: any) => t.topik === active.topik).sort((a: any, b: any) => b.versi - a.versi));
             } else {
                 setHistory([]);
+                // Pre-fill schedule with the previous task's deadline if available
+                if (completed.length > 0 && completed[0].jadwalBimbingan) {
+                    setSelectedSchedules(prev => {
+                        if (!prev[mahasiswaNim]) {
+                            return { ...prev, [mahasiswaNim]: completed[0].jadwalBimbingan };
+                        }
+                        return prev;
+                    });
+                }
             }
 
             // Generate Chart Data for Timeliness
-            const taskOptionsList = [
-                { label: "Bab 1: Pendahuluan", value: "Bab 1: Pendahuluan" },
-                { label: "Bab 2: Tinjauan Pustaka", value: "Bab 2: Tinjauan Pustaka" },
-                { label: "Bab 3: Metodologi", value: "Bab 3: Metodologi" },
-                { label: "Bab 4: Hasil dan Pembahasan", value: "Bab 4: Hasil dan Pembahasan" },
-                { label: "Bab 5: Kesimpulan dan Saran", value: "Bab 5: Kesimpulan dan Saran" },
-                { label: "Laporan Akhir (Finalisasi)", value: "Laporan Akhir (Finalisasi)" },
-            ];
+            const taskOptionsList = TASK_OPTIONS;
 
             const groupedByTopic = tasks.reduce((acc: any, task: any) => {
                 if (!acc[task.topik]) acc[task.topik] = [];
@@ -359,31 +370,48 @@ export function BimbinganDetailDesktop() {
                     </div>
                 </div>
 
-                <div className="bg-white px-8 border-b border-gray-200 flex space-x-6 overflow-x-auto scroolbar-hide">
-                    <button
-                        onClick={() => setActiveTab("aktif")}
-                        className={`py-4 text-sm whitespace-nowrap font-bold border-b-2 transition-colors ${activeTab === 'aktif' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-                    >
-                        Target Saat Ini
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("grafik")}
-                        className={`py-4 text-sm whitespace-nowrap font-bold border-b-2 transition-colors ${activeTab === 'grafik' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-                    >
-                        Grafik Kedisiplinan
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("portfolio")}
-                        className={`py-4 text-sm whitespace-nowrap font-bold border-b-2 transition-colors ${activeTab === 'portfolio' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-                    >
-                        Portfolio & Capaian
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("riwayat")}
-                        className={`py-4 text-sm whitespace-nowrap font-bold border-b-2 transition-colors ${activeTab === 'riwayat' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-                    >
-                        Riwayat Selesai
-                    </button>
+                <div className="bg-white px-8 border-b border-gray-200 flex justify-between items-center overflow-x-auto scroolbar-hide">
+                    <div className="flex space-x-6">
+                        <button
+                            onClick={() => setActiveTab("aktif")}
+                            className={`py-4 text-sm whitespace-nowrap font-bold border-b-2 transition-colors ${activeTab === 'aktif' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Target Saat Ini
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("grafik")}
+                            className={`py-4 text-sm whitespace-nowrap font-bold border-b-2 transition-colors ${activeTab === 'grafik' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Grafik Kedisiplinan
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("portfolio")}
+                            className={`py-4 text-sm whitespace-nowrap font-bold border-b-2 transition-colors ${activeTab === 'portfolio' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Portfolio & Capaian
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("riwayat")}
+                            className={`py-4 text-sm whitespace-nowrap font-bold border-b-2 transition-colors ${activeTab === 'riwayat' ? 'border-[#119DA4] text-[#119DA4]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                        >
+                            Riwayat Selesai
+                        </button>
+                    </div>
+                    
+                    {/* Completed Tasks Mini Cards */}
+                    <div className="flex items-center gap-2 shrink-0 py-2 ml-8 pl-6 border-l border-gray-100">
+                        {completedTasks.length > 0 ? (
+                            completedTasks.map(task => (
+                                <div key={task.id} className="min-w-[130px] px-3 py-2 bg-white border border-green-200 shadow-sm rounded-lg flex flex-col justify-center border-t-2 border-t-green-500">
+                                    <div className="text-[9px] font-bold text-green-700 uppercase mb-0.5">Selesai (ACC)</div>
+                                    <div className="text-xs font-bold text-gray-800 truncate" title={task.topik}>{task.topik}</div>
+                                    <div className="text-[10px] text-gray-500 mt-0.5">{new Date(task.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                                </div>
+                            ))
+                        ) : (
+                            <span className="text-xs text-gray-400 italic">Belum ada riwayat ACC</span>
+                        )}
+                    </div>
                 </div>
 
                 <div className="p-8">
@@ -585,7 +613,7 @@ export function BimbinganDetailDesktop() {
                                                 )}
                                             </div>
                                             <div className="space-y-4">
-                                                <div>
+                                                <div className="relative z-[200]">
                                                     <label className="block text-xs font-bold text-gray-700 mb-1.5">Pilih Bab / Target Penugasan</label>
                                                     <CustomSelect
                                                         options={taskOptions.map(opt => ({

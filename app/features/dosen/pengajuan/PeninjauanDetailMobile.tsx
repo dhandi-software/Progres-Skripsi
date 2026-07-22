@@ -106,7 +106,8 @@ export function PeninjauanDetailMobile({ id }: { id: string }) {
                  
                  <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider
                     ${detail.status === 'APPROVED' ? 'bg-Green-50 text-Green-700' : 
-                      detail.status === 'REJECTED' ? 'bg-Red-50 text-Red-700' : 
+                      ['REJECTED', 'REJECTED_KOORDINATOR'].includes(detail.status) ? 'bg-Red-50 text-Red-700' : 
+                      detail.status === 'PENDING_KOORDINATOR' ? 'bg-purple-50 text-purple-700' :
                       'bg-yellow-50 text-yellow-700'}`}
                  >
                     {detail.status}
@@ -225,7 +226,7 @@ export function PeninjauanDetailMobile({ id }: { id: string }) {
                             </div>
                         </div>
 
-                        {detail.status === 'REVISION' && (
+                        {['REVISION', 'REVISION_KOORDINATOR'].includes(detail.status) && (
                             <div className="mt-6 pt-6 border-t border-gray-100">
                                 <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
                                     <h3 className="font-bold text-yellow-800 mb-3 text-sm">Informasi Revisi</h3>
@@ -253,11 +254,11 @@ export function PeninjauanDetailMobile({ id }: { id: string }) {
                     </div>
 
                     {/* Action Block */}
-                    {detail.status === 'PENDING' && (
+                    {['PENDING', 'PENDING_KOORDINATOR'].includes(detail.status) && (
                         <div className="bg-white p-4 rounded-xl border-2 border-dashed border-gray-200 shadow-sm space-y-4">
                             <h3 className="text-sm font-bold text-[#D25026] flex items-center gap-2">
                                 <Check size={16} strokeWidth={3} />
-                                Tindakan Persetujuan
+                                {detail.status === 'PENDING_KOORDINATOR' ? 'Tindakan Persetujuan Koordinator' : 'Tindakan Persetujuan'}
                             </h3>
                             <div className="mb-4 flex flex-col gap-1.5">
                                 <label className="text-sm font-semibold text-gray-700">Catatan (Opsional)</label>
@@ -280,7 +281,7 @@ export function PeninjauanDetailMobile({ id }: { id: string }) {
                                     className="w-full font-bold"
                                 >
                                     <Check size={18} strokeWidth={3} />
-                                    Setujui Pengajuan
+                                    {detail.status === 'PENDING_KOORDINATOR' ? 'Teruskan ke Pembimbing' : 'Setujui Pengajuan'}
                                 </Button>
                                 <Button
                                     variant="outline"
