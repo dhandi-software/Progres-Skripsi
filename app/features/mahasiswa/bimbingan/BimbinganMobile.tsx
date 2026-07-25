@@ -208,7 +208,7 @@ export function BimbinganMobile() {
                                         </div>
 
                                         <p className="text-xs text-gray-600 mb-6 border-b border-gray-100 pb-4">
-                                            Silakan kumpulkan draf laporan dalam bentuk PDF untuk reviu.
+                                            Silakan kumpulkan draf laporan dalam bentuk PDF, DOC, atau DOCX untuk reviu.
                                         </p>
 
                                         {activeTask.status === 'REVISION' && (

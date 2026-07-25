@@ -11,7 +11,7 @@ export const sidangApi = {
         });
         return response.data;
     },
-    pembimbingApprove: async (id: number, data?: { tanggalSidang?: string; waktuSidang?: string; lokasi?: string; isRejected?: boolean }) => {
+    pembimbingApprove: async (id: number, data?: { tanggalSidang?: string; waktuSidang?: string; lokasi?: string; isRejected?: boolean; catatan?: string }) => {
         const response = await client.put(`/sidang/approve/${id}`, data || {});
         return response.data;
     },

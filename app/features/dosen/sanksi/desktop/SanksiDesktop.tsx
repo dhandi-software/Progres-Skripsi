@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { sanksiApi, type SanksiAdministrasi, type SupervisedStudent } from "~/api/sanksiApi";
-import { Plus, Edit3, Trash2, X, Save, AlertCircle, FileText, Printer, Check, ChevronDown, User, Calendar, Clock, CheckCircle2 } from "lucide-react";
+import { Plus, Edit3, Trash2, X, Save, AlertCircle, FileText, Printer, Check, ChevronDown, User, Calendar, Clock, CheckCircle2, Eye, MoreHorizontal } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -21,6 +21,7 @@ interface FormState {
 
 export function SanksiDesktop({ title }: { title: string }) {
     const [sanksiList, setSanksiList] = useState<SanksiAdministrasi[]>([]);
+    const [summary, setSummary] = useState({ total: 0, menunggu: 0, telat: 0, selesai: 0 });
     const [studentList, setStudentList] = useState<SupervisedStudent[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -46,14 +47,18 @@ export function SanksiDesktop({ title }: { title: string }) {
     const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
     const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
+    const [searchQuery, setSearchQuery] = useState("");
+    const [statusFilter, setStatusFilter] = useState("");
+
     const fetchData = async () => {
         try {
             setIsLoading(true);
-            const [sanksiData, studentData] = await Promise.all([
-                sanksiApi.getAllSanksi(),
+            const [sanksiRes, studentData] = await Promise.all([
+                sanksiApi.getAllSanksi(searchQuery, statusFilter),
                 sanksiApi.getSupervisedStudents()
             ]);
-            setSanksiList(sanksiData);
+            setSanksiList(sanksiRes.data || []);
+            setSummary(sanksiRes.summary || { total: 0, menunggu: 0, telat: 0, selesai: 0 });
             setStudentList(studentData);
         } catch (error) {
             showToast("error", "Gagal memuat data.");
@@ -63,8 +68,12 @@ export function SanksiDesktop({ title }: { title: string }) {
     };
 
     useEffect(() => {
-        fetchData();
-    }, []);
+        const delayDebounceFn = setTimeout(() => {
+            fetchData();
+        }, 300);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchQuery, statusFilter]);
 
     const showToast = (type: "success" | "error", msg: string) => {
         setToast({ type, msg });
@@ -220,13 +229,14 @@ export function SanksiDesktop({ title }: { title: string }) {
         window.print();
     };
 
-    const handleTerimaHardcover = async (id: number) => {
+    const handleKonfirmasiHardcover = async (id: number) => {
         try {
-            await sanksiApi.terimaHardcover(id);
-            showToast("success", "Hardcover telah diterima, status diperbarui.");
+            await sanksiApi.konfirmasiSanksi(id);
+            showToast("success", "Hardcover telah dikonfirmasi, sanksi selesai.");
             fetchData();
-        } catch (error) {
-            showToast("error", "Gagal memperbarui status hardcover.");
+        } catch (error: any) {
+            const msg = error.response?.data?.message || error.response?.data?.error || "Gagal memperbarui status hardcover.";
+            showToast("error", msg);
         }
     };
 
@@ -247,14 +257,15 @@ export function SanksiDesktop({ title }: { title: string }) {
             <style type="text/css" media="print">
                 {`@page { margin: 0; } body { margin: 1.6cm; }`}
             </style>
-            {/* Toast feedback */}
             {toast && (
                 <div className={cn(
-                    "fixed top-6 right-6 z-[2000] flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg border transition-all animate-in fade-in slide-in-from-top-4 print:hidden",
+                    "fixed top-6 right-6 z-[2000] flex items-start gap-3 px-5 py-3 rounded-xl shadow-lg border transition-all animate-in fade-in slide-in-from-top-4 print:hidden max-w-lg min-w-[320px]",
                     toast.type === "success" ? "bg-emerald-50 border-emerald-100 text-emerald-800" : "bg-red-50 border-red-100 text-red-800"
                 )}>
-                    {toast.type === "success" ? <Check size={18} /> : <AlertCircle size={18} />}
-                    <span className="text-sm font-bold">{toast.msg}</span>
+                    <div className="mt-0.5 shrink-0">
+                        {toast.type === "success" ? <Check size={18} /> : <AlertCircle size={18} />}
+                    </div>
+                    <span className="text-sm font-bold leading-snug">{toast.msg}</span>
                 </div>
             )}
 
@@ -294,7 +305,7 @@ export function SanksiDesktop({ title }: { title: string }) {
                                 <th className="px-6 py-4">Tenggat Hardcover</th>
                                 <th className="px-6 py-4">Tanggal Surat</th>
                                 <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4 text-right">Aksi</th>
+                                <th className="px-6 py-4 text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 text-sm">
@@ -336,43 +347,39 @@ export function SanksiDesktop({ title }: { title: string }) {
                                             </div>
                                         )}
                                     </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex justify-end items-center gap-2">
-                                            {user?.role?.toUpperCase() === 'STAF' && item.status !== 'Selesai/Lunas' && (
-                                                <Button
-                                                    onClick={() => handleTerimaHardcover(item.id)}
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl font-bold bg-emerald-50/50"
-                                                >
-                                                    <Check size={14} className="mr-1.5" /> Terima Hardcover
-                                                </Button>
-                                            )}
-                                            <Button
-                                                onClick={() => setPreviewItem(item)}
-                                                variant="outline"
-                                                size="sm"
-                                                className="border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl"
-                                            >
-                                                Pratinjau
-                                            </Button>
-                                            <Button
-                                                onClick={() => handleOpenEdit(item)}
-                                                variant="outline"
-                                                size="icon"
-                                                className="border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-xl w-9 h-9"
-                                            >
-                                                <Edit3 size={14} />
-                                            </Button>
-                                            <Button
-                                                onClick={() => setDeleteConfirmId(item.id)}
-                                                variant="outline"
-                                                size="icon"
-                                                className="border-slate-200 text-red-500 hover:bg-red-50 hover:text-red-600 hover:border-red-100 rounded-xl w-9 h-9"
-                                            >
-                                                <Trash2 size={14} />
-                                            </Button>
-                                        </div>
+                                    <td className="px-6 py-4 text-center">
+                                            <div className="flex flex-col gap-2 items-center">
+                                                {(user?.role?.toUpperCase() === 'STAF' || user?.role?.toUpperCase() === 'ADMIN') && item.status !== 'Selesai/Lunas' && (
+                                                    <button
+                                                        onClick={() => handleKonfirmasiHardcover(item.id)}
+                                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-emerald-200 text-emerald-600 bg-emerald-50/50 hover:bg-emerald-50 font-semibold text-[11px] transition-colors"
+                                                    >
+                                                        <CheckCircle2 size={14} /> Konfirmasi Hardcover
+                                                    </button>
+                                                )}
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => setPreviewItem(item)}
+                                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-[11px] transition-colors"
+                                                    >
+                                                        <Eye size={14} /> Pratinjau
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleOpenEdit(item)}
+                                                        className="p-1.5 rounded-full border border-blue-100 text-blue-500 hover:bg-blue-50 transition-colors"
+                                                        title="Edit Sanksi"
+                                                    >
+                                                        <Edit3 size={14} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setDeleteConfirmId(item.id)}
+                                                        className="p-1.5 rounded-full border border-red-100 text-red-500 hover:bg-red-50 transition-colors"
+                                                        title="Hapus Sanksi"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            </div>
                                     </td>
                                 </tr>
                             ))}

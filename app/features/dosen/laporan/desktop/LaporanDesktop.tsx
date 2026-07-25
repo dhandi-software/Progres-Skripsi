@@ -91,9 +91,12 @@ export function LaporanDesktop({ title }: { title?: string }) {
     const [laporanData, setLaporanData] = useState<LaporanItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
-    const [activeTab, setActiveTab] = useState<"bimbingan" | "logbook" | "evaluasi">("bimbingan");
     const [isLowVision, setIsLowVision] = useState(false);
     const [showDownloadToast, setShowDownloadToast] = useState(false);
+    
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     useEffect(() => {
         const fetchLaporan = async () => {
@@ -199,11 +202,15 @@ export function LaporanDesktop({ title }: { title?: string }) {
         item.nim.includes(searchQuery)
     );
 
-    const tabs = [
-        { id: "bimbingan", label: "Progres Bimbingan", icon: Users },
-        { id: "logbook", label: "Logbook Mahasiswa", icon: ClipboardList },
-        { id: "evaluasi", label: "Penilaian Evaluasi Kerja Praktik", icon: Award },
-    ] as const;
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+    const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+    // Reset to page 1 on search
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery]);
+
+
 
     return (
         <div className={cn(
@@ -250,32 +257,6 @@ export function LaporanDesktop({ title }: { title?: string }) {
 
 
 
-            {/* Tabs Navigation (Screen only) */}
-            <div className="flex border-b border-gray-200 mb-6 gap-2 print:hidden overflow-x-auto">
-                {tabs.map((tab) => {
-                    const TabIcon = tab.icon;
-                    const isActive = activeTab === tab.id;
-                    return (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={cn(
-                                "flex items-center gap-2 px-5 py-3 border-b-2 font-semibold text-sm whitespace-nowrap transition-all duration-200",
-                                isActive 
-                                    ? (isLowVision 
-                                        ? "border-black text-black font-black" 
-                                        : "border-[#D25026] text-[#D25026]")
-                                    : (isLowVision
-                                        ? "border-transparent text-gray-500 hover:text-black hover:border-black font-bold"
-                                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300")
-                            )}
-                        >
-                            <TabIcon size={18} />
-                            <span className={cn(isLowVision && "text-base font-black")}>{tab.label}</span>
-                        </button>
-                    );
-                })}
-            </div>
 
             {/* Main Content Container (Screen view - Hidden during printing) */}
             <div className={cn(
@@ -331,65 +312,39 @@ export function LaporanDesktop({ title }: { title?: string }) {
                                     isLowVision ? "font-black text-base" : "font-semibold text-sm"
                                 )}>Nama / NIM</th>
                                 
-                                {/* Dynamic columns based on Tab */}
-                                {activeTab === "bimbingan" && (
-                                    <>
-                                        <th className={cn(
-                                            "py-4 px-6 w-[40%]",
-                                            isLowVision ? "font-black text-base" : "font-semibold text-sm"
-                                        )}>Judul Kerja Praktik</th>
-                                        <th className={cn(
-                                            "py-4 px-6 text-center w-[180px]",
-                                            isLowVision ? "font-black text-base" : "font-semibold text-sm"
-                                        )}>Pertemuan Approved</th>
-                                        <th className={cn(
-                                            "py-4 px-6 w-[200px]",
-                                            isLowVision ? "font-black text-base" : "font-semibold text-sm"
-                                        )}>Status Progres</th>
-                                    </>
-                                )}
-
-                                {activeTab === "logbook" && (
-                                    <>
-                                        <th className={cn(
-                                            "py-4 px-6 text-center",
-                                            isLowVision ? "font-black text-base" : "font-semibold text-sm"
-                                        )}>Logbook Diisi</th>
-                                        <th className={cn(
-                                            "py-4 px-6 text-center",
-                                            isLowVision ? "font-black text-base" : "font-semibold text-sm"
-                                        )}>Logbook Disetujui</th>
-                                        <th className={cn(
-                                            "py-4 px-6 w-[220px]",
-                                            isLowVision ? "font-black text-base" : "font-semibold text-sm"
-                                        )}>Progres Logbook</th>
-                                    </>
-                                )}
-
-                                {activeTab === "evaluasi" && (
-                                    <>
-                                        <th className={cn(
-                                            "py-4 px-6 w-[25%]",
-                                            isLowVision ? "font-black text-base" : "font-semibold text-sm"
-                                        )}>Nilai Pembimbing (P1)</th>
-                                        <th className={cn(
-                                            "py-4 px-6 w-[25%]",
-                                            isLowVision ? "font-black text-base" : "font-semibold text-sm"
-                                        )}>Nilai Penguji (P2)</th>
-                                        <th className={cn(
-                                            "py-4 px-6 text-center w-[120px]",
-                                            isLowVision ? "font-black text-base" : "font-semibold text-sm"
-                                        )}>Nilai Akhir</th>
-                                        <th className={cn(
-                                            "py-4 px-6 text-center w-[120px]",
-                                            isLowVision ? "font-black text-base" : "font-semibold text-sm"
-                                        )}>Huruf Mutu</th>
-                                        <th className={cn(
-                                            "py-4 px-6 text-center w-[130px]",
-                                            isLowVision ? "font-black text-base" : "font-semibold text-sm"
-                                        )}>Tanggal</th>
-                                    </>
-                                )}
+                                {/* Merged Columns */}
+                                <th className={cn(
+                                    "py-4 px-6 text-center",
+                                    isLowVision ? "font-black text-base" : "font-semibold text-sm"
+                                )}>Logbook Diisi</th>
+                                <th className={cn(
+                                    "py-4 px-6 text-center",
+                                    isLowVision ? "font-black text-base" : "font-semibold text-sm"
+                                )}>Logbook Disetujui</th>
+                                <th className={cn(
+                                    "py-4 px-6 w-[180px]",
+                                    isLowVision ? "font-black text-base" : "font-semibold text-sm"
+                                )}>Progres Logbook</th>
+                                <th className={cn(
+                                    "py-4 px-6 w-[280px]",
+                                    isLowVision ? "font-black text-base" : "font-semibold text-sm"
+                                )}>Nilai Pembimbing (P1)</th>
+                                <th className={cn(
+                                    "py-4 px-6 w-[280px]",
+                                    isLowVision ? "font-black text-base" : "font-semibold text-sm"
+                                )}>Nilai Penguji (P2)</th>
+                                <th className={cn(
+                                    "py-4 px-6 text-center w-[100px]",
+                                    isLowVision ? "font-black text-base" : "font-semibold text-sm"
+                                )}>Nilai Akhir</th>
+                                <th className={cn(
+                                    "py-4 px-6 text-center w-[100px]",
+                                    isLowVision ? "font-black text-base" : "font-semibold text-sm"
+                                )}>Huruf Mutu</th>
+                                <th className={cn(
+                                    "py-4 px-6 text-center w-[120px]",
+                                    isLowVision ? "font-black text-base" : "font-semibold text-sm"
+                                )}>Tanggal</th>
                             </tr>
                         </thead>
                         <tbody className={cn(
@@ -398,7 +353,7 @@ export function LaporanDesktop({ title }: { title?: string }) {
                         )}>
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={activeTab === "bimbingan" ? 5 : activeTab === "logbook" ? 5 : 6} className="py-12 text-center text-gray-500">
+                                    <td colSpan={10} className="py-12 text-center text-gray-500">
                                         <div className="flex flex-col items-center">
                                             <div className={cn(
                                                 "w-8 h-8 rounded-full border-4 border-gray-200 border-t-[#D25026] animate-spin mb-3",
@@ -408,9 +363,9 @@ export function LaporanDesktop({ title }: { title?: string }) {
                                         </div>
                                     </td>
                                 </tr>
-                            ) : filteredData.length === 0 ? (
+                            ) : paginatedData.length === 0 ? (
                                 <tr>
-                                    <td colSpan={activeTab === "bimbingan" ? 5 : activeTab === "logbook" ? 5 : 6} className={cn(
+                                    <td colSpan={10} className={cn(
                                         "py-12 text-center",
                                         isLowVision ? "text-black bg-white font-black text-lg" : "text-[#8696a0] bg-gray-50/50"
                                     )}>
@@ -418,7 +373,7 @@ export function LaporanDesktop({ title }: { title?: string }) {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredData.map((item, idx) => (
+                                paginatedData.map((item, idx) => (
                                     <tr key={item.id} className={cn(
                                         "transition-colors print:hover:bg-transparent",
                                         isLowVision ? "hover:bg-slate-100 bg-white" : "hover:bg-gray-50/50"
@@ -427,7 +382,7 @@ export function LaporanDesktop({ title }: { title?: string }) {
                                             "py-4 px-6",
                                             isLowVision ? "text-base font-black text-black" : "text-sm text-gray-600 print:text-black"
                                         )}>
-                                            {idx + 1}
+                                            {(currentPage - 1) * itemsPerPage + idx + 1}
                                         </td>
                                         <td className="py-4 px-6">
                                             <div className="flex flex-col">
@@ -447,50 +402,7 @@ export function LaporanDesktop({ title }: { title?: string }) {
                                         </td>
 
                                         {/* Dynamic content rendering based on Tab */}
-                                        {activeTab === "bimbingan" && (
-                                            <>
-                                                <td className={cn(
-                                                    "py-4 px-6 text-sm print:text-black",
-                                                    isLowVision ? "text-base font-bold text-black" : "text-[#111b21]"
-                                                )}>
-                                                    {item.judulSkripsi || "-"}
-                                                </td>
-                                                <td className="py-4 px-6 text-center">
-                                                    <div className="flex items-center justify-center gap-1.5">
-                                                        <span className={cn(
-                                                            "font-bold text-lg print:text-black",
-                                                            isLowVision ? "text-xl font-black text-black" : "text-[#D25026]"
-                                                        )}>
-                                                            {item.totalBimbinganSelesai}
-                                                        </span>
-                                                        <span className={cn(
-                                                            "text-xs print:text-gray-600",
-                                                            isLowVision ? "text-sm font-bold text-black" : "text-[#8696a0]"
-                                                        )}>
-                                                            / {item.totalBimbingan}
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                                <td className="py-4 px-6">
-                                                    <span className={cn(
-                                                        "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold print:bg-transparent print:p-0 print:border-none",
-                                                        isLowVision
-                                                            ? "bg-white border-2 border-black text-black font-black text-sm"
-                                                            : (item.statusProgress.includes("Selesai") ? "bg-[#d9fdd3] text-[#00a884]" :
-                                                               item.statusProgress.includes("Aktif") ? "bg-blue-100 text-blue-700" :
-                                                               item.statusProgress.includes("Reviu") ? "bg-yellow-100 text-yellow-700" :
-                                                               item.statusProgress.includes("Revisi") ? "bg-orange-100 text-orange-700" :
-                                                               "bg-gray-100 text-gray-600")
-                                                    )}>
-                                                        {item.statusProgress}
-                                                    </span>
-                                                </td>
-                                            </>
-                                        )}
-
-                                        {activeTab === "logbook" && (
-                                            <>
-                                                <td className="py-4 px-6 text-center">
+                                        <td className="py-4 px-6 text-center">
                                                     <span className={cn(
                                                         "font-bold text-base",
                                                         isLowVision ? "text-lg font-black text-black" : "text-[#111b21]"
@@ -541,24 +453,19 @@ export function LaporanDesktop({ title }: { title?: string }) {
                                                         );
                                                     })()}
                                                 </td>
-                                            </>
-                                        )}
-
-                                        {activeTab === "evaluasi" && (
-                                            <>
                                                 <td className="py-4 px-6">
                                                     <div className="flex flex-col gap-1">
                                                         <div className={cn(
-                                                            "flex flex-wrap gap-1.5 text-sm font-semibold",
+                                                            "flex gap-1.5 text-sm font-semibold",
                                                             isLowVision && "text-base font-black text-black"
                                                         )}>
-                                                            <span className={cn("px-2 py-1 rounded", isLowVision ? "bg-white border border-black" : "bg-blue-50 text-blue-700")}>
+                                                            <span className={cn("px-2 py-1 rounded whitespace-nowrap", isLowVision ? "bg-white border border-black" : "bg-blue-50 text-blue-700")}>
                                                                 K1: {formatNilai(item.p1_k1, 0)}
                                                             </span>
-                                                            <span className={cn("px-2 py-1 rounded", isLowVision ? "bg-white border border-black" : "bg-emerald-50 text-emerald-700")}>
+                                                            <span className={cn("px-2 py-1 rounded whitespace-nowrap", isLowVision ? "bg-white border border-black" : "bg-emerald-50 text-emerald-700")}>
                                                                 K2: {formatNilai(item.p1_k2, 0)}
                                                             </span>
-                                                            <span className={cn("px-2 py-1 rounded", isLowVision ? "bg-white border border-black" : "bg-purple-50 text-purple-700")}>
+                                                            <span className={cn("px-2 py-1 rounded whitespace-nowrap", isLowVision ? "bg-white border border-black" : "bg-purple-50 text-purple-700")}>
                                                                 K3: {formatNilai(item.p1_k3, 0)}
                                                             </span>
                                                         </div>
@@ -570,9 +477,9 @@ export function LaporanDesktop({ title }: { title?: string }) {
                                                                 Dospem:
                                                             </span>
                                                             <span className={cn(
-                                                                "text-xs truncate max-w-[120px]",
+                                                                "text-xs truncate w-[180px]",
                                                                 isLowVision ? "text-sm text-black font-black" : "text-[#8696a0]"
-                                                            )}>
+                                                            )} title={item.p1_nama || ""}>
                                                                 {item.p1_nama || "-"}
                                                             </span>
                                                         </div>
@@ -584,16 +491,16 @@ export function LaporanDesktop({ title }: { title?: string }) {
                                                 <td className="py-4 px-6">
                                                     <div className="flex flex-col gap-1">
                                                         <div className={cn(
-                                                            "flex flex-wrap gap-1.5 text-sm font-semibold",
+                                                            "flex gap-1.5 text-sm font-semibold",
                                                             isLowVision && "text-base font-black text-black"
                                                         )}>
-                                                            <span className={cn("px-2 py-1 rounded", isLowVision ? "bg-white border border-black" : "bg-blue-50 text-blue-700")}>
+                                                            <span className={cn("px-2 py-1 rounded whitespace-nowrap", isLowVision ? "bg-white border border-black" : "bg-blue-50 text-blue-700")}>
                                                                 K1: {formatNilai(item.p2_k1, 0)}
                                                             </span>
-                                                            <span className={cn("px-2 py-1 rounded", isLowVision ? "bg-white border border-black" : "bg-emerald-50 text-emerald-700")}>
+                                                            <span className={cn("px-2 py-1 rounded whitespace-nowrap", isLowVision ? "bg-white border border-black" : "bg-emerald-50 text-emerald-700")}>
                                                                 K2: {formatNilai(item.p2_k2, 0)}
                                                             </span>
-                                                            <span className={cn("px-2 py-1 rounded", isLowVision ? "bg-white border border-black" : "bg-purple-50 text-purple-700")}>
+                                                            <span className={cn("px-2 py-1 rounded whitespace-nowrap", isLowVision ? "bg-white border border-black" : "bg-purple-50 text-purple-700")}>
                                                                 K3: {formatNilai(item.p2_k3, 0)}
                                                             </span>
                                                         </div>
@@ -605,9 +512,9 @@ export function LaporanDesktop({ title }: { title?: string }) {
                                                                 Penguji:
                                                             </span>
                                                             <span className={cn(
-                                                                "text-xs truncate max-w-[120px]",
+                                                                "text-xs truncate w-[180px]",
                                                                 isLowVision ? "text-sm text-black font-black" : "text-[#8696a0]"
-                                                            )}>
+                                                            )} title={item.p2_nama || ""}>
                                                                 {item.p2_nama || "-"}
                                                             </span>
                                                         </div>
@@ -649,8 +556,6 @@ export function LaporanDesktop({ title }: { title?: string }) {
                                                 )}>
                                                     {item.tanggalPenilaian ? format(new Date(item.tanggalPenilaian), "dd MMM yyyy", { locale: localeId }) : "-"}
                                                 </td>
-                                            </>
-                                        )}
                                     </tr>
                                 ))
                             )}
@@ -659,15 +564,57 @@ export function LaporanDesktop({ title }: { title?: string }) {
                 </div>
             </div>
 
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-6 px-4 print:hidden">
+                    <span className="text-sm text-slate-500 font-medium">
+                        Menampilkan {((currentPage - 1) * itemsPerPage) + 1} sampai {Math.min(currentPage * itemsPerPage, filteredData.length)} dari {filteredData.length} data
+                    </span>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            Sebelumnya
+                        </button>
+                        <div className="flex items-center gap-1">
+                            {Array.from({ length: totalPages }).map((_, i) => (
+                                <button
+                                    key={i}
+                                    onClick={() => setCurrentPage(i + 1)}
+                                    className={cn(
+                                        "w-9 h-9 flex items-center justify-center text-sm font-bold rounded-lg transition-colors border",
+                                        currentPage === i + 1
+                                            ? "bg-[#D25026] text-white border-[#D25026]"
+                                            : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                                    )}
+                                >
+                                    {i + 1}
+                                </button>
+                            ))}
+                        </div>
+                        <button
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                            className="px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            Selanjutnya
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Print Section (One page/section per student) */}
             <div className="hidden print:block print-section w-full text-black">
-                {filteredData.map((item, idx) => (
+                {laporanData.map((item, idx) => (
                     <div key={item.id} className={cn("w-full flex flex-col", idx > 0 && "page-break-before-always mt-8")}>
                         {/* Student Header */}
                         <div className="flex flex-col items-center justify-center mb-6 border-b-2 border-black pb-4 text-center w-full">
                             <h1 className="text-xl font-bold uppercase">Laporan Rekapitulasi Kerja Praktik Mahasiswa</h1>
                             <p className="text-sm font-semibold">Tahun Akademik: {new Date().getFullYear()}</p>
                             <p className="text-base font-bold mt-2">NAMA: {item.nama.toUpperCase()} | NIM: {item.nim}</p>
+                            <p className="text-sm font-semibold mt-1">Dosen Pembimbing: {item.p1_nama || "-"}</p>
                             <p className="text-xs text-gray-700 italic max-w-[500px] mt-1">Judul KP: "{item.judulSkripsi || "-"}"</p>
                         </div>
 
@@ -682,46 +629,14 @@ export function LaporanDesktop({ title }: { title?: string }) {
                             </div>
                         </div>
 
-                        {/* I. Progres Bimbingan */}
+                        {/* I. Rekapitulasi Logbook */}
                         <div className="mb-6 w-full">
-                            <h3 className="text-xs font-bold uppercase mb-2 border-b border-black pb-0.5">I. Uraian Bimbingan Kerja Praktik</h3>
-                            <table className="w-full text-left border-collapse border border-black text-sm">
-                                <thead>
-                                    <tr className="bg-gray-100 border-b border-black font-bold">
-                                        <th className="py-1.5 px-2 w-[40px] text-center border border-black">No</th>
-                                        <th className="py-1.5 px-2 w-[120px] border border-black">Tanggal</th>
-                                        <th className="py-1.5 px-2 w-[180px] border border-black">Topik/Bab Bimbingan</th>
-                                        <th className="py-1.5 px-2 w-[100px] text-center border border-black">Nilai</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {(() => {
-                                        const approvedBimbingans = (item.bimbingans || []).filter(b => b.status === 'APPROVED');
-                                        return (approvedBimbingans.length === 0) ? (
-                                            <tr>
-                                                <td colSpan={4} className="py-4 text-center border border-black text-gray-500 italic">Belum ada riwayat bimbingan.</td>
-                                            </tr>
-                                        ) : (
-                                            approvedBimbingans.map((b, bIdx) => {
-                                                const parsed = parseBimbinganCatatan(b.catatan);
-                                                return (
-                                                    <tr key={b.id} className="border-b border-black">
-                                                        <td className="py-1.5 px-2 text-center border border-black">{bIdx + 1}</td>
-                                                        <td className="py-1.5 px-2 border border-black">{new Date(b.tanggal).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                                                        <td className="py-1.5 px-2 border border-black font-semibold">{b.topik}</td>
-                                                        <td className="py-1.5 px-2 text-center border border-black font-semibold">{parsed.grade !== null ? parsed.grade : "-"}</td>
-                                                    </tr>
-                                                );
-                                            })
-                                        );
-                                    })()}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {/* II. Rekapitulasi Logbook */}
-                        <div className="mb-6 w-full">
-                            <h3 className="text-xs font-bold uppercase mb-2 border-b border-black pb-0.5">II. Uraian Kegiatan Logbook Kerja Praktik</h3>
+                            <div className="flex justify-between items-end border-b border-black pb-0.5 mb-2">
+                                <h3 className="text-xs font-bold uppercase">I. Uraian Kegiatan Logbook Kerja Praktik</h3>
+                                <div className="text-[10px] font-bold bg-gray-100 px-2 py-0.5 border border-black rounded">
+                                    Progres: {item.totalLogbook > 0 ? Math.round((item.totalLogbookApproved / item.totalLogbook) * 100) : 0}% ({item.totalLogbookApproved}/{item.totalLogbook} Disetujui)
+                                </div>
+                            </div>
                             <table className="w-full text-left border-collapse border border-black text-sm">
                                 <thead>
                                     <tr className="bg-gray-100 border-b border-black font-bold">
@@ -743,20 +658,8 @@ export function LaporanDesktop({ title }: { title?: string }) {
                                                 <td className="py-1.5 px-2 text-center border border-black">{lIdx + 1}</td>
                                                 <td className="py-1.5 px-2 border border-black">{new Date(l.tanggalPukul).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                                                 <td className="py-1.5 px-2 border border-black">{l.uraian}</td>
-                                                <td className="py-1 px-2 border border-black text-center">
-                                                    {l.mahasiswaParaf ? (
-                                                        <img src={l.mahasiswaParaf} alt="Paraf Dosen" className="max-h-[48px] max-w-[120px] mx-auto object-contain print:block" />
-                                                    ) : (
-                                                        <span className="text-gray-400">-</span>
-                                                    )}
-                                                </td>
-                                                <td className="py-1 px-2 border border-black text-center">
-                                                    {l.pembimbingParaf ? (
-                                                        <img src={l.pembimbingParaf} alt="Paraf Pembimbing Perusahaan" className="max-h-[48px] max-w-[120px] mx-auto object-contain print:block" />
-                                                    ) : (
-                                                        <span className="text-gray-400">-</span>
-                                                    )}
-                                                </td>
+                                                <td className="py-1 px-2 border border-black text-center"></td>
+                                                <td className="py-1 px-2 border border-black text-center"></td>
                                             </tr>
                                         ))
                                     )}
@@ -764,9 +667,9 @@ export function LaporanDesktop({ title }: { title?: string }) {
                             </table>
                         </div>
 
-                        {/* III. Penilaian Akhir */}
+                        {/* II. Penilaian Akhir */}
                         <div className="w-full">
-                            <h3 className="text-xs font-bold uppercase mb-2 border-b border-black pb-0.5">III. Laporan Evaluasi & Penilaian Akhir</h3>
+                            <h3 className="text-xs font-bold uppercase mb-2 border-b border-black pb-0.5">II. Laporan Evaluasi & Penilaian Akhir</h3>
                             <table className="w-full text-left border-collapse border border-black text-xs">
                                 <thead>
                                     <tr className="bg-gray-100 border-b border-black font-bold">

@@ -156,7 +156,7 @@ export const BimbinganReviewDesktop: React.FC<BimbinganReviewDesktopProps> = ({ 
     const isApprovedReadOnly = reviewStatus === 'APPROVED' && reviewingTask.status === 'APPROVED';
 
     return (
-        <div className="min-h-screen bg-gray-50/50 font-geist flex flex-col">
+        <div className="h-screen overflow-hidden bg-gray-50/50 font-geist flex flex-col">
             {toastProps && (
                 <div className="fixed top-4 right-4 z-50">
                     <Toast title={toastProps.title} variant={toastProps.variant} onClose={() => setToastProps(null)} />
@@ -389,23 +389,24 @@ export const BimbinganReviewDesktop: React.FC<BimbinganReviewDesktopProps> = ({ 
                                 </div>
                             )}
 
+                        </div>
 
-                            <div className="mt-8 pt-8 border-t border-gray-100 flex flex-col gap-4">
-                                <button
-                                    onClick={handleReviewSubmit}
-                                    disabled={uploadingReview}
-                                    className="w-full py-4 text-base font-bold text-white bg-[#D25026] hover:bg-[#B9441F] active:scale-95 transition-all rounded-2xl shadow-xl shadow-orange-500/20 flex items-center justify-center gap-3 disabled:opacity-50"
-                                >
-                                    {uploadingReview ? <Loader2 className="w-6 h-6 animate-spin" /> : <Send className="w-6 h-6" />}
-                                    Kirim Hasil Reviu
-                                </button>
-                                <button
-                                    onClick={() => navigate("/dosen/bimbingan")}
-                                    className="w-full py-4 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-2xl transition-all"
-                                >
-                                    Batal & Kembali
-                                </button>
-                            </div>
+                        {/* Action Buttons (Sticky at bottom) */}
+                        <div className="p-6 border-t border-gray-100 bg-white flex flex-col gap-4 shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.02)] z-10">
+                            <button
+                                onClick={handleReviewSubmit}
+                                disabled={uploadingReview}
+                                className="w-full py-4 text-base font-bold text-white bg-[#D25026] hover:bg-[#B9441F] active:scale-95 transition-all rounded-2xl shadow-xl shadow-orange-500/20 flex items-center justify-center gap-3 disabled:opacity-50"
+                            >
+                                {uploadingReview ? <Loader2 className="w-6 h-6 animate-spin" /> : <Send className="w-6 h-6" />}
+                                Kirim Hasil Reviu
+                            </button>
+                            <button
+                                onClick={() => navigate("/dosen/bimbingan")}
+                                className="w-full py-3 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-2xl transition-all"
+                            >
+                                Batal & Kembali
+                            </button>
                         </div>
                     </div>
                 )}

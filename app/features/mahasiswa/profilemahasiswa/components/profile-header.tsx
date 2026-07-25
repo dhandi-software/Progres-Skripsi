@@ -59,7 +59,7 @@ export function ProfileHeader({ profile, onUpdate }: ProfileHeaderProps) {
         }
     };
 
-    const displayNama = user?.name || profile?.nama || "";
+    const displayNama = profile?.nama || user?.name || "";
     const studentInitials = displayNama 
         ? displayNama.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
         : 'M';

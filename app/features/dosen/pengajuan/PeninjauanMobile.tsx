@@ -77,6 +77,7 @@ export function PeninjauanMobile({
                              options={[
                                  { label: "Semua", value: "ALL" },
                                  { label: "Pending", value: "PENDING" },
+                                 { label: "Pending Koor", value: "PENDING_KOORDINATOR" },
                                  { label: "Disetujui", value: "APPROVED" },
                              ]}
                              value={filterStatus}
@@ -109,13 +110,17 @@ export function PeninjauanMobile({
                                 <div className="inline-flex px-2.5 py-1 bg-white border border-gray-200 rounded-md items-center">
                                     <span className="text-gray-800 text-[10px] font-bold uppercase tracking-wider">VERIFIED</span>
                                 </div>
-                            ) : item.status === 'REJECTED' ? (
+                            ) : ['REJECTED', 'REJECTED_KOORDINATOR'].includes(item.status) ? (
                                 <div className="inline-flex px-2.5 py-1 bg-white border border-gray-200 rounded-md items-center">
                                     <span className="text-gray-800 text-[10px] font-bold uppercase tracking-wider">REJECTED</span>
                                 </div>
-                            ) : item.status === 'REVISION' ? (
+                            ) : ['REVISION', 'REVISION_KOORDINATOR'].includes(item.status) ? (
                                 <div className="inline-flex px-2.5 py-1 bg-white border border-gray-200 rounded-md items-center">
                                     <span className="text-gray-800 text-[10px] font-bold uppercase tracking-wider">REVISION</span>
+                                </div>
+                            ) : item.status === 'PENDING_KOORDINATOR' ? (
+                                <div className="inline-flex px-2.5 py-1 bg-white border border-purple-200 rounded-md items-center">
+                                    <span className="text-purple-700 text-[10px] font-bold uppercase tracking-wider">PENDING KOOR</span>
                                 </div>
                             ) : (
                                 <div className="inline-flex px-2.5 py-1 bg-white border border-gray-200 rounded-md items-center">

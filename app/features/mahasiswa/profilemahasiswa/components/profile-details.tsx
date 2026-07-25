@@ -13,14 +13,14 @@ export function ProfileDetails({ profile, onUpdate }: ProfileDetailsProps) {
     const { user } = useAuth();
     const [toastProps, setToastProps] = useState<{title: string, variant?: "success" | "destructive"} | null>(null);
     const [isEditing, setIsEditing] = useState(false);
-    const [nama, setNama] = useState(user?.name || profile?.nama || "");
+    const [nama, setNama] = useState(profile?.nama || user?.name || "");
     const [email, setEmail] = useState(profile?.email || "");
     const [nomorTelepon, setNomorTelepon] = useState(profile?.nomorTelepon || "");
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         if (profile) {
-            setNama(user?.name || profile.nama || "");
+            setNama(profile.nama || user?.name || "");
             setEmail(profile?.email || "");
             setNomorTelepon(profile?.nomorTelepon || "");
             if (!profile?.nomorTelepon) {
@@ -44,9 +44,23 @@ export function ProfileDetails({ profile, onUpdate }: ProfileDetailsProps) {
         setSaving(true);
         try {
             await pengajuanApi.updateProfile({ nama, email, nomorTelepon });
+            
+            // Sync new name with localStorage user object so it reflects in auth context
+            const savedUser = localStorage.getItem("user");
+            if (savedUser) {
+                const u = JSON.parse(savedUser);
+                u.name = nama;
+                localStorage.setItem("user", JSON.stringify(u));
+            }
+
             setToastProps({ title: "Profil berhasil diperbarui", variant: "success" });
             setIsEditing(false);
             onUpdate();
+            
+            // Reload page to refresh the navigation bar / sidebar name
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
         } catch (error: any) {
             setToastProps({ title: error.message || "Gagal memperbarui profil", variant: "destructive" });
         } finally {
@@ -109,7 +123,7 @@ export function ProfileDetails({ profile, onUpdate }: ProfileDetailsProps) {
                         />
                     ) : (
                         <div className="px-5 py-4 bg-gray-50/50 rounded-2xl border border-gray-50 font-bold text-gray-800 text-lg">
-                            {user?.name || profile?.nama || "-"}
+                            {profile?.nama || user?.name || "-"}
                         </div>
                     )}
                 </div>

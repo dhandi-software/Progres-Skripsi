@@ -27,7 +27,7 @@ export function PengajuanDesktop() {
     const [submitting, setSubmitting] = useState(false);
     const [cancelling, setCancelling] = useState(false);
     const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
-    const isReadOnly = profile?.pengajuanJudul?.[0]?.status === 'PENDING' || profile?.pengajuanJudul?.[0]?.status === 'APPROVED';
+    const isReadOnly = ['PENDING', 'PENDING_KOORDINATOR', 'APPROVED'].includes(profile?.pengajuanJudul?.[0]?.status);
     const [toastProps, setToastProps] = useState<{title: string, variant?: "success" | "destructive" | "default"} | null>(null);
 
     const showToast = (title: string, variant: "success" | "destructive" | "default" = "success") => {
@@ -216,6 +216,19 @@ export function PengajuanDesktop() {
                 </div>
             )}
             <div className="w-full mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                {/* Pending Koordinator Status Banner */}
+                {profile?.pengajuanJudul?.[0]?.status === 'PENDING_KOORDINATOR' && (
+                    <div className="mx-8 mt-8 p-4 bg-purple-50 border border-purple-300 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-4 duration-500">
+                        <div className="p-2 bg-purple-100 rounded-full text-purple-700 shrink-0">
+                            <Clock className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-purple-800 font-bold text-sm">Status Pengajuan: Menunggu Persetujuan Koordinator</h3>
+                            <p className="text-purple-700 text-xs mt-1">Pengajuan Anda telah berhasil dikirim dan sedang ditinjau oleh Koordinator sebelum diteruskan ke Dosen Pembimbing.</p>
+                        </div>
+                    </div>
+                )}
+
                 {/* Pending Status Banner */}
                 {profile?.pengajuanJudul?.[0]?.status === 'PENDING' && (
                     <div className="mx-8 mt-8 p-4 bg-blue-50 border border-blue-300 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-4 duration-500">
@@ -223,25 +236,30 @@ export function PengajuanDesktop() {
                             <Clock className="w-5 h-5" />
                         </div>
                         <div className="flex-1">
-                            <h3 className="text-blue-800 font-bold text-sm">Status Pengajuan: Menunggu Persetujuan</h3>
-                            <p className="text-blue-700 text-xs mt-1">Pengajuan Anda telah berhasil dikirim dan sedang menunggu proses persetujuan oleh Dosen / Koordinator.</p>
+                            <h3 className="text-blue-800 font-bold text-sm">Status Pengajuan: Menunggu Persetujuan Dosen Pembimbing</h3>
+                            <p className="text-blue-700 text-xs mt-1">Pengajuan Anda telah disetujui oleh Koordinator dan saat ini sedang menunggu persetujuan akhir dari Dosen Pembimbing.</p>
                         </div>
                     </div>
                 )}
 
                 {/* Revision Feedback Banner */}
-                {profile?.pengajuanJudul?.[0]?.status === 'REVISION' && (
+                {(profile?.pengajuanJudul?.[0]?.status === 'REVISION' || profile?.pengajuanJudul?.[0]?.status === 'REVISION_KOORDINATOR') && (
                     <div className="mx-8 mt-8 p-4 bg-yellow-50 border border-yellow-300 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-4 duration-500">
                         <div className="p-2 bg-yellow-100 rounded-full text-yellow-700 shrink-0">
                             <RotateCcw className="w-5 h-5" />
                         </div>
                         <div className="flex-1">
                             <h3 className="text-yellow-800 font-bold text-sm">Pengajuan Perlu Diperbaiki</h3>
-                            <p className="text-yellow-700 text-xs mt-1">Dosen meminta Anda merevisi usulan judul. Silakan perbaiki dan kirim ulang.</p>
+                            <p className="text-yellow-700 text-xs mt-1">
+                                {profile?.pengajuanJudul?.[0]?.status === 'REVISION_KOORDINATOR' 
+                                    ? "Koordinator meminta Anda merevisi usulan judul. Silakan perbaiki dan kirim ulang."
+                                    : "Dosen Pembimbing meminta Anda merevisi usulan judul. Silakan perbaiki dan kirim ulang."}
+                            </p>
                             {profile.pengajuanJudul[0].remarks && (
                                 <div className="mt-2 p-3 bg-white border border-yellow-200 rounded-lg">
                                     <p className="text-xs font-bold text-yellow-700 mb-1 flex items-center gap-1">
-                                        <MessageSquare className="w-3.5 h-3.5" /> Komentar Dosen:
+                                        <MessageSquare className="w-3.5 h-3.5" /> 
+                                        {profile?.pengajuanJudul?.[0]?.status === 'REVISION_KOORDINATOR' ? "Komentar Koordinator:" : "Komentar Dosen Pembimbing:"}
                                     </p>
                                     <p className="text-sm text-yellow-900 italic">"{profile.pengajuanJudul[0].remarks}"</p>
                                 </div>
@@ -421,10 +439,12 @@ export function PengajuanDesktop() {
                                         const peminatanText = d.peminatan && Array.isArray(d.peminatan) && d.peminatan.length > 0 
                                             ? ` - [${d.peminatan.join(', ')}]` 
                                             : '';
+                                        const isFull = (d.terisi ?? 0) >= (d.kuota ?? 6);
+                                        const kuotaText = isSelectable ? ` (${d.terisi ?? 0}/${d.kuota ?? 6})` : '';
                                         return { 
-                                            label: isSelectable ? `${d.nama} (${d.appointment || d.jabatan})${peminatanText}` : `${d.nama} (Viewer)`, 
+                                            label: isSelectable ? `${d.nama} (${d.appointment || d.jabatan})${kuotaText}${peminatanText}` : `${d.nama} (Viewer)`, 
                                             value: d.nidn.toString(),
-                                            disabled: !isSelectable
+                                            disabled: !isSelectable || isFull
                                         };
                                     })}
                                 value={formData.dosenId}
@@ -526,7 +546,7 @@ export function PengajuanDesktop() {
                                 <div className={`px-8 py-3 font-bold rounded-xl border ${profile?.pengajuanJudul?.[0]?.status === 'APPROVED' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
                                     {profile?.pengajuanJudul?.[0]?.status === 'APPROVED' ? 'Pengajuan Sudah di ACC' : 'Pengajuan Anda sedang dalam proses'}
                                 </div>
-                                {profile?.pengajuanJudul?.[0]?.status === 'PENDING' && (
+                                {['PENDING', 'PENDING_KOORDINATOR'].includes(profile?.pengajuanJudul?.[0]?.status) && (
                                     <button
                                         type="button"
                                         onClick={handleCancel}
@@ -549,7 +569,7 @@ export function PengajuanDesktop() {
                                         <Loader2 className="animate-spin" size={20} />
                                         Mengirim...
                                     </>
-                                ) : profile?.pengajuanJudul?.[0]?.status === 'REVISION' ? (
+                                ) : ['REVISION', 'REVISION_KOORDINATOR'].includes(profile?.pengajuanJudul?.[0]?.status) ? (
                                     <>
                                         <RotateCcw size={20} />
                                         Kirim Ulang Permohonan

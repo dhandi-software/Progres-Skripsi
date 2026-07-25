@@ -13,8 +13,8 @@ export function SanksiMobile({ title }: { title: string }) {
     const fetchData = async () => {
         try {
             setIsLoading(true);
-            const data = await sanksiApi.getAllSanksi();
-            setSanksiList(data);
+            const response = await sanksiApi.getAllSanksi();
+            setSanksiList(response.data);
         } catch (error) {
             console.error("Gagal memuat data sanksi:", error);
         } finally {
@@ -105,18 +105,25 @@ export function SanksiMobile({ title }: { title: string }) {
                                 <p className="text-xs text-slate-500 mt-0.5 mb-2">Sidang: {item.tanggalSidang}</p>
                                 
                                 {/* Status Badge */}
-                                {item.status === 'Selesai/Lunas' && (
-                                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
-                                        <CheckCircle2 size={12} /> Lunas
+                                {(item.status === 'Selesai/Lunas' || item.status === 'Selesai') && (
+                                    <div className="flex flex-col gap-1">
+                                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200 w-fit">
+                                            <CheckCircle2 size={12} /> Selesai
+                                        </div>
+                                        {item.denda && item.denda > 0 ? (
+                                            <span className="text-[10px] text-emerald-600 font-bold">
+                                                Denda Dibayar: Rp {item.denda.toLocaleString('id-ID')}
+                                            </span>
+                                        ) : null}
                                     </div>
                                 )}
                                 {item.status === 'Terlambat' && (
                                     <div className="flex flex-col gap-1">
                                         <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-50 text-red-700 text-[10px] font-bold border border-red-200 w-fit">
-                                            <AlertCircle size={12} /> Telat {calculateWeeksLate(item.tenggatWaktu)} Minggu
+                                            <AlertCircle size={12} /> Telat {item.keterlambatanMinggu || 0} Minggu
                                         </div>
                                         <span className="text-[10px] text-red-600 font-bold">
-                                            Denda: Rp {Math.min(calculateWeeksLate(item.tenggatWaktu) * 50000, 200000).toLocaleString('id-ID')}
+                                            Denda Aktif: Rp {(item.denda || 0).toLocaleString('id-ID')}
                                         </span>
                                     </div>
                                 )}

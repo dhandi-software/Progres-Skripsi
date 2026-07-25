@@ -67,18 +67,23 @@ export function ProdiBimbingan() {
     const [isHistoryLoading, setIsHistoryLoading] = useState(false);
     const [detailTab, setDetailTab] = useState<"target" | "riwayat" | "grafik">("target");
 
+    // Fuzzy-match topik ke skor progres — menangani berbagai format string di DB
+    const getTopikScore = (topik: string): number => {
+        if (!topik) return 0;
+        const t = topik.toLowerCase();
+        if (t.includes('laporan akhir') || t.includes('finalisasi')) return 100;
+        if (t.includes('bab 5') || t.includes('bab v') || t.includes('kesimpulan')) return 90;
+        if (t.includes('bab 4') || t.includes('bab iv') || t.includes('hasil dan pembahasan') || t.includes('hasil & pembahasan')) return 70;
+        if (t.includes('bab 3') || t.includes('bab iii') || t.includes('metodologi')) return 50;
+        if (t.includes('bab 2') || t.includes('bab ii') || t.includes('tinjauan pustaka') || t.includes('kajian pustaka')) return 30;
+        if (t.includes('bab 1') || t.includes('bab i') || t.includes('pendahuluan')) return 15;
+        return 0;
+    };
+
     const fetchData = async () => {
         try {
             setIsLoading(true);
             const response = await bimbinganApi.getAllProdiBimbingan();
-            const topiks: Record<string, number> = {
-                "Bab 1: Pendahuluan": 15,
-                "Bab 2: Tinjauan Pustaka": 30,
-                "Bab 3: Metodologi": 50,
-                "Bab 4: Hasil dan Pembahasan": 70,
-                "Bab 5: Kesimpulan dan Saran": 90,
-                "Laporan Akhir (Finalisasi)": 100,
-            };
 
             const calibratedData = response?.map((dosenData: BimbinganData) => {
                 if (!dosenData.students || dosenData.students.length === 0) {
@@ -89,9 +94,9 @@ export function ProdiBimbingan() {
                 dosenData.students.forEach((student: any) => {
                     const activeTask = student.mahasiswa?.bimbingan?.[0];
                     if (activeTask && activeTask.topik) {
-                        let score = topiks[activeTask.topik] || 0;
-                        if (activeTask.status === 'APPROVED' && activeTask.topik !== "Laporan Akhir (Finalisasi)") {
-                            score += 10; 
+                        let score = getTopikScore(activeTask.topik);
+                        if (activeTask.status === 'APPROVED' && score < 100) {
+                            score = Math.min(100, score + 10);
                         }
                         totalScore += score;
                     }

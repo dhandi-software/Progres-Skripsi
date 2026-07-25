@@ -7,6 +7,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 
+const avatarColors = [
+    'bg-blue-500', 'bg-orange-500', 'bg-emerald-500', 'bg-purple-500', 'bg-amber-500', 'bg-pink-500'
+];
+
+const getAvatarColor = (name: string = '') => {
+    if (!name) return avatarColors[0];
+    const idx = name.charCodeAt(0) % avatarColors.length;
+    return avatarColors[idx];
+};
+
 const ITEMS_PER_PAGE = 10;
 
 function getPaginationGroup(currentPage: number, totalPages: number) {
@@ -255,7 +265,10 @@ export function DashboardMobile() {
                 paginatedBelum.length > 0 ? (
                     paginatedBelum.map((student, idx) => (
                         <div key={student.id} className="p-4 flex items-center gap-4 active:bg-gray-50 transition-colors">
-                            <div className="w-8 h-8 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center font-bold text-xs shrink-0">
+                            <div className={cn(
+                                "w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 text-white shadow-sm",
+                                getAvatarColor(student.nama)
+                            )}>
                                 {(pageBelum - 1) * ITEMS_PER_PAGE + idx + 1}
                             </div>
                             <div className="flex flex-col gap-1 flex-1">
@@ -267,6 +280,12 @@ export function DashboardMobile() {
                                     <span className="text-[11px] text-gray-400">
                                         {student.email}
                                     </span>
+                                )}
+                                {student.nomorTelepon && (
+                                    <a href={`tel:${student.nomorTelepon}`} className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-700 hover:text-blue-600">
+                                        <Phone size={10} className="text-slate-400 shrink-0" />
+                                        {student.nomorTelepon}
+                                    </a>
                                 )}
                             </div>
                         </div>
@@ -283,7 +302,10 @@ export function DashboardMobile() {
                         <div key={item.id} className="p-5 flex flex-col gap-4 active:bg-gray-50 transition-colors">
                             <div className="flex justify-between items-start gap-2">
                                 <div className="flex gap-3 items-start">
-                                    <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-1">
+                                    <div className={cn(
+                                        "w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-1 text-white shadow-sm",
+                                        getAvatarColor(item.mahasiswa?.nama)
+                                    )}>
                                         {(pageSudah - 1) * ITEMS_PER_PAGE + idx + 1}
                                     </div>
                                     <div className="flex flex-col gap-1">
@@ -297,31 +319,31 @@ export function DashboardMobile() {
                                     item.status === 'REJECTED' ? "bg-red-50 text-red-700 border-red-200" :
                                     "bg-orange-50 text-orange-700 border-orange-200"
                                 )}>
-                                    {item.status}
+                                    {item.status || 'PENDING'}
                                 </span>
                             </div>
                             <div className="pl-11">
                                 <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 mb-3">
-                                    <p className="text-xs font-semibold text-gray-700 leading-relaxed line-clamp-2">{item.judul}</p>
+                                    <p className="text-xs font-semibold text-gray-700 leading-relaxed">{item.judul}</p>
                                     <div className="flex flex-col gap-1.5 mt-2 text-[10px] text-gray-500 font-medium">
                                         <div className="flex items-center gap-1.5">
                                             <Briefcase size={12} className="text-blue-500" />
                                             <span className="truncate">{item.dosen?.nama}</span>
                                         </div>
                                         {item.mahasiswa?.tempatKP?.[0]?.namaPerusahaan ? (
-                                            <div className="flex items-center gap-1.5">
-                                                <Building2 size={12} className="text-orange-500" />
-                                                <span className="truncate text-gray-700">{item.mahasiswa.tempatKP[0].namaPerusahaan}</span>
+                                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-50 text-green-600 border border-green-200 w-fit">
+                                                <Building2 size={12} className="shrink-0" />
+                                                <span className="truncate">{item.mahasiswa.tempatKP[0].namaPerusahaan}</span>
                                             </div>
                                         ) : (
-                                            <div className="flex items-center gap-1.5">
-                                                <Building2 size={12} className="text-gray-300" />
-                                                <span className="truncate text-gray-400 italic">Belum diset</span>
+                                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 text-slate-400 italic border border-slate-200 w-fit">
+                                                <Building2 size={12} className="shrink-0" />
+                                                <span className="truncate">Belum diset</span>
                                             </div>
                                         )}
-                                        <div className="flex items-center gap-1.5">
-                                            <FileText size={12} className="text-green-500" />
-                                            <span className="truncate text-gray-700">{item.mahasiswa?.logbook?.length || 0} Logbook</span>
+                                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-600 border border-blue-200 w-fit">
+                                            <FileText size={12} className="shrink-0" />
+                                            <span className="truncate">{item.mahasiswa?.logbook?.length || 0} Logbook</span>
                                         </div>
                                     </div>
                                 </div>

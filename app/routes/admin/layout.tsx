@@ -32,6 +32,7 @@ type MenuKey =
   | "penilaian"
   | "sanksi"
   | "direktori"
+  | "laporan"
   | "logout";
 
 const pathToKey = (pathname: string): MenuKey | undefined => {
@@ -43,6 +44,7 @@ const pathToKey = (pathname: string): MenuKey | undefined => {
   if (pathname.startsWith("/admin/penilaian")) return "penilaian";
   if (pathname.startsWith("/admin/sanksi")) return "sanksi";
   if (pathname.startsWith("/admin/direktori")) return "direktori";
+  if (pathname.startsWith("/admin/laporan")) return "laporan";
   if (pathname === "/admin" || pathname.startsWith("/admin/"))
     return "dashboard";
   return undefined;
@@ -102,6 +104,12 @@ const menuItems = [
     title: "Sanksi Administrasi",
     icon: ClipboardList,
     url: "/admin/sanksi",
+  },
+  {
+    key: "laporan" as MenuKey,
+    title: "Laporan Bimbingan",
+    icon: FileText,
+    url: "/admin/laporan",
   },
 ];
 

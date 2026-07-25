@@ -7,6 +7,7 @@ import { Toast } from "~/components/ui/toast";
 import { MonthYearFilter } from "~/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "~/lib/utils";
+import { Button } from "~/components/ui/button";
 
 import { SignatureModal } from "./SignatureModal";
 
@@ -70,6 +71,8 @@ export function LogbookDesktop({ mahasiswaId }: LogbookProps) {
     const [entries, setEntries] = useState<LogbookEntry[]>([]);
     const [editingRowIds, setEditingRowIds] = useState<Set<string>>(new Set());
     const [activeSignature, setActiveSignature] = useState<{ id: string, type: 'mahasiswaParaf' | 'pembimbingParaf' } | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 6;
 
     const showToast = (title: string, variant: "success" | "destructive" | "default" = "success") => {
         setToastProps({ title, variant });
@@ -155,7 +158,7 @@ export function LogbookDesktop({ mahasiswaId }: LogbookProps) {
     // Fungsi untuk menambah baris kegiatan baru
     const addEntry = () => {
         const newId = Date.now().toString();
-        setEntries([
+        const newEntries = [
             ...entries,
             {
                 id: newId,
@@ -165,9 +168,14 @@ export function LogbookDesktop({ mahasiswaId }: LogbookProps) {
                 pembimbingParaf: null,
                 catatan: ""
             }
-        ]);
+        ];
+        setEntries(newEntries);
         // Baris baru otomatis masuk mode edit
         setEditingRowIds(prev => new Set(prev).add(newId));
+
+        // Pindah ke halaman terakhir
+        const totalPages = Math.ceil(newEntries.length / itemsPerPage);
+        setCurrentPage(totalPages);
     };
 
     // Fungsi untuk menghapus baris kegiatan
@@ -518,8 +526,10 @@ export function LogbookDesktop({ mahasiswaId }: LogbookProps) {
                                 </tr>
                             </thead>
                             <tbody>
-                                {entries.map((entry, index) => (
-                                    <tr key={entry.id} className={cn("border-b border-gray-300 transition-colors", (editingRowIds.has(entry.id) || !entry.pembimbingParaf) ? "bg-white" : "bg-gray-50/30")}>
+                                {(() => {
+                                    const paginatedEntries = entries.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+                                    return paginatedEntries.map((entry, index) => (
+                                        <tr key={entry.id} className={cn("border-b border-gray-300 transition-colors", (editingRowIds.has(entry.id) || !entry.pembimbingParaf) ? "bg-white" : "bg-gray-50/30")}>
                                         <td className="p-2 border-r border-gray-800 align-top bg-gray-50/30">
                                             <div className={cn("flex flex-col gap-2 h-full w-full", (!editingRowIds.has(entry.id) && entry.pembimbingParaf) && "pointer-events-none opacity-80")}>
                                                 {/* Date Box */}
@@ -690,10 +700,39 @@ export function LogbookDesktop({ mahasiswaId }: LogbookProps) {
                                             </td>
                                         )}
                                     </tr>
-                                ))}
+                                    ))
+                                })()}
                             </tbody>
                         </table>
                         
+                        {/* Pagination */}
+                        {entries.length > itemsPerPage && (
+                            <div className="bg-gray-50 p-3 border-t border-gray-800 flex items-center justify-between">
+                                <span className="text-xs font-medium text-gray-500">
+                                    Halaman {currentPage} dari {Math.ceil(entries.length / itemsPerPage)}
+                                </span>
+                                <div className="flex gap-2">
+                                    <Button 
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={currentPage === 1}
+                                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                        className="h-8 text-xs px-3"
+                                    >
+                                        Sebelumnya
+                                    </Button>
+                                    <Button 
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={currentPage === Math.ceil(entries.length / itemsPerPage)}
+                                        onClick={() => setCurrentPage(p => Math.min(Math.ceil(entries.length / itemsPerPage), p + 1))}
+                                        className="h-8 text-xs px-3"
+                                    >
+                                        Selanjutnya
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
                         {/* Add Button Row */}
                         {!isViewingStudent && (
                             <div className="bg-gray-50 p-3 border-t border-gray-800">

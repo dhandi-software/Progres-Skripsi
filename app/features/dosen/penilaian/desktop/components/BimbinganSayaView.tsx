@@ -31,8 +31,7 @@ export function BimbinganSayaView({
     const myDosenId = currentDosen?.id || null;
 
     const supervisedStudents = data.filter(item => item.pembimbingId === myDosenId || item.pembimbingNama === user?.name);
-    const activePengujiId = supervisedStudents[0]?.pengujiId || null;
-    const activePenguji = dosenList.find(d => d.id === activePengujiId);
+    const activePenguji = supervisedStudents.find(s => s.pengujiNama && s.pengujiNama !== "-")?.pengujiNama || "Belum Ditugaskan";
 
     const filteredData = supervisedStudents.filter(item =>
         item.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -78,7 +77,7 @@ export function BimbinganSayaView({
                     <div className="flex flex-col gap-1.5">
                         <span className="text-xs font-black uppercase tracking-wider text-slate-400">Status Penugasan Penguji</span>
                         <span className={cn("text-base font-black text-slate-800", isLowVision && "text-lg text-black font-black")}>
-                            {activePenguji ? activePenguji.nama : "Belum Ditugaskan"}
+                            {activePenguji}
                         </span>
                     </div>
                 </div>

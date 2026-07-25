@@ -7,7 +7,7 @@ import {
     Calendar, Clock, MapPin, CheckCircle, AlertCircle, 
     Search, User, Filter, Check, MoreVertical,
     CheckCircle2, XCircle, Info, ChevronRight,
-    Users, LayoutDashboard, Clock3, MapPinned, Edit3, FileText
+    Users, LayoutDashboard, Clock3, MapPinned, Edit3, FileText, Trash2
 } from "lucide-react";
 import { UPLOADS_URL } from "~/api/client";
 import { cn } from "~/lib/utils";
@@ -16,6 +16,7 @@ import { Input } from "~/components/ui/input";
 import { format } from "date-fns";
 import { id } from "date-fns/locale/id";
 import { MonthYearFilter } from "~/components/ui/calendar";
+import { DeleteConfirmationModal } from "~/components/ui/delete-confirmation-modal";
 
 interface SidangItem {
     id: number;
@@ -44,6 +45,9 @@ export function ProdiSidang() {
     const [sidangs, setSidangs] = useState<SidangItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [selectedSidangId, setSelectedSidangId] = useState<number | null>(null);
+    const [selectedStudentName, setSelectedStudentName] = useState("");
     
     // Scheduling Form State
     const [isScheduling, setIsScheduling] = useState<SidangItem | null>(null);
@@ -65,6 +69,26 @@ export function ProdiSidang() {
     const isKaprodi = userRole === "kaprodi" || 
                       userJabatan.includes("prodi") ||
                       userJabatan.includes("kaprodi");
+
+    const confirmDelete = (id: number, name: string) => {
+        setSelectedSidangId(id);
+        setSelectedStudentName(name);
+        setIsDeleteDialogOpen(true);
+    };
+
+    const handleDeleteSidang = async () => {
+        if (selectedSidangId === null) return;
+        try {
+            await sidangApi.deleteSidang(selectedSidangId);
+            fetchData();
+        } catch (error) {
+            console.error("Failed to delete sidang:", error);
+        } finally {
+            setIsDeleteDialogOpen(false);
+            setSelectedSidangId(null);
+            setSelectedStudentName("");
+        }
+    };
 
     const fetchData = async () => {
         try {
@@ -397,6 +421,16 @@ export function ProdiSidang() {
                                                         <Clock size={18} /> {sidang.status.replace(/_/g, ' ')}
                                                     </Button>
                                                 )}
+
+                                                {/* Batalkan Sidang Button for Kaprodi/Koordinator */}
+                                                <Button 
+                                                    onClick={() => confirmDelete(sidang.id, sidang.mahasiswa.nama)}
+                                                    variant="outline"
+                                                    className="h-14 px-6 rounded-2xl font-black text-rose-500 border-2 border-rose-50 hover:bg-rose-50 transition-all shrink-0"
+                                                    title="Batalkan Sidang"
+                                                >
+                                                    <Trash2 size={20} />
+                                                </Button>
                                             </div>
                                         </div>
                                     </div>
@@ -406,6 +440,19 @@ export function ProdiSidang() {
                     )}
                 </div>
             </div>
+
+            <DeleteConfirmationModal 
+                isOpen={isDeleteDialogOpen}
+                onClose={() => {
+                    setIsDeleteDialogOpen(false);
+                    setSelectedSidangId(null);
+                    setSelectedStudentName("");
+                }}
+                onConfirm={handleDeleteSidang}
+                title="Batalkan Sidang"
+                description="Apakah Anda yakin ingin membatalkan/menghapus pengajuan sidang mahasiswa ini? Data akan dihapus secara permanen dari database."
+                itemName={selectedStudentName}
+            />
 
             {/* 
                Modal Scheduling (Atur Jadwal Sidang): 

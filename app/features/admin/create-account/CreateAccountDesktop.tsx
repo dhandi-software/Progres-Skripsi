@@ -302,6 +302,173 @@ export const CreateAccountDesktop = () => {
         ) : (
           // MASS REGISTRATION VIEW
           <div className="flex flex-col gap-6 mt-4">
+            
+            {/* Guide Section */}
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-5 flex flex-col gap-4 text-blue-900">
+              <div className="flex items-center gap-2">
+                <FileSpreadsheet className="w-6 h-6 text-blue-600" />
+                <h4 className="font-bold text-base">Panduan Format Kolom Excel ({formData.role})</h4>
+              </div>
+              <p className="opacity-90 text-sm">
+                Pastikan baris pertama (header) pada file Excel Anda menggunakan format nama kolom berikut. Berikut adalah contohnya:
+              </p>
+
+              {formData.role !== 'dosen' ? (
+                // Mahasiswa or Staf (1 Table)
+                <div className="border border-gray-300 bg-white rounded-md overflow-hidden shadow-sm">
+                  <table className="w-full text-left text-xs whitespace-nowrap">
+                    <thead className="bg-[#f3f4f6]">
+                      <tr>
+                        <th className="px-3 py-2 border-r border-b border-gray-300 font-semibold text-gray-700 w-8 bg-[#e5e7eb] text-center"></th>
+                        <th className="px-3 py-2 border-r border-b border-gray-300 font-semibold text-gray-700 text-center">A</th>
+                        <th className="px-3 py-2 border-r border-b border-gray-300 font-semibold text-gray-700 text-center">B</th>
+                        {formData.role === 'mahasiswa' && (
+                          <>
+                            <th className="px-3 py-2 border-r border-b border-gray-300 font-semibold text-gray-700 text-center">C</th>
+                            <th className="px-3 py-2 border-b border-gray-300 font-semibold text-gray-700 text-center">D</th>
+                          </>
+                        )}
+                        {formData.role === 'staf' && (
+                           <th className="px-3 py-2 border-b border-gray-300 font-semibold text-gray-700 text-center">C</th>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="px-2 py-1 border-r border-b border-gray-300 bg-[#f3f4f6] text-gray-500 font-medium text-center">1</td>
+                        <td className="px-3 py-1.5 border-r border-b border-gray-300 font-bold bg-blue-50/50">
+                          {formData.role === 'mahasiswa' ? 'NPM' : 'NIP'}
+                        </td>
+                        <td className="px-3 py-1.5 border-r border-b border-gray-300 font-bold bg-blue-50/50">Nama Lengkap</td>
+                        {formData.role === 'mahasiswa' && (
+                          <>
+                            <td className="px-3 py-1.5 border-r border-b border-gray-300 font-bold bg-blue-50/50">Email</td>
+                            <td className="px-3 py-1.5 border-b border-gray-300 font-bold bg-blue-50/50">Tahun Masuk</td>
+                          </>
+                        )}
+                        {formData.role === 'staf' && (
+                           <td className="px-3 py-1.5 border-b border-gray-300 font-bold bg-blue-50/50">Email</td>
+                        )}
+                      </tr>
+                      <tr>
+                        <td className="px-2 py-1 border-r border-gray-300 bg-[#f3f4f6] text-gray-500 font-medium text-center">2</td>
+                        <td className="px-3 py-1.5 border-r border-gray-300 text-gray-600">
+                          {formData.role === 'mahasiswa' ? '4519210001' : '198801032'}
+                        </td>
+                        <td className="px-3 py-1.5 border-r border-gray-300 text-gray-600">
+                          {formData.role === 'mahasiswa' ? 'Budi Santoso' : 'Gede Wahyu'}
+                        </td>
+                        {formData.role === 'mahasiswa' && (
+                          <>
+                            <td className="px-3 py-1.5 border-r border-gray-300 text-gray-400 italic">budi@student.com (ops)</td>
+                            <td className="px-3 py-1.5 border-gray-300 text-gray-400 italic">2023 (ops)</td>
+                          </>
+                        )}
+                        {formData.role === 'staf' && (
+                           <td className="px-3 py-1.5 border-gray-300 text-gray-400 italic">wahyu@univ.ac.id (ops)</td>
+                        )}
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                // Dosen (4 Tables in a 2x2 grid)
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Table A */}
+                  <div className="border border-gray-300 bg-white rounded-md overflow-hidden shadow-sm">
+                    <div className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1.5 border-b border-gray-300">A. Contoh: Pejabat Prodi (Masekpro)</div>
+                    <table className="w-full text-left text-[11px] whitespace-nowrap">
+                      <thead className="bg-[#f3f4f6]">
+                        <tr>
+                          <th className="px-2 py-1 border-r border-b border-gray-300 font-semibold">NIDN</th>
+                          <th className="px-2 py-1 border-r border-b border-gray-300 font-semibold">Nama</th>
+                          <th className="px-2 py-1 border-r border-b border-gray-300 font-semibold">Jabatan</th>
+                          <th className="px-2 py-1 border-b border-gray-300 font-semibold">Peminatan</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td className="px-2 py-1.5 border-r border-gray-300 text-gray-600 font-mono">031201</td>
+                          <td className="px-2 py-1.5 border-r border-gray-300 text-gray-600">Dr. Budi</td>
+                          <td className="px-2 py-1.5 border-r border-gray-300 text-gray-600">Pejabat Prodi</td>
+                          <td className="px-2 py-1.5 text-gray-600 truncate max-w-[100px]">Software Engineering</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Table B */}
+                  <div className="border border-gray-300 bg-white rounded-md overflow-hidden shadow-sm">
+                    <div className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1.5 border-b border-gray-300">B. Contoh: Dosen Pembimbing</div>
+                    <table className="w-full text-left text-[11px] whitespace-nowrap">
+                      <thead className="bg-[#f3f4f6]">
+                        <tr>
+                          <th className="px-2 py-1 border-r border-b border-gray-300 font-semibold">NIDN</th>
+                          <th className="px-2 py-1 border-r border-b border-gray-300 font-semibold">Nama</th>
+                          <th className="px-2 py-1 border-r border-b border-gray-300 font-semibold">Jabatan</th>
+                          <th className="px-2 py-1 border-b border-gray-300 font-semibold">Peminatan</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td className="px-2 py-1.5 border-r border-gray-300 text-gray-600 font-mono">031202</td>
+                          <td className="px-2 py-1.5 border-r border-gray-300 text-gray-600">Prof. Siti</td>
+                          <td className="px-2 py-1.5 border-r border-gray-300 text-gray-600">Dosen Pembimbing</td>
+                          <td className="px-2 py-1.5 text-gray-600 truncate max-w-[100px]">Artificial Intelligence</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Table C */}
+                  <div className="border border-gray-300 bg-white rounded-md overflow-hidden shadow-sm">
+                    <div className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1.5 border-b border-gray-300">C. Contoh: Koordinator KP</div>
+                    <table className="w-full text-left text-[11px] whitespace-nowrap">
+                      <thead className="bg-[#f3f4f6]">
+                        <tr>
+                          <th className="px-2 py-1 border-r border-b border-gray-300 font-semibold">NIDN</th>
+                          <th className="px-2 py-1 border-r border-b border-gray-300 font-semibold">Nama</th>
+                          <th className="px-2 py-1 border-r border-b border-gray-300 font-semibold">Jabatan</th>
+                          <th className="px-2 py-1 border-b border-gray-300 font-semibold">Peminatan</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td className="px-2 py-1.5 border-r border-gray-300 text-gray-600 font-mono">031203</td>
+                          <td className="px-2 py-1.5 border-r border-gray-300 text-gray-600">Pak Joko</td>
+                          <td className="px-2 py-1.5 border-r border-gray-300 text-gray-600">Koordinator KP</td>
+                          <td className="px-2 py-1.5 text-gray-600 truncate max-w-[100px]">Network and Cyber Security</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Table D */}
+                  <div className="border border-gray-300 bg-white rounded-md overflow-hidden shadow-sm">
+                    <div className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1.5 border-b border-gray-300">D. Contoh: Dosen Reguler (Multi-Peminatan)</div>
+                    <table className="w-full text-left text-[11px] whitespace-nowrap">
+                      <thead className="bg-[#f3f4f6]">
+                        <tr>
+                          <th className="px-2 py-1 border-r border-b border-gray-300 font-semibold">NIDN</th>
+                          <th className="px-2 py-1 border-r border-b border-gray-300 font-semibold">Nama</th>
+                          <th className="px-2 py-1 border-r border-b border-gray-300 font-semibold">Jabatan</th>
+                          <th className="px-2 py-1 border-b border-gray-300 font-semibold">Peminatan</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td className="px-2 py-1.5 border-r border-gray-300 text-gray-600 font-mono">031204</td>
+                          <td className="px-2 py-1.5 border-r border-gray-300 text-gray-600">Bu Ani</td>
+                          <td className="px-2 py-1.5 border-r border-gray-300 text-gray-600">Dosen Reguler</td>
+                          <td className="px-2 py-1.5 text-gray-600 truncate max-w-[100px]">Data Science, AI</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="w-full border-2 border-dashed border-gray-300 rounded-2xl p-10 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer relative">
               <input
                 type="file"

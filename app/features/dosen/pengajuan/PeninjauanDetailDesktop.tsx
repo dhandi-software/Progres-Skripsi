@@ -108,7 +108,8 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
                 {/* Status Badge Positioned absolutely in the corner */}
                 <div className={`absolute top-6 right-6 px-4 py-2 rounded-full text-sm font-semibold z-10 shadow-sm border
                     ${detail.status === 'APPROVED' ? 'bg-Green-50 text-Green-700 border-Green-200' : 
-                      detail.status === 'REJECTED' ? 'bg-Red-50 text-Red-700 border-Red-200' : 
+                      ['REJECTED', 'REJECTED_KOORDINATOR'].includes(detail.status) ? 'bg-Red-50 text-Red-700 border-Red-200' : 
+                      detail.status === 'PENDING_KOORDINATOR' ? 'bg-purple-50 text-purple-700 border-purple-200' :
                       'bg-yellow-50 text-yellow-700 border-yellow-200'}`}
                 >
                     Status: {detail.status}
@@ -265,7 +266,7 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
                         </div>
                     </div>
 
-                    {detail.status === 'REVISION' && (
+                    {['REVISION', 'REVISION_KOORDINATOR'].includes(detail.status) && (
                         <div className="border-t-2 border-dashed border-gray-200 mt-8 pt-8 pb-4">
                             <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
                                 <h3 className="font-bold text-yellow-800 mb-4">Informasi Revisi</h3>
@@ -291,12 +292,12 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
                         </div>
                     )}
 
-                    {detail.status === 'PENDING' && (
+                    {['PENDING', 'PENDING_KOORDINATOR'].includes(detail.status) && (
                         <div className="border-t-2 border-dashed border-gray-200 mt-8 pt-8 pb-4">
                             <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
                                 <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
                                     <Check className="w-5 h-5 text-[#D25026]" />
-                                    Tindakan Persetujuan Dosen
+                                    {detail.status === 'PENDING_KOORDINATOR' ? 'Tindakan Persetujuan Koordinator' : 'Tindakan Persetujuan Dosen'}
                                 </h3>
                                 
                                 <div className="mb-6 flex flex-col gap-1.5">
@@ -341,7 +342,7 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
                                         className="font-bold"
                                     >
                                         <Check size={16} strokeWidth={3} />
-                                        Setujui Pengajuan
+                                        {detail.status === 'PENDING_KOORDINATOR' ? 'Teruskan ke Pembimbing' : 'Setujui Pengajuan'}
                                     </Button>
                                 </div>
                             </div>
