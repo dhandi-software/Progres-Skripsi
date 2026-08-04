@@ -4,6 +4,8 @@ import { UPLOADS_URL } from "~/api/client";
 import { BookOpen, Calendar, Clock, Loader2, CheckCircle2, FileText, Upload, Download, AlertCircle, FileStack, Eye, X } from "lucide-react";
 import { Loader2 as LoaderIcon } from "lucide-react";
 import { Toast } from "~/components/ui/toast";
+import { useAuth } from "~/hooks/useAuth";
+import { io } from "socket.io-client";
 
 // Use dynamic import for client-side only component
 const SharedPdfViewer = lazy(() => import('../../components/SharedPdfViewer.client').then(m => ({ default: m.SharedPdfViewer })));
@@ -42,10 +44,10 @@ const getTimeRemaining = (deadline?: string) => {
     const now = new Date();
     const dDate = new Date(deadline);
     dDate.setHours(23, 59, 59, 999);
-    
+
     const diffTime = dDate.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays < 0) return { text: `Terlambat ${Math.abs(diffDays)} hari`, isLate: true, isWarning: false };
     if (diffDays === 0) return { text: "Hari ini", isLate: false, isWarning: true };
     if (diffDays <= 3) return { text: `${diffDays} hari lagi`, isLate: false, isWarning: true };
@@ -61,13 +63,13 @@ export function BimbinganDesktop() {
     const [keteranganProgres, setKeteranganProgres] = useState("");
     const [uploading, setUploading] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
-    
-    const [toastProps, setToastProps] = useState<{title: string, variant?: "success" | "destructive" | "default"} | null>(null);
+
+    const [toastProps, setToastProps] = useState<{ title: string, variant?: "success" | "destructive" | "default" } | null>(null);
 
     const showToast = (title: string, variant: "success" | "destructive" | "default" = "success") => {
         setToastProps({ title, variant });
     };
-    
+
     // Viewer Modal State
     const [viewingReview, setViewingReview] = useState(false);
     const [viewingTaskTopik, setViewingTaskTopik] = useState("");
@@ -87,7 +89,7 @@ export function BimbinganDesktop() {
                 const uniqueTasks: any[] = Object.values(grouped);
                 const active = uniqueTasks.find((t: any) => t.status !== 'APPROVED');
                 const completed = uniqueTasks.filter((t: any) => t.status === 'APPROVED');
-                
+
                 setActiveTask(active || null);
                 setCompletedTasks(completed);
             })
@@ -95,9 +97,25 @@ export function BimbinganDesktop() {
             .finally(() => setLoading(false));
     };
 
+    const { user } = useAuth();
     useEffect(() => {
         fetchTask();
     }, []);
+
+    useEffect(() => {
+        if (!user) return;
+        const socket = io(UPLOADS_URL);
+        socket.emit("join", user.id);
+        
+        socket.on("bimbingan_reviewed", () => {
+            fetchTask();
+            showToast("Ada pembaruan status bimbingan!", "success");
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, [user]);
 
     useEffect(() => {
         if (activeTask) {
@@ -202,7 +220,7 @@ export function BimbinganDesktop() {
                         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden relative">
                             {/* Decorative Top Banner */}
                             <div className="h-1.5 w-full bg-[#119DA4]"></div>
-                            
+
                             <div className="p-8">
                                 {activeTask ? (
                                     <div>
@@ -230,7 +248,7 @@ export function BimbinganDesktop() {
                                                         Dosen pembimbing telah memeriksa draf Anda dan memberikan catatan revisi. Silakan periksa bagian <b>Komentar & Catatan</b> di bawah, lihat anotasi dokumen jika ada, lalu unggah draf perbaikan Anda.
                                                     </p>
                                                     {activeTask.fileMahasiswa?.toLowerCase().endsWith('.pdf') && (
-                                                        <button 
+                                                        <button
                                                             onClick={() => handleOpenViewer(activeTask.id, activeTask.topik)}
                                                             className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-orange-200 text-orange-700 hover:bg-orange-100 rounded-lg text-xs font-bold transition-colors shadow-sm"
                                                         >
@@ -240,7 +258,7 @@ export function BimbinganDesktop() {
                                                 </div>
                                             </div>
                                         )}
-                                        
+
                                         {/* Jika status SUBMITTED dan sedang tidak edit, tampilkan tombol Edit saja */}
                                         {activeTask.status === 'SUBMITTED' && !isEditing && !getTimeRemaining(activeTask.jadwalBimbingan).isLate && (
                                             <div className="mb-8 p-6 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-between">
@@ -248,7 +266,7 @@ export function BimbinganDesktop() {
                                                     <h3 className="text-sm font-bold text-gray-800">Draf telah dikumpulkan</h3>
                                                     <p className="text-xs text-gray-500 mt-1">Anda dapat memperbarui draf sebelum dosen melakukan reviu.</p>
                                                 </div>
-                                                <button 
+                                                <button
                                                     onClick={() => setIsEditing(true)}
                                                     className="px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 font-bold rounded-lg transition-colors text-sm"
                                                 >
@@ -262,10 +280,10 @@ export function BimbinganDesktop() {
                                             <div className="mb-8 p-6 bg-gray-50 border border-gray-200 rounded-xl">
                                                 <div className="flex justify-between items-center mb-4">
                                                     <label className="block text-sm font-bold text-gray-700">
-                                                        Form Pengumpulan Draf (.pdf, .doc, .docx)
+                                                        Form Pengumpulan Draf (.pdf)
                                                     </label>
                                                     {isEditing && (
-                                                        <button 
+                                                        <button
                                                             onClick={() => setIsEditing(false)}
                                                             className="text-xs text-gray-500 hover:text-gray-700 font-bold"
                                                         >
@@ -273,8 +291,8 @@ export function BimbinganDesktop() {
                                                         </button>
                                                     )}
                                                 </div>
-                                                <input 
-                                                    type="file" 
+                                                <input
+                                                    type="file"
                                                     accept="application/pdf"
                                                     onChange={handleFileChange}
                                                     disabled={getTimeRemaining(activeTask.jadwalBimbingan).isLate}
@@ -283,13 +301,13 @@ export function BimbinganDesktop() {
                                                 <label className="block text-sm font-bold text-gray-700 mb-2 mt-4">
                                                     Ringkasan Progres (Opsional)
                                                 </label>
-                                                <textarea 
+                                                <textarea
                                                     value={keteranganProgres}
                                                     onChange={(e) => setKeteranganProgres(e.target.value)}
                                                     placeholder="Tuliskan ringkasan bagian apa saja yang sudah kamu kerjakan..."
                                                     className="w-full h-24 p-3 text-sm border border-gray-200 rounded-lg outline-none focus:border-[#119DA4] bg-white"
                                                 />
-                                                
+
                                                 {getTimeRemaining(activeTask.jadwalBimbingan).isLate && (
                                                     <div className="mt-4 text-xs text-red-600 font-medium bg-red-50 p-3 rounded-lg border border-red-100 flex items-start gap-2">
                                                         <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -297,7 +315,7 @@ export function BimbinganDesktop() {
                                                     </div>
                                                 )}
                                                 {selectedFile && !getTimeRemaining(activeTask.jadwalBimbingan).isLate && (
-                                                    <button 
+                                                    <button
                                                         onClick={handleUpload}
                                                         disabled={uploading}
                                                         className="mt-6 w-full py-3 bg-[#4267B2] hover:bg-[#365899] disabled:opacity-50 text-white font-bold rounded-lg transition-all text-sm flex items-center justify-center gap-2"
@@ -340,11 +358,11 @@ export function BimbinganDesktop() {
                                                     </tr>
                                                     <tr className="bg-gray-50/50">
                                                         <th className="py-4 px-6 font-bold text-gray-700 w-1/3 border-r border-gray-200">Batas akhir pengumpulan</th>
-                                                        <td className="py-4 px-6 text-gray-900 bg-white font-medium">{activeTask.jadwalBimbingan ? new Date(activeTask.jadwalBimbingan).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' }) : '-'}</td>
+                                                        <td className="py-4 px-6 text-gray-900 bg-white font-medium">{activeTask.jadwalBimbingan ? new Date(activeTask.jadwalBimbingan).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}</td>
                                                     </tr>
                                                     <tr className="bg-gray-50/50">
                                                         <th className="py-4 px-6 font-bold text-gray-700 w-1/3 border-r border-gray-200">Terakhir diubah</th>
-                                                        <td className="py-4 px-6 text-gray-900 bg-white font-medium">{new Date(activeTask.tanggal).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' })}</td>
+                                                        <td className="py-4 px-6 text-gray-900 bg-white font-medium">{new Date(activeTask.tanggal).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                                                     </tr>
                                                     <tr className="bg-gray-50/50">
                                                         <th className="py-4 px-6 font-bold text-gray-700 w-1/3 border-r border-gray-200">Komentar & Catatan</th>
@@ -368,7 +386,7 @@ export function BimbinganDesktop() {
                                                                     </div>
                                                                 );
                                                             })()}
-                                                            
+
                                                             {activeTask.fileDosen && (
                                                                 <a href={`${UPLOADS_URL}${activeTask.fileDosen}`} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-xs font-bold transition-colors">
                                                                     <Download className="w-4 h-4" /> Unduh File Reviu
@@ -401,9 +419,9 @@ export function BimbinganDesktop() {
                     {/* Timeline Sidebar (Only visible if activeTask exists) */}
                     <div className="space-y-6">
                         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 overflow-hidden relative">
-                             <h2 className="text-lg font-bold text-gray-800 mb-6 border-b border-gray-100 pb-3">Riwayat Versi Draf ({activeTask?.topik || 'Target Aktif'})</h2>
-                             
-                             <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 before:to-transparent">
+                            <h2 className="text-lg font-bold text-gray-800 mb-6 border-b border-gray-100 pb-3">Riwayat Versi Draf ({activeTask?.topik || 'Target Aktif'})</h2>
+
+                            <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 before:to-transparent">
                                 {history.length > 0 ? (
                                     history.map((item, index) => (
                                         <div key={item.id} className="relative flex items-center group is-active gap-4">
@@ -422,7 +440,7 @@ export function BimbinganDesktop() {
                                                     {item.status === 'SUBMITTED' && <p>Draf diunggah</p>}
                                                     {item.status === 'REVISION' && <p className="text-orange-600 font-medium">Perlu revisi</p>}
                                                     {item.status === 'APPROVED' && <p className="text-green-600 font-medium">Disetujui (ACC)</p>}
-                                                    
+
                                                     {item.fileMahasiswa && item.status !== 'ASSIGNED' && (
                                                         <a href={`${UPLOADS_URL}${item.fileMahasiswa}`} target="_blank" rel="noreferrer" className="inline-block mt-1.5 font-bold text-blue-600 hover:text-blue-700">
                                                             Unduh File PDF
@@ -435,7 +453,7 @@ export function BimbinganDesktop() {
                                 ) : (
                                     <div className="text-center text-sm text-gray-400 py-4 italic">{activeTask ? "Riwayat versi akan muncul di sini." : "Belum ada tugas"}</div>
                                 )}
-                             </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -507,10 +525,10 @@ export function BimbinganDesktop() {
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-                        
+
                         <div className="bg-gray-50 flex-1 relative min-h-[500px]">
                             <Suspense fallback={<div className="flex h-full items-center justify-center bg-gray-50"><LoaderIcon className="w-8 h-8 animate-spin text-[#119DA4]" /></div>}>
-                                <SharedPdfViewer 
+                                <SharedPdfViewer
                                     url={`${UPLOADS_URL}${[...completedTasks, activeTask].find(t => t?.topik === viewingTaskTopik)?.fileMahasiswa || ''}`}
                                     initialHighlights={annotations}
                                     readOnly={true}

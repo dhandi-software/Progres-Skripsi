@@ -7,6 +7,7 @@ import {
     MoreVertical, Edit3, Trash2, Search, User, Filter,
     Check, X, Save, ArrowRight, Users, FileText, CheckCircle2, XCircle
 } from "lucide-react";
+import { Toast } from "~/components/ui/toast";
 import { UPLOADS_URL } from "~/api/client";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
@@ -596,6 +597,7 @@ export function SidangMobile() {
                                  <Input 
                                     type="date" 
                                     value={schedData.tanggalSidang}
+                                    min={new Date().toISOString().split("T")[0]}
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSchedData({...schedData, tanggalSidang: e.target.value})}
                                     className="bg-slate-50 border-none h-12 rounded-2xl font-bold"
                                  />

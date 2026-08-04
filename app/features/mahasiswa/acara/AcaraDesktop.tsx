@@ -132,13 +132,25 @@ export function AcaraDesktop({ title }: { title: string }) {
     const transformContent = (content: string) => {
         if (!content) return "";
         const baseUploads = UPLOADS_URL.replace(/\/$/, "");
-        const transformed = content
+        let transformed = content
             .replace(/src="\/uploads\//g, `src="${baseUploads}/uploads/`)
             .replace(/href="\/uploads\//g, `href="${baseUploads}/uploads/`)
             .replace(/<img([^>]*)src="([^">]+)"([^>]*)>/g, (match, p1, src, p2) => {
                 const updatedImg = `<img${p1}src="${src}"${p2}`.replace(/<img /g, '<img class="max-w-[800px] w-full h-auto max-h-[600px] mx-auto block rounded-[32px] my-12 shadow-2xl border border-slate-100 object-contain bg-slate-50/30 hover:scale-[1.01] transition-transform cursor-pointer" ');
                 return `<a href="${src}" target="_blank" rel="noopener noreferrer">${updatedImg}</a>`;
             });
+        
+        // Auto-link plain text URLs
+        const parts = transformed.split(/(<[^>]+>)/g);
+        for (let i = 0; i < parts.length; i++) {
+            if (i % 2 === 0) { // Text nodes are at even indices
+                parts[i] = parts[i].replace(
+                    /(https?:\/\/[^\s<]+)/g,
+                    '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-[#00bcd4] font-bold underline">$1</a>'
+                );
+            }
+        }
+        transformed = parts.join('');
         
         return sanitizeHtml(transformed);
     };

@@ -232,7 +232,7 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
                             </div>
                             
                             <div className="flex flex-col gap-1.5">
-                                <label className="text-sm font-semibold text-gray-700">Jumlah SKS nilai D</label>
+                                <label className="text-sm font-semibold text-gray-700">Jumlah yang tidak lulus(D,E)</label>
                                 <div className="relative">
                                     <input 
                                         type="text" 

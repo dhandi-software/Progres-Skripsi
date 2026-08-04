@@ -6,6 +6,8 @@ import { Link } from "react-router";
 import { lazy, Suspense } from "react";
 import { Loader2 as LoaderIcon } from "lucide-react";
 import { Toast } from "~/components/ui/toast";
+import { useAuth } from "~/hooks/useAuth";
+import { io } from "socket.io-client";
 
 // Use dynamic import for client-side only component
 const SharedPdfViewer = lazy(() => import('../../components/SharedPdfViewer.client').then(m => ({ default: m.SharedPdfViewer })));
@@ -102,9 +104,25 @@ export function BimbinganMobile() {
             .finally(() => setLoading(false));
     };
 
+    const { user } = useAuth();
     useEffect(() => {
         fetchTask();
     }, []);
+
+    useEffect(() => {
+        if (!user) return;
+        const socket = io(UPLOADS_URL);
+        socket.emit("join", user.id);
+        
+        socket.on("bimbingan_reviewed", () => {
+            fetchTask();
+            showToast("Ada pembaruan status bimbingan!", "success");
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, [user]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -252,7 +270,7 @@ export function BimbinganMobile() {
                                             <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-xl">
                                                 <div className="flex justify-between items-center mb-3">
                                                     <label className="block text-xs font-bold text-gray-700">
-                                                        Pengumpulan Draf (.pdf, .doc)
+                                                        Pengumpulan Draf (.pdf)
                                                     </label>
                                                     {isEditing && (
                                                         <button 

@@ -679,13 +679,22 @@ export function MonitoringDesktop() {
                                                 onClick={() => setSelectedDosen(dosenData)}
                                                 className="p-8 rounded-[32px] bg-white/80 backdrop-blur-xl border border-white text-slate-900 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:-translate-y-1 cursor-pointer flex flex-col justify-between h-[200px]"
                                             >
+                                                {/* ===== KARTU DATA DOSEN (MULAI) ===== */}
+                                                {/* Kartu ini dibuat berulang kali sesuai dengan jumlah data dosen */}
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-4">
+                                                        {/* 1. BAGIAN AVATAR (HURUF INISIAL) */}
+                                                        {/* Mengambil huruf pertama dari nama dosen menggunakan .charAt(0) */}
                                                         <div className="w-14 h-14 rounded-[20px] bg-slate-100/50 flex items-center justify-center font-black text-2xl text-slate-700 border border-slate-200/50">
                                                             {dosenData.dosen.nama.charAt(0)}
                                                         </div>
+
+                                                        {/* 2. BAGIAN NAMA & JUMLAH MAHASISWA */}
                                                         <div>
+                                                            {/* Menampilkan Nama Lengkap Dosen */}
                                                             <h4 className="font-bold text-base text-slate-800 line-clamp-1">{dosenData.dosen.nama}</h4>
+                                                            
+                                                            {/* Menampilkan Total Mahasiswa Bimbingan yang ditangani */}
                                                             <p className="text-[11px] font-medium tracking-widest text-slate-500 mt-1 uppercase">
                                                                 {dosenData.totalStudents} Mahasiswa
                                                             </p>
@@ -693,15 +702,21 @@ export function MonitoringDesktop() {
                                                     </div>
                                                 </div>
                                                 
+                                                {/* 3. BAGIAN PROGRESS BAR (SKOR KEDISIPLINAN) */}
                                                 <div className="mt-auto">
                                                     <div className="flex justify-between text-xs font-black uppercase tracking-widest mb-1.5 text-slate-800">
                                                         <span>Skor Kedisiplinan Progres</span>
+                                                        {/* Menampilkan Angka Persentase (%) */}
                                                         <span>{dosenData.activeProgress}%</span>
                                                     </div>
+                                                    
+                                                    {/* Background dari progress bar (abu-abu) */}
                                                     <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                                                        {/* Warna isi progress bar (oranye/brand-primary) dengan lebar mengikuti persentase data */}
                                                         <div className="h-full bg-brand-primary" style={{ width: `${dosenData.activeProgress}%` }} />
                                                     </div>
                                                 </div>
+                                                {/* ===== KARTU DATA DOSEN (SELESAI) ===== */}
                                             </div>
                                         ))}
                                     </div>

@@ -30,7 +30,7 @@ export function UserListMobile() {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const itemsPerPage = 10;
-    
+
     // Selection & Delete state
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -92,7 +92,7 @@ export function UserListMobile() {
     const filteredUsers = users;
 
     const handleToggleSelect = (id: number) => {
-        setSelectedIds(prev => 
+        setSelectedIds(prev =>
             prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
         );
     };
@@ -131,7 +131,7 @@ export function UserListMobile() {
             showToast(res.message || "User berhasil dihapus");
         } catch (error: any) {
             const message = error.response?.data?.message || "";
-            
+
             // If the failure is due to active data, offer force delete via modal
             if (error.response?.status === 400 && (message.includes("data aktif") || message.includes("bimbingan"))) {
                 setBlockingMessage(message);
@@ -148,7 +148,7 @@ export function UserListMobile() {
 
     const handleForceDelete = async () => {
         if (!userToDelete) return;
-        
+
         try {
             const res = await adminApi.deleteUser(userToDelete.id, true);
             fetchUsers();
@@ -172,12 +172,12 @@ export function UserListMobile() {
 
     const handleClearAllAccounts = async () => {
         try {
-            const res = activeTab === "mahasiswa" 
+            const res = activeTab === "mahasiswa"
                 ? await adminApi.clearAllMahasiswa(false)
                 : activeTab === "dosen"
                     ? await adminApi.clearAllDosen(false)
                     : { message: "Fitur hapus seluruh staf belum didukung" };
-            
+
             fetchUsers();
             setClearAllConfirmOpen(false);
             setSelectedIds([]);
@@ -206,7 +206,7 @@ export function UserListMobile() {
                 : activeTab === "dosen"
                     ? await adminApi.clearAllDosen(true)
                     : { message: "Fitur hapus seluruh staf belum didukung" };
-                
+
             fetchUsers();
             setForceClearAllModal2Open(false);
             setClearAllInput("");
@@ -226,7 +226,7 @@ export function UserListMobile() {
 
     return (
         <div className="w-full min-h-screen bg-gray-50 pb-24 font-geist">
-            <DeleteConfirmationModal 
+            <DeleteConfirmationModal
                 isOpen={deleteModalOpen}
                 onClose={() => setDeleteModalOpen(false)}
                 onConfirm={handleDelete}
@@ -245,7 +245,7 @@ export function UserListMobile() {
             />
 
             {/* Clear All Flow Modals */}
-            <DeleteConfirmationModal 
+            <DeleteConfirmationModal
                 isOpen={clearAllConfirmOpen}
                 onClose={() => setClearAllConfirmOpen(false)}
                 onConfirm={handleClearAllAccounts}
@@ -269,53 +269,53 @@ export function UserListMobile() {
             {/* Validation 2 Modal: Require Input */}
             {forceClearAllModal2Open && (
                 <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm transition-all animate-in fade-in-0">
-                   <div className="w-[90%] max-w-[450px] bg-white rounded-2xl shadow-2xl border border-red-100 overflow-hidden animate-in zoom-in-95 duration-200">
-                     <div className="bg-red-50 p-6 flex flex-col items-center text-center space-y-3">
-                        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center text-red-600">
-                           <AlertTriangle size={32} strokeWidth={2.5} />
+                    <div className="w-[90%] max-w-[450px] bg-white rounded-2xl shadow-2xl border border-red-100 overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="bg-red-50 p-6 flex flex-col items-center text-center space-y-3">
+                            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center text-red-600">
+                                <AlertTriangle size={32} strokeWidth={2.5} />
+                            </div>
+                            <h3 className="text-xl font-bold text-red-900">Validasi Tahap Akhir!</h3>
                         </div>
-                        <h3 className="text-xl font-bold text-red-900">Validasi Tahap Akhir!</h3>
-                     </div>
-                     <div className="p-6 text-center space-y-4">
-                        <p className="text-sm text-gray-700">
-                            Anda akan menghapus <span className="font-bold">SELURUH</span> {activeTab} beserta <span className="font-bold underline text-red-600">SELURUH RIWAYAT DATA</span> mereka.
-                        </p>
-                        <div className="space-y-2 mt-4 text-left">
-                           <label className="text-xs font-semibold text-gray-500">Ketik <span className="text-red-600">HAPUS SEMUA</span> untuk mengkonfirmasi:</label>
-                           <input 
-                               type="text" 
-                               value={clearAllInput}
-                               onChange={(e) => setClearAllInput(e.target.value)}
-                               className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm text-center font-bold tracking-widest focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none uppercase"
-                               placeholder="HAPUS SEMUA"
-                           />
+                        <div className="p-6 text-center space-y-4">
+                            <p className="text-sm text-gray-700">
+                                Anda akan menghapus <span className="font-bold">SELURUH</span> {activeTab} beserta <span className="font-bold underline text-red-600">SELURUH RIWAYAT DATA</span> mereka.
+                            </p>
+                            <div className="space-y-2 mt-4 text-left">
+                                <label className="text-xs font-semibold text-gray-500">Ketik <span className="text-red-600">HAPUS SEMUA</span> untuk mengkonfirmasi:</label>
+                                <input
+                                    type="text"
+                                    value={clearAllInput}
+                                    onChange={(e) => setClearAllInput(e.target.value)}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm text-center font-bold tracking-widest focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none uppercase"
+                                    placeholder="HAPUS SEMUA"
+                                />
+                            </div>
                         </div>
-                     </div>
-                     <div className="p-6 pt-0 flex gap-3">
-                        <button onClick={() => setForceClearAllModal2Open(false)} className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">Batal</button>
-                        <button 
-                            onClick={handleForceClearAllAccounts} 
-                            disabled={clearAllInput !== "HAPUS SEMUA"}
-                            className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            Hapus Permanen
-                        </button>
-                     </div>
-                   </div>
+                        <div className="p-6 pt-0 flex gap-3">
+                            <button onClick={() => setForceClearAllModal2Open(false)} className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">Batal</button>
+                            <button
+                                onClick={handleForceClearAllAccounts}
+                                disabled={clearAllInput !== "HAPUS SEMUA"}
+                                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Hapus Permanen
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 
             {/* Toast Notification */}
             {toastProps && (
                 <div className="fixed top-6 left-6 right-6 z-[100] animate-in slide-in-from-top-full">
-                    <Toast 
-                        {...toastProps} 
-                        onClose={() => setToastProps(null)} 
+                    <Toast
+                        {...toastProps}
+                        onClose={() => setToastProps(null)}
                     />
                 </div>
             )}
 
-             <div className="bg-white px-5 py-6 sticky top-0 z-10 border-b border-gray-100 shadow-sm">
+            <div className="bg-white px-5 py-6 sticky top-0 z-10 border-b border-gray-100 shadow-sm">
                 <div className="flex justify-between items-center mb-4">
                     <div>
                         <h1 className="text-xl font-bold tracking-tight text-gray-900">Users</h1>
@@ -323,14 +323,14 @@ export function UserListMobile() {
                     </div>
                     <Drawer open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                         <DrawerTrigger asChild>
-                             <button className="w-10 h-10 bg-[#D25026] text-white rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform">
+                            <button className="w-10 h-10 bg-[#D25026] text-white rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform">
                                 <Plus size={20} />
                             </button>
                         </DrawerTrigger>
                         <DrawerContent className="h-[92vh]">
-                             <div className="h-full overflow-y-auto">
+                            <div className="h-full overflow-y-auto">
                                 <CreateAccountMobile />
-                             </div>
+                            </div>
                         </DrawerContent>
                     </Drawer>
                 </div>
@@ -364,7 +364,7 @@ export function UserListMobile() {
                 {/* Search */}
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <input 
+                    <input
                         type="search"
                         placeholder={`Search ${activeTab}...`}
                         value={search}
@@ -378,19 +378,19 @@ export function UserListMobile() {
             {selectedIds.length > 0 && (
                 <div className="fixed bottom-20 left-4 right-4 bg-gray-900 text-white p-4 rounded-2xl shadow-xl z-30 flex justify-between items-center animate-in slide-in-from-bottom-5">
                     <div className="flex items-center gap-3">
-                         <button onClick={() => setSelectedIds([])} className="p-1 hover:bg-white/10 rounded-full">
+                        <button onClick={() => setSelectedIds([])} className="p-1 hover:bg-white/10 rounded-full">
                             <X size={18} />
-                         </button>
-                         <span className="text-sm font-medium">{selectedIds.length} terpilih</span>
+                        </button>
+                        <span className="text-sm font-medium">{selectedIds.length} terpilih</span>
                     </div>
                     <div className="flex gap-2">
-                        <button 
+                        <button
                             onClick={handleSelectAll}
                             className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-xs font-medium transition-colors"
                         >
                             {selectedIds.length === filteredUsers.length ? "Deselect All" : "Select All"}
                         </button>
-                        <button 
+                        <button
                             onClick={() => { setUserToDelete(null); setDeleteModalOpen(true); }}
                             className="px-3 py-1.5 bg-red-500 hover:bg-red-600 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors"
                         >
@@ -418,7 +418,7 @@ export function UserListMobile() {
                         const isSelected = selectedIds.includes(id);
 
                         return (
-                            <div 
+                            <div
                                 key={id}
                                 onClick={() => handleToggleSelect(id)}
                                 className={cn(
@@ -426,7 +426,7 @@ export function UserListMobile() {
                                     isSelected ? "border-[#D25026] ring-1 ring-[#D25026]/10" : "border-gray-100"
                                 )}
                             >
-                                <Checkbox 
+                                <Checkbox
                                     checked={isSelected}
                                     onCheckedChange={() => handleToggleSelect(id)}
                                     onClick={(e) => e.stopPropagation()}
@@ -435,10 +435,10 @@ export function UserListMobile() {
 
                                 <div className="flex-1 flex items-center gap-3">
                                     <div className="w-12 h-12 rounded-2xl bg-gray-100 overflow-hidden flex-shrink-0">
-                                        <img 
-                                            src={`https://ui-avatars.com/api/?name=${user.nama}&background=random`} 
-                                            alt={user.nama} 
-                                            className="w-full h-full object-cover" 
+                                        <img
+                                            src={`https://ui-avatars.com/api/?name=${user.nama}&background=random`}
+                                            alt={user.nama}
+                                            className="w-full h-full object-cover"
                                         />
                                     </div>
                                     <div className="flex flex-col min-w-0">
@@ -452,7 +452,7 @@ export function UserListMobile() {
 
                                 <div className="flex flex-col gap-2 items-end">
                                     <div className="flex gap-1">
-                                        <button 
+                                        <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 navigate(`/admin/edit-account/${id}`);
@@ -461,7 +461,7 @@ export function UserListMobile() {
                                         >
                                             <Pencil size={18} />
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 confirmDelete(user);
@@ -487,13 +487,13 @@ export function UserListMobile() {
                     <Pagination>
                         <PaginationContent>
                             <PaginationItem>
-                                <PaginationPrevious 
-                                    href="#" 
+                                <PaginationPrevious
+                                    href="#"
                                     onClick={(e) => { e.preventDefault(); setCurrentPage(prev => Math.max(1, prev - 1)); }}
                                     className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
                                 />
                             </PaginationItem>
-                            
+
                             {(() => {
                                 let pages: (number | string)[] = [];
                                 if (totalPages <= 5) {
@@ -514,8 +514,8 @@ export function UserListMobile() {
                                     }
                                     return (
                                         <PaginationItem key={page}>
-                                            <PaginationLink 
-                                                href="#" 
+                                            <PaginationLink
+                                                href="#"
                                                 isActive={currentPage === page}
                                                 onClick={(e) => { e.preventDefault(); setCurrentPage(page as number); }}
                                             >
@@ -527,8 +527,8 @@ export function UserListMobile() {
                             })()}
 
                             <PaginationItem>
-                                <PaginationNext 
-                                    href="#" 
+                                <PaginationNext
+                                    href="#"
                                     onClick={(e) => { e.preventDefault(); setCurrentPage(prev => Math.min(totalPages, prev + 1)); }}
                                     className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
                                 />

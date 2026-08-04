@@ -5,6 +5,10 @@ import { CustomSelect } from "~/components/ui/custom-select";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext } from "~/components/ui/pagination";
 import { useNavigate } from "react-router";
 
+import { UPLOADS_URL } from "~/api/client";
+import { useAuth } from "~/hooks/useAuth";
+import { io } from "socket.io-client";
+
 const getStatusPenilaian = (status: string) => {
     switch (status) {
         case 'ASSIGNED': return '-';
@@ -16,6 +20,7 @@ const getStatusPenilaian = (status: string) => {
 };
 
 export function BimbinganMobile() {
+    const { user } = useAuth();
     const [students, setStudents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
@@ -55,6 +60,21 @@ export function BimbinganMobile() {
         fetchStudents(searchQuery, statusFilter);
         setCurrentPage(1);
     }, [statusFilter]);
+
+    // Real-time updates
+    useEffect(() => {
+        if (!user) return;
+        const socket = io(UPLOADS_URL);
+        socket.emit("join", user.id);
+        
+        socket.on("bimbingan_submitted", () => {
+            fetchStudents(searchQuery, statusFilter);
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, [user, searchQuery, statusFilter]);
 
     const handleStudentClick = (student: any) => {
         navigate(`/dosen/bimbingan/${student.mahasiswa.nim}`, { state: { student } });

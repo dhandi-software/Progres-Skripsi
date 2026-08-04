@@ -117,7 +117,7 @@ export function ChatSidebar({ contacts, activeContact, onSelectContact, unreadCo
                             {getMyInitials()}
                         </AvatarFallback>
                      </Avatar>
-                     <h2 className="text-lg font-bold text-slate-800 tracking-tight">Pesan</h2>
+                     <h2 className="text-lg font-bold text-amber-800 tracking-tight">Pesan</h2>
                  </div>
                  {currentUserRole?.toUpperCase() === 'DOSEN' && onCreateGroup && (
                      <DropdownMenu>

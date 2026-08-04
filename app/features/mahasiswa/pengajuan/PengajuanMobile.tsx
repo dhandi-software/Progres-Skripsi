@@ -103,9 +103,9 @@ export function PengajuanMobile() {
 
         setFormData(prev => ({ ...prev, [name]: value }));
 
-        // Toast alert for SKS Grade D
+        // Toast alert for SKS Grade D or E
         if (name === 'sksNilaiD' && Number(value) > 0) {
-            showToast("kamu harus memperbaiki nilai D tersebut", "default");
+            showToast("kamu harus memperbaiki nilai yang tidak lulus tersebut", "default");
         }
 
         // Batas Studi is now read-only, no warning needed
@@ -132,9 +132,15 @@ export function PengajuanMobile() {
 
         // Validasi Batas Studi is handled by the disabled input
 
-        // BLOCK submission if SKS Grade D > 0
+        // BLOCK submission if SKS Grade D or E > 0
         if (Number(formData.sksNilaiD) > 0) {
-            showToast("kamu harus memperbaiki nilai D tersebut", "destructive");
+            showToast("kamu harus memperbaiki nilai yang tidak lulus tersebut", "destructive");
+            return;
+        }
+
+        // Validasi IPK minimal 2.00
+        if (Number(formData.ipk) < 2.00) {
+            showToast("IPK minimal 2.00 untuk mengajukan KP.", "destructive");
             return;
         }
 
@@ -487,7 +493,7 @@ export function PengajuanMobile() {
                             </div>
 
                             <div>
-                                <label className="text-xs font-medium text-gray-500 mb-1 block">SKS Nilai D</label>
+                                <label className="text-xs font-medium text-gray-500 mb-1 block">Jumlah yang tidak lulus(D,E)</label>
                                 <input
                                     type="number"
                                     name="sksNilaiD"

@@ -10,6 +10,8 @@ import { ProgressStats } from "../../../mahasiswa/profilemahasiswa/components/pr
 import { BadgeWall } from "../../../mahasiswa/profilemahasiswa/components/badge-wall";
 import { PublicProfileModal } from "~/components/profile/PublicProfileModal";
 import { useNavigate, useLocation, useParams } from "react-router";
+import { useAuth } from "~/hooks/useAuth";
+import { io } from "socket.io-client";
 
 const getStatusPengajuan = (status: string) => {
     switch (status) {
@@ -101,6 +103,8 @@ export function BimbinganDetailDesktop() {
         setToastProps({ title, variant });
     };
 
+    const { user } = useAuth();
+
     useEffect(() => {
         if (!selectedStudent) {
             navigate("/dosen/bimbingan");
@@ -109,6 +113,22 @@ export function BimbinganDetailDesktop() {
         // Fetch initially
         fetchStudentTasks(selectedStudent.mahasiswa.nim);
     }, [selectedStudent]);
+
+    // Real-time updates
+    useEffect(() => {
+        if (!user || !selectedStudent) return;
+        const socket = io(UPLOADS_URL);
+        socket.emit("join", user.id);
+        
+        socket.on("bimbingan_submitted", () => {
+            fetchStudentTasks(selectedStudent.mahasiswa.nim);
+            showToast("Mahasiswa telah mengumpulkan draf/revisi!", "success");
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, [user, selectedStudent]);
 
     const fetchStudentTasks = async (mahasiswaNim: string) => {
         setStudentLoading(true);

@@ -213,9 +213,16 @@ export function LaporanMobile({ title }: { title?: string }) {
 
 
     return (
+        <>
+        <style type="text/css" media="print">
+            {`
+            @page { margin: 0 !important; }
+            body { margin: 1.6cm !important; }
+            `}
+        </style>
         <div className={cn(
-            "print-container-root flex flex-col min-h-screen w-full transition-colors duration-300 p-3",
-            isLowVision ? "bg-white text-black" : "bg-[#FAFAFA]"
+            "print-container-root flex flex-col min-h-screen w-full transition-colors duration-300 md:p-8 p-4",
+            isLowVision ? "bg-white text-black" : "bg-gray-50"
         )}>
             {/* Header section */}
             <div className="flex flex-col gap-3 mb-6 print:hidden">
@@ -716,5 +723,6 @@ export function LaporanMobile({ title }: { title?: string }) {
                 </div>
             )}
         </div>
+        </>
     );
 }

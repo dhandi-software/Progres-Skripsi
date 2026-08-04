@@ -10,6 +10,8 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { ProgressStats } from "../../../mahasiswa/profilemahasiswa/components/progress-stats";
 import { BadgeWall } from "../../../mahasiswa/profilemahasiswa/components/badge-wall";
 import { PublicProfileModal } from "~/components/profile/PublicProfileModal";
+import { useAuth } from "~/hooks/useAuth";
+import { io } from "socket.io-client";
 
 const getStatusPengajuan = (status: string) => {
     switch (status) {
@@ -85,6 +87,24 @@ export function BimbinganDetailMobile() {
     const showToast = (title: string, variant: "success" | "destructive" | "default" = "success") => {
         setToastProps({ title, variant });
     };
+
+    const { user } = useAuth();
+
+    // Real-time updates
+    useEffect(() => {
+        if (!user || !student) return;
+        const socket = io(UPLOADS_URL);
+        socket.emit("join", user.id);
+        
+        socket.on("bimbingan_submitted", () => {
+            fetchStudentTasks(student.mahasiswa.nim);
+            showToast("Mahasiswa telah mengumpulkan draf/revisi!", "success");
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, [user, student]);
 
     const fetchStudentTasks = async (mahasiswaId: string) => {
         setLoading(true);
