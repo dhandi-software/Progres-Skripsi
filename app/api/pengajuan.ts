@@ -28,7 +28,7 @@ export const pengajuanApi = {
         return response.data;
     },
 
-    updateStatus: async (id: number, status: 'APPROVED' | 'REJECTED' | 'REVISION', remarks?: string, deadlineRevisi?: string) => {
+    updateStatus: async (id: number, status: 'APPROVED' | 'REJECTED' | 'REVISION' | 'PENDING' | 'PENDING_KOORDINATOR', remarks?: string, deadlineRevisi?: string) => {
         const response = await client.put(`/pengajuan/${id}/status`, { status, remarks, deadlineRevisi });
         return response.data;
     },

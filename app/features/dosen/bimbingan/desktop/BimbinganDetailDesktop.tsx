@@ -320,7 +320,7 @@ export function BimbinganDetailDesktop() {
     ];
 
     const handleOpenReview = (task: any, isReadOnly: boolean = false) => {
-        navigate(`/dosen/bimbingan/${task.mahasiswaNim}/review/${task.id}`);
+        navigate(`/dosen/bimbingan/${task.mahasiswaNim}/review/${task.id}`, { state: { isReadOnly } });
     };
 
     const handleSaveGrade = async (task: any) => {
@@ -489,6 +489,12 @@ export function BimbinganDetailDesktop() {
                                                                 {getTimeRemaining(studentActiveTask.jadwalBimbingan).text}
                                                             </td>
                                                         </tr>
+                                                        {studentActiveTask.keteranganProgres && (
+                                                            <tr className="bg-gray-50/50">
+                                                                <th className="py-3 px-4 font-bold text-gray-700 w-[40%] border-r border-gray-200 align-top">Catatan Mahasiswa</th>
+                                                                <td className="py-3 px-4 text-gray-900 bg-white font-medium italic whitespace-pre-wrap">"{studentActiveTask.keteranganProgres}"</td>
+                                                            </tr>
+                                                        )}
                                                     </tbody>
                                                 </table>
                                             </div>
@@ -500,7 +506,7 @@ export function BimbinganDetailDesktop() {
                                                         <FileStack className="w-4 h-4" /> Dokumen Mahasiswa Memerlukan Reviu
                                                     </h4>
                                                     <p className="text-xs text-blue-700 mb-4 leading-relaxed">
-                                                        Mahasiswa telah mengumpulkan draf dengan keterangan: "{studentActiveTask.keteranganProgres}".<br />
+                                                        Mahasiswa telah mengumpulkan draf yang perlu Anda periksa.<br />
                                                         Klik tombol di bawah ini untuk melihat dokumen aslinya dan memberikan anotasi reviu langsung di layar Anda.
                                                     </p>
                                                     <div className="flex gap-3">
@@ -824,7 +830,7 @@ export function BimbinganDetailDesktop() {
                             </div>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
                             {completedTasks.length === 0 ? (
                                 <div className="col-span-full py-16 text-center border border-gray-200 border-dashed rounded-2xl flex flex-col items-center bg-gray-50/50">
                                     <BookOpen className="w-12 h-12 text-gray-300 mb-3" />
@@ -931,6 +937,57 @@ export function BimbinganDetailDesktop() {
                                                         <button onClick={() => handleOpenReview(task, true)} className="flex items-center justify-center p-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors group" title="Lihat Anotasi">
                                                             <Eye className="w-4 h-4 text-gray-500 group-hover:text-blue-600 transition-colors" />
                                                         </button>
+                                                    )}
+                                                </div>
+
+                                                {/* History Accordion Dosen */}
+                                                <div className="mt-3 pt-3 border-t border-gray-100">
+                                                    <button
+                                                        onClick={() => setExpandedHistoryId(expandedHistoryId === task.id ? null : task.id)}
+                                                        className="w-full flex items-center justify-between text-xs font-bold text-gray-600 hover:text-gray-900 focus:outline-none"
+                                                    >
+                                                        <span>Riwayat Revisi & Anotasi</span>
+                                                        <span className="text-[10px] bg-gray-100 px-2 py-1 rounded text-gray-500">
+                                                            {allStudentTasks.filter(t => t.topik === task.topik).length} Versi
+                                                        </span>
+                                                    </button>
+                                                    {expandedHistoryId === task.id && (
+                                                        <div className="mt-3 space-y-3 pl-1 border-l-2 border-gray-100 ml-2 max-h-60 overflow-y-auto pr-2">
+                                                            {allStudentTasks
+                                                                .filter(t => t.topik === task.topik)
+                                                                .sort((a, b) => b.versi - a.versi)
+                                                                .map(item => (
+                                                                    <div key={item.id} className="relative pl-4">
+                                                                        <div className={`absolute -left-[5px] top-1.5 w-2 h-2 rounded-full ${item.status === 'APPROVED' ? 'bg-green-500' : item.status === 'REVISION' ? 'bg-orange-500' : 'bg-gray-400'}`}></div>
+                                                                        <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                                                            <div className="flex justify-between items-start mb-1">
+                                                                                <span className="font-bold text-xs text-gray-800">Versi {item.versi}</span>
+                                                                                <span className="text-[10px] text-gray-400">{new Date(item.tanggal).toLocaleDateString('id-ID')}</span>
+                                                                            </div>
+                                                                            <div className="text-[11px] text-gray-500 mb-2">
+                                                                                {item.status === 'APPROVED' ? 'Disetujui' : item.status === 'REVISION' ? <span className="text-orange-600">Revisi Diberikan</span> : item.status === 'SUBMITTED' ? 'Telah Diunggah' : 'Target Diberikan'}
+                                                                            </div>
+                                                                            {item.fileMahasiswa && item.status !== 'ASSIGNED' && (
+                                                                                <button onClick={() => handleOpenReview(item, true)} className="flex items-center gap-1.5 text-[11px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1.5 rounded transition-colors w-max">
+                                                                                    <Eye className="w-3.5 h-3.5" /> Lihat Dokumen & Anotasi
+                                                                                </button>
+                                                                            )}
+                                                                            {item.anotasi && item.anotasi.length > 0 && (
+                                                                                 <div className="mt-2 pt-2 border-t border-gray-200">
+                                                                                     <span className="text-[10px] font-bold text-gray-600 mb-1.5 block">Terdapat {item.anotasi.length} Catatan:</span>
+                                                                                     <div className="space-y-1.5">
+                                                                                         {item.anotasi.map((ann: any, idx: number) => (
+                                                                                             <div key={idx} className="bg-white p-2 rounded border border-orange-100 text-[10px] text-gray-700">
+                                                                                                 {ann.komentar}
+                                                                                             </div>
+                                                                                         ))}
+                                                                                     </div>
+                                                                                 </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                        </div>
                                                     )}
                                                 </div>
                                             </div>

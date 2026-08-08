@@ -14,6 +14,7 @@ interface PengajuanDetail {
     mahasiswa: {
         nama: string;
         nim: string;
+        bimbingan?: any[];
     };
     status: string;
     peminatan: string;
@@ -59,12 +60,12 @@ export function PeninjauanDetailMobile({ id }: { id: string }) {
         fetchDetail();
     }, [id, navigate]);
 
-    const handleAction = async (status: 'APPROVED' | 'REJECTED' | 'REVISION') => {
+    const handleAction = async (status: 'APPROVED' | 'REJECTED' | 'REVISION' | 'PENDING' | 'PENDING_KOORDINATOR') => {
         setSubmitting(true);
         try {
             const deadlineStr = deadlineRevisi ? deadlineRevisi.toISOString() : undefined;
             await pengajuanApi.updateStatus(parseInt(id), status, remarks, deadlineStr);
-            const label = status === 'APPROVED' ? 'disetujui' : status === 'REJECTED' ? 'ditolak' : 'diminta revisi';
+            const label = status === 'APPROVED' ? 'disetujui' : status === 'REJECTED' ? 'ditolak' : status === 'REVISION' ? 'diminta revisi' : 'dibatalkan keputusannya';
             showToast(`Pengajuan berhasil ${label}.`, "success");
             setIsRevisionModalOpen(false);
             setTimeout(() => navigate(`/dosen/peninjauan${location.search}`), 1800);
@@ -306,6 +307,41 @@ export function PeninjauanDetailMobile({ id }: { id: string }) {
                                     Tolak Pengajuan
                                 </Button>
                             </div>
+                        </div>
+                    )}
+
+                    {['APPROVED', 'REJECTED', 'REVISION', 'REJECTED_KOORDINATOR', 'REVISION_KOORDINATOR'].includes(detail.status) && (
+                        <div className="border-t border-gray-100 mt-6 pt-6 pb-2 px-4">
+                            {(!detail.mahasiswa.bimbingan || detail.mahasiswa.bimbingan.length === 0) ? (
+                                <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex flex-col gap-3">
+                                    <div>
+                                        <h3 className="font-bold text-red-800 mb-1 flex items-center gap-1.5 text-sm">
+                                            <RotateCcw className="w-4 h-4" />
+                                            Batalkan Keputusan Peninjauan
+                                        </h3>
+                                        <p className="text-[11px] text-red-700 leading-relaxed">Anda dapat membatalkan keputusan ini jika terjadi kesalahan, dan status akan kembali menjadi Menunggu.</p>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleAction(['REJECTED_KOORDINATOR', 'REVISION_KOORDINATOR'].includes(detail.status) ? 'PENDING_KOORDINATOR' : 'PENDING')}
+                                        disabled={submitting}
+                                        className="w-full border-red-500 bg-white text-red-700 hover:bg-red-100 font-bold"
+                                    >
+                                        Batalkan Keputusan
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center shrink-0">
+                                        <Check className="w-4 h-4 text-gray-500" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-gray-800 text-xs mb-0.5">Tidak Dapat Dibatalkan</h3>
+                                        <p className="text-[10px] text-gray-500 leading-relaxed">Mahasiswa ini sudah mulai proses bimbingan (memiliki target tugas).</p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                     

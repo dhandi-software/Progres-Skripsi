@@ -6,6 +6,7 @@ import { Link } from "react-router";
 import { lazy, Suspense } from "react";
 import { Loader2 as LoaderIcon } from "lucide-react";
 import { Toast } from "~/components/ui/toast";
+import { DeleteConfirmationModal } from "~/components/ui/delete-confirmation-modal";
 import { useAuth } from "~/hooks/useAuth";
 import { io } from "socket.io-client";
 
@@ -63,8 +64,10 @@ export function BimbinganMobile() {
     const [loading, setLoading] = useState(true);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [keteranganProgres, setKeteranganProgres] = useState("");
+    const [isDeletedFile, setIsDeletedFile] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
     const [toastProps, setToastProps] = useState<{title: string, variant?: "success" | "destructive" | "default"} | null>(null);
 
@@ -77,12 +80,14 @@ export function BimbinganMobile() {
     const [viewingTaskTopik, setViewingTaskTopik] = useState("");
     const [annotations, setAnnotations] = useState<any[]>([]);
     const [history, setHistory] = useState<any[]>([]);
-    const [allHistory, setAllHistory] = useState<any[]>([]); // To pass to history timeline
+    const [allTasks, setAllTasks] = useState<any[]>([]);
+    const [expandedHistoryId, setExpandedHistoryId] = useState<number | null>(null);
 
     const fetchTask = () => {
         setLoading(true);
         bimbinganApi.getMahasiswaAllTasks()
             .then(tasks => {
+                setAllTasks(tasks);
                 const grouped = tasks.reduce((acc: any, task: any) => {
                     if (!acc[task.topik] || task.versi > acc[task.topik].versi) {
                         acc[task.topik] = task;
@@ -131,13 +136,20 @@ export function BimbinganMobile() {
     };
 
     const handleUpload = async () => {
-        if (!activeTask || !selectedFile) return;
+        if (!activeTask) return;
+        if (activeTask.status === 'ASSIGNED' && !selectedFile) {
+            showToast("Harap pilih file terlebih dahulu.", "destructive");
+            return;
+        }
+
         setUploading(true);
         try {
-            await bimbinganApi.uploadDraftMahasiswa(activeTask.id, selectedFile, keteranganProgres);
+            await bimbinganApi.uploadDraftMahasiswa(activeTask.id, selectedFile, keteranganProgres, isDeletedFile);
             showToast("File berhasil diunggah!", "success");
             setSelectedFile(null);
+            setIsDeletedFile(false);
             setKeteranganProgres("");
+            setIsEditing(false);
             fetchTask();
         } catch (error) {
             console.error(error);
@@ -183,6 +195,16 @@ export function BimbinganMobile() {
                     />
                 </div>
             )}
+            <DeleteConfirmationModal
+                isOpen={isDeleteDialogOpen}
+                onClose={() => setIsDeleteDialogOpen(false)}
+                onConfirm={() => {
+                    setIsDeletedFile(true);
+                    setIsDeleteDialogOpen(false);
+                }}
+                title="Hapus File Draf"
+                description="Apakah Anda yakin ingin menghapus file draf ini? File yang dihapus tidak akan tersimpan kecuali Anda mengunggah yang baru."
+            />
             {/* Header */}
             <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 flex items-center gap-3">
                  <Link to="/mahasiswa/dashboard" className="p-2 -ml-2 text-gray-600">
@@ -257,10 +279,13 @@ export function BimbinganMobile() {
                                                 <h3 className="text-sm font-bold text-gray-800">Draf telah dikumpulkan</h3>
                                                 <p className="text-[10px] text-gray-500 mt-1 mb-3">Jika perlu, perbarui draf sebelum dosen reviu.</p>
                                                 <button 
-                                                    onClick={() => setIsEditing(true)}
-                                                    className="w-full px-4 py-2.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 font-bold rounded-lg transition-colors text-xs text-center"
-                                                >
-                                                    Edit Pengajuan (Draf)
+                                                        onClick={() => {
+                                                            setIsEditing(true);
+                                                            setKeteranganProgres(activeTask.keteranganProgres || "");
+                                                        }}
+                                                        className="w-full px-4 py-2.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 font-bold rounded-lg transition-colors text-xs text-center"
+                                                    >
+                                                        Edit Pengajuan (Draf)
                                                 </button>
                                             </div>
                                         )}
@@ -274,20 +299,65 @@ export function BimbinganMobile() {
                                                     </label>
                                                     {isEditing && (
                                                         <button 
-                                                            onClick={() => setIsEditing(false)}
+                                                            onClick={() => {
+                                                                setIsEditing(false);
+                                                                setIsDeletedFile(false);
+                                                                setSelectedFile(null);
+                                                            }}
                                                             className="text-[10px] text-gray-500 hover:text-gray-700 font-bold"
                                                         >
                                                             Batal
                                                         </button>
                                                     )}
                                                 </div>
-                                                <input 
-                                                    type="file" 
-                                                    accept="application/pdf" 
-                                                    onChange={handleFileChange}
-                                                    disabled={getTimeRemaining(activeTask.jadwalBimbingan).isLate}
-                                                    className="w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:bg-[#e6f4f5] file:text-[#119DA4] hover:file:bg-[#d0ebed] cursor-pointer disabled:opacity-50 mb-3 bg-white border border-gray-200 p-1.5 rounded-lg"
-                                                />
+                                                <div className="mb-3">
+                                                    <div className={activeTask.fileMahasiswa && !isDeletedFile && !selectedFile && activeTask.status !== 'ASSIGNED' ? "hidden" : "block relative"}>
+                                                        <input 
+                                                            type="file" 
+                                                            accept="application/pdf" 
+                                                            onChange={handleFileChange}
+                                                            disabled={getTimeRemaining(activeTask.jadwalBimbingan).isLate}
+                                                            className="w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:bg-[#e6f4f5] file:text-[#119DA4] hover:file:bg-[#d0ebed] cursor-pointer disabled:opacity-50 bg-white border border-gray-200 p-1.5 rounded-lg"
+                                                            id="file-upload-input-mobile"
+                                                        />
+                                                        {(selectedFile || isDeletedFile) && activeTask.fileMahasiswa && activeTask.status !== 'ASSIGNED' && (
+                                                            <button 
+                                                                onClick={() => {
+                                                                    setSelectedFile(null);
+                                                                    setIsDeletedFile(false);
+                                                                    const el = document.getElementById('file-upload-input-mobile') as HTMLInputElement;
+                                                                    if (el) el.value = '';
+                                                                }}
+                                                                className="absolute right-1 top-1.5 text-[10px] font-bold text-gray-500 hover:text-gray-700 px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                                                            >
+                                                                Batal Ganti
+                                                            </button>
+                                                        )}
+                                                    </div>
+
+                                                    {activeTask.fileMahasiswa && !isDeletedFile && !selectedFile && activeTask.status !== 'ASSIGNED' && (
+                                                        <div className="flex items-center justify-between p-2 border border-gray-200 rounded-lg bg-white">
+                                                            <div className="flex items-center gap-1.5 overflow-hidden">
+                                                                <FileText className="w-4 h-4 text-[#119DA4] shrink-0" />
+                                                                <span className="text-[11px] font-medium text-gray-700 truncate" title={activeTask.fileMahasiswa.split('/').pop()}>{activeTask.fileMahasiswa.split('/').pop()}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-1 shrink-0">
+                                                                <button 
+                                                                    onClick={() => {
+                                                                        const el = document.getElementById('file-upload-input-mobile') as HTMLInputElement;
+                                                                        if (el) el.click();
+                                                                    }} 
+                                                                    className="text-[10px] font-bold text-[#119DA4] hover:text-[#0d7a7f] bg-[#e6f4f5] hover:bg-[#d0ebed] py-1 px-2 rounded-full transition-colors"
+                                                                >
+                                                                    Ganti
+                                                                </button>
+                                                                <button onClick={() => setIsDeleteDialogOpen(true)} className="text-[10px] font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 py-1 px-2 rounded-full transition-colors">
+                                                                    Hapus
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
                                                 <label className="block text-xs font-bold text-gray-700 mb-2 mt-3">
                                                     Ringkasan Progres
                                                 </label>
@@ -304,7 +374,7 @@ export function BimbinganMobile() {
                                                         Waktu telah berakhir.
                                                     </div>
                                                 )}
-                                                {selectedFile && !getTimeRemaining(activeTask.jadwalBimbingan).isLate && (
+                                                {(selectedFile || activeTask.status !== 'ASSIGNED') && !getTimeRemaining(activeTask.jadwalBimbingan).isLate && (
                                                     <button 
                                                         onClick={handleUpload}
                                                         disabled={uploading}
@@ -489,6 +559,57 @@ export function BimbinganMobile() {
                                                     <button onClick={() => handleOpenViewer(task.id, task.topik)} className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-white border border-gray-200 text-gray-700 rounded-md text-[10px] font-bold">
                                                         <Eye className="w-3 h-3" /> Lihat
                                                     </button>
+                                                )}
+                                            </div>
+
+                                            {/* History Accordion Mobile */}
+                                            <div className="mt-3 pt-3 border-t border-gray-50">
+                                                <button
+                                                    onClick={() => setExpandedHistoryId(expandedHistoryId === task.id ? null : task.id)}
+                                                    className="w-full flex items-center justify-between text-[11px] font-bold text-gray-600 hover:text-gray-900 focus:outline-none py-1.5 active:opacity-70"
+                                                >
+                                                    <span>Riwayat Revisi & Anotasi</span>
+                                                    <span className="text-[9px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">
+                                                        {allTasks.filter(t => t.topik === task.topik).length} Versi
+                                                    </span>
+                                                </button>
+                                                {expandedHistoryId === task.id && (
+                                                    <div className="mt-3 space-y-2 pl-1 border-l-2 border-gray-100 ml-1.5 max-h-60 overflow-y-auto pr-1">
+                                                        {allTasks
+                                                            .filter(t => t.topik === task.topik)
+                                                            .sort((a, b) => b.versi - a.versi)
+                                                            .map(item => (
+                                                                <div key={item.id} className="relative pl-3">
+                                                                    <div className={`absolute -left-[4px] top-1.5 w-1.5 h-1.5 rounded-full ${item.status === 'APPROVED' ? 'bg-green-500' : item.status === 'REVISION' ? 'bg-orange-500' : 'bg-gray-400'}`}></div>
+                                                                    <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                                                                        <div className="flex justify-between items-start mb-1">
+                                                                            <span className="font-bold text-[11px] text-gray-800">Versi {item.versi}</span>
+                                                                            <span className="text-[9px] text-gray-400">{new Date(item.tanggal).toLocaleDateString('id-ID')}</span>
+                                                                        </div>
+                                                                        <div className="text-[10px] text-gray-500 mb-2">
+                                                                            {item.status === 'APPROVED' ? 'Disetujui' : item.status === 'REVISION' ? <span className="text-orange-600">Revisi</span> : item.status === 'SUBMITTED' ? 'Menunggu Reviu' : 'Target'}
+                                                                        </div>
+                                                                        {item.fileMahasiswa && item.status !== 'ASSIGNED' && (
+                                                                            <button onClick={() => handleOpenViewer(item.id, item.topik)} className="flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1.5 rounded w-full justify-center">
+                                                                                <Eye className="w-3 h-3" /> Lihat Dokumen & Anotasi
+                                                                            </button>
+                                                                        )}
+                                                                        {item.anotasi && item.anotasi.length > 0 && (
+                                                                             <div className="mt-2 pt-2 border-t border-gray-200">
+                                                                                 <span className="text-[9px] font-bold text-gray-600 mb-1 block">Terdapat {item.anotasi.length} Catatan:</span>
+                                                                                 <div className="space-y-1">
+                                                                                     {item.anotasi.map((ann: any, idx: number) => (
+                                                                                         <div key={idx} className="bg-white p-1.5 rounded border border-orange-100 text-[9px] text-gray-700">
+                                                                                             {ann.komentar}
+                                                                                         </div>
+                                                                                     ))}
+                                                                                 </div>
+                                                                             </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>

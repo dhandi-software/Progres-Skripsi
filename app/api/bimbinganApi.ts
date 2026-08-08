@@ -73,10 +73,11 @@ export const bimbinganApi = {
     },
 
     // Upload draft by Mahasiswa
-    uploadDraftMahasiswa: async (id: number, file: File, keteranganProgres?: string) => {
+    uploadDraftMahasiswa: async (id: number, file: File | null, keteranganProgres?: string, isDeletedFile?: boolean) => {
         const formData = new FormData();
-        formData.append("file", file);
-        if (keteranganProgres) formData.append("keteranganProgres", keteranganProgres);
+        if (file) formData.append("file", file);
+        if (keteranganProgres !== undefined) formData.append("keteranganProgres", keteranganProgres);
+        if (isDeletedFile) formData.append("isDeletedFile", "true");
 
         const response = await client.post(`/bimbingan/upload-mahasiswa/${id}`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' }

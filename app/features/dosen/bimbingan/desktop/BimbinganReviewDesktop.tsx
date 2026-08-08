@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, Suspense, lazy } from "react";
 import { Eye, Download, FileText, Send, Loader2, FileStack, ArrowLeft } from "lucide-react";
 import { UPLOADS_URL } from "~/api/client";
 import { bimbinganApi } from "~/api/bimbinganApi";
-import { useNavigate } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 import { Toast } from "~/components/ui/toast";
 
 const SharedPdfViewer = lazy(() => import('../../../components/SharedPdfViewer.client').then(m => ({ default: m.SharedPdfViewer })));
@@ -23,6 +23,8 @@ interface BimbinganReviewDesktopProps {
 
 export const BimbinganReviewDesktop: React.FC<BimbinganReviewDesktopProps> = ({ mahasiswaId, taskId }) => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const isReadOnly = location.state?.isReadOnly || false;
     const [loading, setLoading] = useState(true);
     const [reviewingTask, setReviewingTask] = useState<any>(null);
     const [studentName, setStudentName] = useState("");
@@ -130,7 +132,7 @@ export const BimbinganReviewDesktop: React.FC<BimbinganReviewDesktopProps> = ({ 
             await bimbinganApi.uploadRevisiDosen(reviewingTask.id, reviewFile, reviewStatus, finalCatatan);
             showToast("Hasil reviu berhasil disimpan!", "success");
             setTimeout(() => {
-                navigate("/dosen/bimbingan");
+                navigate(-1);
             }, 1500);
         } catch (error) {
             console.error(error);
@@ -138,6 +140,15 @@ export const BimbinganReviewDesktop: React.FC<BimbinganReviewDesktopProps> = ({ 
             setUploadingReview(false);
         }
     };
+
+    const readOnlyMode = isReadOnly || (reviewStatus === 'APPROVED' && reviewingTask?.status === 'APPROVED');
+
+    // Force active tab to history if readOnlyMode is true
+    useEffect(() => {
+        if (readOnlyMode) {
+            setActiveTab('history');
+        }
+    }, [readOnlyMode]);
 
     if (loading) {
         return <div className="flex h-screen items-center justify-center bg-gray-50"><Loader2 className="w-10 h-10 animate-spin text-[#119DA4]" /></div>;
@@ -153,8 +164,6 @@ export const BimbinganReviewDesktop: React.FC<BimbinganReviewDesktopProps> = ({ 
         );
     }
 
-    const isApprovedReadOnly = reviewStatus === 'APPROVED' && reviewingTask.status === 'APPROVED';
-
     return (
         <div className="h-screen overflow-hidden bg-gray-50/50 font-geist flex flex-col">
             {toastProps && (
@@ -166,14 +175,14 @@ export const BimbinganReviewDesktop: React.FC<BimbinganReviewDesktopProps> = ({ 
             <div className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between shrink-0 shadow-sm sticky top-0 z-10">
                 <div className="flex items-center gap-4">
                     <button
-                        onClick={() => navigate("/dosen/bimbingan")}
+                        onClick={() => navigate(-1)}
                         className="p-2 -ml-2 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition-all"
                     >
                         <ArrowLeft className="w-6 h-6" />
                     </button>
                     <div>
                         <h1 className="text-xl font-bold text-gray-900">
-                            {isApprovedReadOnly ? "Arsip Dokumen Ter-ACC" : "Pemeriksaan Bimbingan"}
+                            {readOnlyMode ? "Arsip Dokumen Ter-ACC" : "Pemeriksaan Bimbingan"}
                         </h1>
                         <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
                             {studentName && <span className="font-medium">{studentName}</span>}
@@ -214,9 +223,9 @@ export const BimbinganReviewDesktop: React.FC<BimbinganReviewDesktopProps> = ({ 
                                 <SharedPdfViewer
                                     url={`${UPLOADS_URL}${reviewingTask.fileMahasiswa}`}
                                     initialHighlights={annotations}
-                                    onAddHighlight={handleAddHighlight}
-                                    onDeleteHighlight={handleDeleteHighlight}
-                                    readOnly={isApprovedReadOnly}
+                                    onAddHighlight={readOnlyMode ? undefined : handleAddHighlight}
+                                    onDeleteHighlight={readOnlyMode ? undefined : handleDeleteHighlight}
+                                    readOnly={readOnlyMode}
                                 />
                             </Suspense>
                         </div>
@@ -241,9 +250,9 @@ export const BimbinganReviewDesktop: React.FC<BimbinganReviewDesktopProps> = ({ 
                 )}
 
                 {/* Sidebar Actions */}
-                {!isApprovedReadOnly && (
-                    <div className="w-full xl:w-[400px] flex flex-col shrink-0 bg-white shadow-inner overflow-hidden border-l border-gray-200">
-                        {/* Tab Headers */}
+                <div className="w-full xl:w-[400px] flex flex-col shrink-0 bg-white shadow-inner overflow-hidden border-l border-gray-200">
+                    {/* Tab Headers - Hidden in Read Only Mode */}
+                    {!readOnlyMode && (
                         <div className="flex items-center border-b border-gray-200 bg-gray-50/50">
                             <button
                                 onClick={() => setActiveTab('review')}
@@ -263,8 +272,15 @@ export const BimbinganReviewDesktop: React.FC<BimbinganReviewDesktopProps> = ({ 
                                 )}
                             </button>
                         </div>
+                    )}
+                    
+                    {readOnlyMode && (
+                        <div className="flex items-center border-b border-gray-200 bg-gray-50/50 p-4">
+                            <h3 className="text-sm font-bold text-gray-800">Riwayat Anotasi</h3>
+                        </div>
+                    )}
 
-                        <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+                    <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
                             {activeTab === 'review' ? (
                                 <>
                                     <div className="space-y-4">
@@ -300,8 +316,8 @@ export const BimbinganReviewDesktop: React.FC<BimbinganReviewDesktopProps> = ({ 
                                     <div className="space-y-6 flex-1">
                                         {reviewStatus === 'APPROVED' && (
                                             <div className="space-y-2 p-5 bg-green-50 border border-green-200 rounded-2xl animate-in fade-in duration-300">
-                                                <label className="block text-sm font-bold text-green-900 ml-1">Nilai Bimbingan (Opsional)</label>
-                                                <p className="text-xs text-green-700/80 leading-relaxed ml-1 mb-2">Input nilai pengerjaan bab ini (rentang 0 - 100).</p>
+                                                <label className="block text-sm font-bold text-green-900 ml-1">Nilai Bimbingan {isReadOnly ? "" : "(Opsional)"}</label>
+                                                {!isReadOnly && <p className="text-xs text-green-700/80 leading-relaxed ml-1 mb-2">Input nilai pengerjaan bab ini (rentang 0 - 100).</p>}
                                                 <input
                                                     type="number"
                                                     min="0"
@@ -311,23 +327,25 @@ export const BimbinganReviewDesktop: React.FC<BimbinganReviewDesktopProps> = ({ 
                                                         const val = e.target.value === "" ? null : parseInt(e.target.value);
                                                         setReviewNilai(val);
                                                     }}
-                                                    placeholder="Contoh: 85"
-                                                    className="w-full px-4 py-2.5 bg-white border border-green-200 rounded-xl text-sm focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all font-semibold text-green-900"
+                                                    readOnly={isReadOnly}
+                                                    placeholder={isReadOnly ? "-" : "Contoh: 85"}
+                                                    className={`w-full px-4 py-2.5 bg-white border border-green-200 rounded-xl text-sm font-semibold text-green-900 ${isReadOnly ? 'opacity-70 cursor-not-allowed' : 'focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all'}`}
                                                 />
                                             </div>
                                         )}
 
                                         <div>
-                                            <label className="block text-sm font-bold text-gray-800 mb-3 ml-1">Catatan Keseluruhan (Opsional)</label>
+                                            <label className="block text-sm font-bold text-gray-800 mb-3 ml-1">Catatan Keseluruhan {isReadOnly ? "" : "(Opsional)"}</label>
                                             <textarea
-                                                className="w-full rounded-2xl border-gray-100 border-2 p-5 text-sm focus:ring-4 focus:ring-[#119DA4]/10 focus:border-[#119DA4] outline-none transition-all placeholder:text-gray-400 min-h-[160px] bg-gray-50/50 resize-y"
-                                                placeholder="Berikan masukan menyeluruh di luar anotasi PDF..."
+                                                className={`w-full rounded-2xl border-gray-100 border-2 p-5 text-sm min-h-[160px] bg-gray-50/50 resize-y ${isReadOnly ? 'opacity-70 cursor-not-allowed' : 'focus:ring-4 focus:ring-[#119DA4]/10 focus:border-[#119DA4] outline-none transition-all'}`}
+                                                placeholder={isReadOnly ? "Tidak ada catatan." : "Berikan masukan menyeluruh di luar anotasi PDF..."}
                                                 value={reviewCatatan}
                                                 onChange={(e) => setReviewCatatan(e.target.value)}
+                                                readOnly={isReadOnly}
                                             ></textarea>
                                         </div>
 
-                                        {!reviewingTask.fileMahasiswa?.toLowerCase().endsWith('.pdf') && (
+                                        {!isReadOnly && !reviewingTask.fileMahasiswa?.toLowerCase().endsWith('.pdf') && (
                                             <div className="p-5 bg-blue-50/50 border-2 border-blue-100 rounded-2xl">
                                                 <label className="block text-sm font-bold text-blue-900 mb-2">Upload File Hasil Reviu</label>
                                                 <p className="text-[11px] text-blue-700/70 mb-4 leading-relaxed">Unggah dokumen yang sudah Anda beri komentar/coretan secara offline.</p>
@@ -393,23 +411,24 @@ export const BimbinganReviewDesktop: React.FC<BimbinganReviewDesktopProps> = ({ 
 
                         {/* Action Buttons (Sticky at bottom) */}
                         <div className="p-6 border-t border-gray-100 bg-white flex flex-col gap-4 shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.02)] z-10">
+                            {!isReadOnly && (
+                                <button
+                                    onClick={handleReviewSubmit}
+                                    disabled={uploadingReview}
+                                    className="w-full py-4 text-base font-bold text-white bg-[#D25026] hover:bg-[#B9441F] active:scale-95 transition-all rounded-2xl shadow-xl shadow-orange-500/20 flex items-center justify-center gap-3 disabled:opacity-50"
+                                >
+                                    {uploadingReview ? <Loader2 className="w-6 h-6 animate-spin" /> : <Send className="w-6 h-6" />}
+                                    Kirim Hasil Reviu
+                                </button>
+                            )}
                             <button
-                                onClick={handleReviewSubmit}
-                                disabled={uploadingReview}
-                                className="w-full py-4 text-base font-bold text-white bg-[#D25026] hover:bg-[#B9441F] active:scale-95 transition-all rounded-2xl shadow-xl shadow-orange-500/20 flex items-center justify-center gap-3 disabled:opacity-50"
+                                onClick={() => navigate(-1)}
+                                className={`w-full py-3 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-2xl transition-all ${isReadOnly ? 'bg-gray-100' : ''}`}
                             >
-                                {uploadingReview ? <Loader2 className="w-6 h-6 animate-spin" /> : <Send className="w-6 h-6" />}
-                                Kirim Hasil Reviu
-                            </button>
-                            <button
-                                onClick={() => navigate("/dosen/bimbingan")}
-                                className="w-full py-3 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-2xl transition-all"
-                            >
-                                Batal & Kembali
+                                {isReadOnly ? "Kembali" : "Batal & Kembali"}
                             </button>
                         </div>
                     </div>
-                )}
             </div>
         </div>
     );
