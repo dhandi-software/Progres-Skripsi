@@ -43,19 +43,22 @@ export function LoginMobile() {
     };
 
     return (
-        <main className="relative min-h-screen w-full overflow-hidden font-geist">
+        <main className="relative min-h-screen w-screen overflow-hidden font-geist" style={{ width: "100vw" }}>
              {/* Full Screen Background */}
              <div className="absolute inset-0 z-0">
                 <img
-                    src="/images/background_cerah.png"
+                    src="/images/kuning.png"
                     alt="Background"
                     className="h-full w-full object-cover"
                 />
                 <div className="absolute inset-0 bg-black/20" />
             </div>
 
-            <div className="relative z-10 flex min-h-screen flex-col items-center justify-center p-4">
-                <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl animate-in fade-in slide-in-from-bottom-10 duration-500">
+            <div className="relative z-10 flex min-h-screen w-full flex-col items-center justify-center p-4">
+                <div 
+                    className="rounded-3xl bg-white p-8 shadow-2xl animate-in fade-in slide-in-from-bottom-10 duration-500 w-full max-w-md"
+                    style={{ width: "100%", maxWidth: "450px", minWidth: "320px" }}
+                >
                     
                     {/* Header: Logo & Title */}
                     <div className="mb-6 flex flex-col items-center text-center">

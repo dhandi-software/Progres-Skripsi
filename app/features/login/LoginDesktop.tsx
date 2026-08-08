@@ -43,11 +43,11 @@ export function LoginDesktop() {
     };
 
     return (
-        <main className="relative min-h-screen w-full overflow-hidden font-geist">
+        <main className="relative min-h-screen w-screen overflow-hidden font-geist" style={{ width: "100vw" }}>
             {/* Full Screen Background */}
             <div className="absolute inset-0 z-0">
                 <img
-                    src="/images/background_cerah.png"
+                    src="/images/kuning.png"
                     alt="Background"
                     className="h-full w-full object-cover"
                 />
@@ -56,8 +56,11 @@ export function LoginDesktop() {
             </div>
 
             {/* Login Card Container - Landscape Mode */}
-            <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
-                <div className="flex w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-[0_20px_50px_rgba(0,0,0,0.3)] animate-in fade-in zoom-in-95 duration-500">
+            <div className="relative z-10 flex min-h-screen w-full items-center justify-center p-4">
+                <div 
+                    className="flex overflow-hidden rounded-3xl bg-white shadow-[0_20px_50px_rgba(0,0,0,0.3)] animate-in fade-in zoom-in-95 duration-500 w-full max-w-5xl"
+                    style={{ width: "100%", maxWidth: "1024px", minWidth: "800px" }}
+                >
                     
                     {/* Left Column: Branding / Visual */}
                     <div className="hidden w-5/12 flex-col items-center justify-center bg-gradient-to-br from-[#119DA4] to-[#FDE789] p-12 lg:flex relative overflow-hidden">

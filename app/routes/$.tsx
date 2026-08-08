@@ -9,7 +9,7 @@ export default function NotFoundRoute() {
             {/* Full Screen Background */}
             <div className="absolute inset-0 z-0">
                 <img
-                    src="/images/background_cerah.png"
+                    src="/images/kuning.png"
                     alt="Background"
                     className="h-full w-full object-cover"
                 />
