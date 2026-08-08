@@ -47,7 +47,7 @@ export function LoginMobile() {
              {/* Full Screen Background */}
              <div className="absolute inset-0 z-0">
                 <img
-                    src="/images/Background.svg"
+                    src="/images/background_cerah.png"
                     alt="Background"
                     className="h-full w-full object-cover"
                 />
