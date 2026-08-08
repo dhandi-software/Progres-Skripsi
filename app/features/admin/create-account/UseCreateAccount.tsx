@@ -29,6 +29,7 @@ export const useCreateAccount = () => {
     nip: "",
     jabatan: "",
     peminatan: [] as string[],
+    maxBimbingan: "",
   });
 
   // Sync role with URL param on mount
@@ -359,7 +360,8 @@ export const useCreateAccount = () => {
                   nidn: formData.nidn,
                   nip: formData.nip || undefined,
                   jabatan: formData.jabatan,
-                  peminatan: formData.peminatan
+                  peminatan: formData.peminatan,
+                  maxBimbingan: formData.maxBimbingan
               });
           } else if (formData.role.toLowerCase() === 'staf') {
               await userApi.createStaf({

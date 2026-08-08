@@ -35,6 +35,7 @@ export function PeninjauanDetailMobile({ id }: { id: string }) {
     const [remarks, setRemarks] = useState("");
     const [deadlineRevisi, setDeadlineRevisi] = useState<Date | undefined>(undefined);
     const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
+    const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [toast, setToast] = useState<{ title: string; variant: "success" | "destructive" | "default" } | null>(null);
 
@@ -276,7 +277,7 @@ export function PeninjauanDetailMobile({ id }: { id: string }) {
                                 <Button
                                     variant="default"
                                     size="lg"
-                                    onClick={() => handleAction('APPROVED')}
+                                    onClick={() => setIsApproveModalOpen(true)}
                                     disabled={submitting}
                                     className="w-full font-bold"
                                 >
@@ -347,6 +348,44 @@ export function PeninjauanDetailMobile({ id }: { id: string }) {
                             </button>
                             <button
                                 onClick={() => setIsRevisionModalOpen(false)}
+                                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-[15px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
+                            >
+                                Batal
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Approve Modal Mobile */}
+            {isApproveModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity p-4 animate-in fade-in-0">
+                    <div className="w-full bg-white rounded-xl shadow-lg border border-gray-100 p-5 flex flex-col gap-4 relative animate-in zoom-in-95 duration-200">
+                        <div className="flex flex-col gap-1.5">
+                            <h3 className="text-[17px] font-bold text-gray-900 flex items-center gap-2">
+                                <Check className="w-5 h-5 text-green-600" />
+                                Konfirmasi Persetujuan
+                            </h3>
+                            <p className="text-xs text-gray-500 leading-relaxed">
+                                {detail.status === 'PENDING_KOORDINATOR' 
+                                    ? 'Apakah Anda yakin ingin meneruskan pengajuan ini ke dosen pembimbing?' 
+                                    : 'Apakah Anda yakin ingin menyetujui pengajuan judul ini?'}
+                            </p>
+                        </div>
+                        
+                        <div className="flex flex-col gap-2.5 mt-4">
+                            <button
+                                onClick={() => {
+                                    setIsApproveModalOpen(false);
+                                    handleAction('APPROVED');
+                                }}
+                                disabled={submitting}
+                                className="w-full px-4 py-3 bg-[#D25026] text-white rounded-lg text-[15px] font-bold hover:bg-[#b0401d] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Ya, Lanjutkan
+                            </button>
+                            <button
+                                onClick={() => setIsApproveModalOpen(false)}
                                 className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-[15px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
                             >
                                 Batal

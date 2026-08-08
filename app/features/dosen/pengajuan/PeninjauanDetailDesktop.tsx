@@ -34,6 +34,7 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
     const [remarks, setRemarks] = useState("");
     const [deadlineRevisi, setDeadlineRevisi] = useState<Date | undefined>(undefined);
     const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
+    const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [toast, setToast] = useState<{ title: string; variant: "success" | "destructive" | "default" } | null>(null);
 
@@ -337,7 +338,7 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
                                     <Button
                                         variant="default"
                                         size="md"
-                                        onClick={() => handleAction('APPROVED')}
+                                        onClick={() => setIsApproveModalOpen(true)}
                                         disabled={submitting}
                                         className="font-bold"
                                     >
@@ -389,6 +390,44 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
                                 className="flex-1 px-4 py-2.5 bg-yellow-500 text-white rounded-lg text-sm font-medium hover:bg-yellow-600 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed font-bold"
                             >
                                 {submitting ? 'Menyimpan...' : 'Kirim Revisi'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Approve Modal */}
+            {isApproveModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity animate-in fade-in-0">
+                    <div className="w-[450px] bg-white rounded-xl shadow-lg border border-gray-100 p-6 flex flex-col gap-4 relative animate-in zoom-in-95 duration-200">
+                        <div className="flex flex-col gap-2">
+                            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                <Check className="w-5 h-5 text-green-600" />
+                                Konfirmasi Persetujuan
+                            </h3>
+                            <p className="text-sm text-gray-500">
+                                {detail.status === 'PENDING_KOORDINATOR' 
+                                    ? 'Apakah Anda yakin ingin meneruskan pengajuan ini ke dosen pembimbing?' 
+                                    : 'Apakah Anda yakin ingin menyetujui pengajuan judul ini?'}
+                            </p>
+                        </div>
+
+                        <div className="flex gap-3 w-full mt-4">
+                            <button
+                                onClick={() => setIsApproveModalOpen(false)}
+                                className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setIsApproveModalOpen(false);
+                                    handleAction('APPROVED');
+                                }}
+                                disabled={submitting}
+                                className="flex-1 px-4 py-2.5 bg-[#D25026] text-white rounded-lg text-sm font-medium hover:bg-[#b0401d] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed font-bold"
+                            >
+                                Ya, Lanjutkan
                             </button>
                         </div>
                     </div>

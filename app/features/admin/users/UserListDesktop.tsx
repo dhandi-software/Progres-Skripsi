@@ -455,7 +455,6 @@ export function UserListDesktop() {
       doc.text(`Tanggal Cetak  : ${dateString}`, pageWidth - 60, 65);
 
 
-      // Define columns and rows
       const tableColumn = activeTab === "mahasiswa"
         ? ["No", "Name", "NIM", "Email", "Tahun Masuk"]
         : activeTab === "dosen"

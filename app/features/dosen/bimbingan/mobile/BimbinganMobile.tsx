@@ -184,7 +184,11 @@ export function BimbinganMobile() {
                                                     <span className="bg-red-100 text-red-700 text-[9px] px-1.5 py-0.5 rounded border border-red-200 font-bold uppercase tracking-widest whitespace-nowrap inline-flex">BARU</span>
                                                 )}
                                             </div>
-                                            <p className="text-xs font-mono text-gray-500 mt-0.5">{mhs.nim}</p>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                <p className="text-xs font-mono text-gray-500">{mhs.nim}</p>
+                                                <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">{bimbinganList.length} Bimbingan</span>
+                                            </div>
                                         </div>
                                         <button
                                             onClick={() => handleStudentClick(pengajuan)}

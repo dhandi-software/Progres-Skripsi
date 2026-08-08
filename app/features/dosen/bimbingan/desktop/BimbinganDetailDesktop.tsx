@@ -353,6 +353,8 @@ export function BimbinganDetailDesktop() {
         return null;
     }
 
+    const isAllTasksCompleted = taskOptions.every(opt => completedTasks.some(t => t.topik === opt.value));
+
     return (
         <div className="min-h-screen bg-gray-50/50 p-6 lg:p-10 font-geist relative pb-20">
             {toastProps && (
@@ -571,6 +573,12 @@ export function BimbinganDetailDesktop() {
                                                                             item.status === 'REVISION' ? <span className="text-orange-600 font-medium">Anda memberikan revisi</span> :
                                                                                 item.status === 'APPROVED' ? <span className="text-green-600 font-medium">Reviu disetujui ACC</span> : ""}
                                                                 </p>
+                                                                {item.keteranganProgres && item.status !== 'ASSIGNED' && (
+                                                                    <div className="mt-2 bg-blue-50/50 p-2 rounded border border-blue-100">
+                                                                        <span className="text-[10px] font-bold text-blue-700 block mb-0.5">Catatan Mahasiswa:</span>
+                                                                        <p className="text-xs text-gray-700 italic">"{item.keteranganProgres}"</p>
+                                                                    </div>
+                                                                )}
                                                             </button>
                                                             {item.fileMahasiswa && item.status !== 'ASSIGNED' && (
                                                                 <a href={`${UPLOADS_URL}${item.fileMahasiswa}`} target="_blank" rel="noreferrer" className="mt-2 text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 w-max bg-blue-50 px-2 py-1 rounded">
@@ -620,6 +628,16 @@ export function BimbinganDetailDesktop() {
                                                 )}
                                             </div>
                                         </>
+                                    ) : isAllTasksCompleted ? (
+                                        <div className="flex flex-col items-center justify-center text-center p-8 space-y-4">
+                                            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                                                <Trophy className="w-8 h-8 text-green-600" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-lg text-gray-900">Bimbingan Selesai!</h3>
+                                                <p className="text-sm text-gray-500 mt-2">Seluruh tahapan bimbingan telah diselesaikan dengan baik oleh mahasiswa ini.</p>
+                                            </div>
+                                        </div>
                                     ) : (
                                         <>
                                             <div className="flex items-center justify-between mb-4 mt-2">

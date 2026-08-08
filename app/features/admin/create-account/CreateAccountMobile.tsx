@@ -186,6 +186,19 @@ export const CreateAccountMobile = () => {
                         className="w-full"
                     />
                 </div>
+                 <div className="flex flex-col gap-2">
+                    <label className="text-[0.875rem] font-medium text-[#18181B]">Kuota Maks. Bimbingan</label>
+                    <input
+                        type="number"
+                        name="maxBimbingan"
+                        value={formData.maxBimbingan}
+                        onChange={handleInputChange}
+                        placeholder="6"
+                        disabled={isLoading}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50"
+                    />
+                    <p className="text-[0.65rem] text-gray-500">Kosongkan untuk default (6).</p>
+                </div>
             </>
         )}
 

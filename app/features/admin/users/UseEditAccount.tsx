@@ -22,6 +22,7 @@ export const useEditAccount = () => {
         nidn: "",
         jabatan: "",
         peminatan: [] as string[],
+        maxBimbingan: "",
     });
 
     const [initialLoading, setInitialLoading] = useState(true);
@@ -59,6 +60,7 @@ export const useEditAccount = () => {
                 nidn: user.nidn || "",
                 jabatan: user.jabatan || "",
                 peminatan: user.peminatan || [],
+                maxBimbingan: user.dosen?.maxBimbingan !== undefined ? String(user.dosen.maxBimbingan) : user.maxBimbingan !== undefined ? String(user.maxBimbingan) : "",
             });
         } catch (error) {
             console.error("Failed to fetch user", error);

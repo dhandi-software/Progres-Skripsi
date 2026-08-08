@@ -189,6 +189,21 @@ export const CreateAccountDesktop = () => {
                       className="w-full"
                     />
                   </div>
+                  <div className="flex flex-col gap-3">
+                      <label className="text-base font-semibold text-[#18181B]">
+                          Kuota Maksimal Bimbingan
+                      </label>
+                      <input
+                          type="number"
+                          name="maxBimbingan"
+                          value={formData.maxBimbingan}
+                          onChange={handleInputChange}
+                          placeholder="6"
+                          disabled={isLoading}
+                          className="w-full px-5 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-base disabled:opacity-50 disabled:bg-gray-50 bg-white"
+                      />
+                      <p className="text-xs text-gray-500">Kosongkan jika ingin menggunakan kuota default (6 mahasiswa).</p>
+                  </div>
                 </div>
               )}
 
