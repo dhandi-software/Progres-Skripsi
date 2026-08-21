@@ -7,6 +7,8 @@ import { useNavigate } from "react-router";
 import { CustomSelect } from "~/components/ui/custom-select";
 import { MultipleCombobox, type ComboboxOption } from "~/components/ui/Multiple-combobox";
 
+import NotFoundRoute from "~/routes/$";
+
 export const CreateAccountDesktop = () => {
   const {
     formData,
@@ -28,7 +30,12 @@ export const CreateAccountDesktop = () => {
     massData,
     handleDownloadPreview,
     clearExcel,
+    isValidRole,
   } = useCreateAccount();
+
+  if (!isValidRole) {
+    return <NotFoundRoute />;
+  }
 
   const [isRoleOpen, setIsRoleOpen] = useState(false);
 
@@ -121,7 +128,7 @@ export const CreateAccountDesktop = () => {
               {formData.role === 'mahasiswa' && (
                 <div className="flex flex-col gap-6">
                   <div className="flex flex-col gap-3">
-                    <label className="text-base font-semibold text-[#18181B]">NIM</label>
+                    <label className="text-base font-semibold text-[#18181B]">NIM / NPM</label>
                     <input
                       type="text"
                       name="nim"
@@ -144,6 +151,66 @@ export const CreateAccountDesktop = () => {
                       disabled={isLoading}
                       className="w-full px-5 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-base disabled:opacity-50 disabled:bg-gray-50 bg-white"
                     />
+                  </div>
+
+                  {/* Data Akademik */}
+                  <div className="p-4 bg-orange-50/40 border border-orange-100 rounded-xl flex flex-col gap-4">
+                    <h3 className="text-sm font-bold text-[#D25026]">Data Akademik Mahasiswa</h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-semibold text-gray-700">Jumlah SKS yang dicapai <span className="text-[11px] font-normal text-gray-500">(tanpa D, E, Blank)</span></label>
+                        <input
+                          type="number"
+                          name="sksDicapai"
+                          value={formData.sksDicapai}
+                          onChange={handleInputChange}
+                          placeholder="e.g. 110"
+                          disabled={isLoading}
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] text-sm bg-white"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-semibold text-gray-700">Jumlah SKS Tidak Lulus (D dan E)</label>
+                        <input
+                          type="number"
+                          name="sksNilaiD"
+                          value={formData.sksNilaiD}
+                          onChange={handleInputChange}
+                          placeholder="e.g. 0"
+                          disabled={isLoading}
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] text-sm bg-white"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-semibold text-gray-700">Indeks Prestasi Komulatif (IPK)</label>
+                        <input
+                          type="text"
+                          name="ipk"
+                          value={formData.ipk}
+                          onChange={handleInputChange}
+                          placeholder="Ketik 3 angka (cth: 350 -> 3.50)"
+                          disabled={isLoading}
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] text-sm bg-white"
+                        />
+                        <p className="text-[10px] text-gray-500">Otomatis memasukkan titik (misal ketik 350 jadi 3.50)</p>
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-semibold text-gray-700">Batas Studi (Tahun)</label>
+                        <input
+                          type="text"
+                          name="batasStudi"
+                          value={formData.batasStudi || (formData.tahunMasuk && !isNaN(parseInt(formData.tahunMasuk)) ? (parseInt(formData.tahunMasuk) + 6).toString() : "")}
+                          onChange={handleInputChange}
+                          placeholder="e.g. 2029 (Otomatis Tahun Masuk + 6)"
+                          disabled={isLoading}
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] text-sm bg-white"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -189,6 +256,21 @@ export const CreateAccountDesktop = () => {
                       className="w-full"
                     />
                   </div>
+                  <div className="flex flex-col gap-3">
+                      <label className="text-base font-semibold text-[#18181B]">
+                          Kuota Maksimal Bimbingan
+                      </label>
+                      <input
+                          type="number"
+                          name="maxBimbingan"
+                          value={formData.maxBimbingan}
+                          onChange={handleInputChange}
+                          placeholder="6"
+                          disabled={isLoading}
+                          className="w-full px-5 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-base disabled:opacity-50 disabled:bg-gray-50 bg-white"
+                      />
+                      <p className="text-xs text-gray-500">Kosongkan jika ingin menggunakan kuota default (6 mahasiswa).</p>
+                  </div>
                 </div>
               )}
 
@@ -225,18 +307,47 @@ export const CreateAccountDesktop = () => {
               </div>
             </div>
 
-            {/* Email Field */}
+            {/* Email Field with Domain Suffix */}
             <div className="flex flex-col gap-3">
-              <label className="text-base font-semibold text-[#18181B]">Email</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                placeholder={formData.role === 'mahasiswa' ? "mahasiswa@student.univ.ac.id" : formData.role === 'dosen' ? "dosen@univ.ac.id" : "staf@univ.ac.id"}
-                disabled={isLoading}
-                className="w-full px-5 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-base disabled:opacity-50 disabled:bg-gray-50 bg-white"
-              />
+              <div className="flex items-center justify-between">
+                <label className="text-base font-semibold text-[#18181B]">Email</label>
+                <span className="text-xs text-gray-500 font-medium">Domain otomatis terpasang</span>
+              </div>
+              <div className="flex rounded-xl border border-gray-300 focus-within:ring-2 focus-within:ring-[#D25026]/10 focus-within:border-[#D25026] overflow-hidden bg-white shadow-sm transition-all">
+                <input
+                  type="text"
+                  name="emailPrefix"
+                  value={formData.emailPrefix}
+                  onChange={handleInputChange}
+                  placeholder={formData.role === 'mahasiswa' ? "Username / NPM (misal: budi atau 4519210001)" : "Username / NIDN (misal: dosen.budi)"}
+                  disabled={isLoading}
+                  className="flex-1 px-5 py-3 outline-none text-[#18181B] placeholder:text-[#A1A1AA] text-base disabled:opacity-50 disabled:bg-gray-50"
+                />
+                <div className="bg-gray-100 border-l border-gray-200 flex items-center px-4 shrink-0">
+                  <select
+                    name="emailDomain"
+                    value={formData.emailDomain}
+                    onChange={handleInputChange}
+                    disabled={isLoading}
+                    className="bg-transparent font-semibold text-sm text-gray-700 outline-none cursor-pointer"
+                  >
+                    {formData.role === 'mahasiswa' ? (
+                      <>
+                        <option value="@student.univ.ac.id">@student.univ.ac.id</option>
+                        <option value="@gmail.com">@gmail.com</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="@univ.ac.id">@univ.ac.id</option>
+                        <option value="@gmail.com">@gmail.com</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500">
+                Alamat Email Mahasiswa: <span className="font-semibold text-gray-800">{formData.emailPrefix || "username"}{formData.emailDomain}</span>
+              </p>
             </div>
 
             {/* Password Field */}
@@ -325,7 +436,11 @@ export const CreateAccountDesktop = () => {
                         {formData.role === 'mahasiswa' && (
                           <>
                             <th className="px-3 py-2 border-r border-b border-gray-300 font-semibold text-gray-700 text-center">C</th>
-                            <th className="px-3 py-2 border-b border-gray-300 font-semibold text-gray-700 text-center">D</th>
+                            <th className="px-3 py-2 border-r border-b border-gray-300 font-semibold text-gray-700 text-center">D</th>
+                            <th className="px-3 py-2 border-r border-b border-gray-300 font-semibold text-gray-700 text-center">E</th>
+                            <th className="px-3 py-2 border-r border-b border-gray-300 font-semibold text-gray-700 text-center">F</th>
+                            <th className="px-3 py-2 border-r border-b border-gray-300 font-semibold text-gray-700 text-center">G</th>
+                            <th className="px-3 py-2 border-b border-gray-300 font-semibold text-gray-700 text-center">H</th>
                           </>
                         )}
                         {formData.role === 'staf' && (
@@ -343,7 +458,11 @@ export const CreateAccountDesktop = () => {
                         {formData.role === 'mahasiswa' && (
                           <>
                             <td className="px-3 py-1.5 border-r border-b border-gray-300 font-bold bg-blue-50/50">Email</td>
-                            <td className="px-3 py-1.5 border-b border-gray-300 font-bold bg-blue-50/50">Tahun Masuk</td>
+                            <td className="px-3 py-1.5 border-r border-b border-gray-300 font-bold bg-blue-50/50">Tahun Masuk</td>
+                            <td className="px-3 py-1.5 border-r border-b border-gray-300 font-bold bg-blue-50/50">SKS Dicapai</td>
+                            <td className="px-3 py-1.5 border-r border-b border-gray-300 font-bold bg-blue-50/50">IPK</td>
+                            <td className="px-3 py-1.5 border-r border-b border-gray-300 font-bold bg-blue-50/50">SKS Tidak Lulus</td>
+                            <td className="px-3 py-1.5 border-b border-gray-300 font-bold bg-blue-50/50">Batas Studi</td>
                           </>
                         )}
                         {formData.role === 'staf' && (
@@ -360,8 +479,12 @@ export const CreateAccountDesktop = () => {
                         </td>
                         {formData.role === 'mahasiswa' && (
                           <>
-                            <td className="px-3 py-1.5 border-r border-gray-300 text-gray-400 italic">budi@student.com (ops)</td>
-                            <td className="px-3 py-1.5 border-gray-300 text-gray-400 italic">2023 (ops)</td>
+                            <td className="px-3 py-1.5 border-r border-gray-300 text-gray-400 italic">budi@student.univ.ac.id (ops)</td>
+                            <td className="px-3 py-1.5 border-r border-gray-300 text-gray-600 font-medium">2023 <span className="text-red-500 font-normal">(wajib)</span></td>
+                            <td className="px-3 py-1.5 border-r border-gray-300 text-gray-600 font-medium">110 <span className="text-red-500 font-normal">(wajib)</span></td>
+                            <td className="px-3 py-1.5 border-r border-gray-300 text-gray-600 font-medium">3.50 <span className="text-red-500 font-normal">(wajib)</span></td>
+                            <td className="px-3 py-1.5 border-r border-gray-300 text-gray-600 font-medium">0 <span className="text-orange-600 font-normal">(isi 0 jika tidak ada)</span></td>
+                            <td className="px-3 py-1.5 border-gray-300 text-gray-400 italic">2029 (ops)</td>
                           </>
                         )}
                         {formData.role === 'staf' && (
@@ -523,9 +646,18 @@ export const CreateAccountDesktop = () => {
                         <th className="px-4 py-3 font-bold text-[11px] uppercase tracking-wider">Email</th>
                         <th className="px-4 py-3 font-bold text-[11px] uppercase tracking-wider">Password</th>
                         {formData.role === 'mahasiswa' ? (
-                          <th className="px-4 py-3 font-bold text-[11px] uppercase tracking-wider">Tahun Masuk</th>
+                          <>
+                            <th className="px-4 py-3 font-bold text-[11px] uppercase tracking-wider">Tahun Masuk</th>
+                            <th className="px-4 py-3 font-bold text-[11px] uppercase tracking-wider">SKS</th>
+                            <th className="px-4 py-3 font-bold text-[11px] uppercase tracking-wider">IPK</th>
+                            <th className="px-4 py-3 font-bold text-[11px] uppercase tracking-wider">SKS D/E</th>
+                            <th className="px-4 py-3 font-bold text-[11px] uppercase tracking-wider">Batas Studi</th>
+                          </>
                         ) : (
-                          <th className="px-4 py-3 font-bold text-[11px] uppercase tracking-wider">Jabatan</th>
+                          <>
+                            <th className="px-4 py-3 font-bold text-[11px] uppercase tracking-wider">Jabatan</th>
+                            <th className="px-4 py-3 font-bold text-[11px] uppercase tracking-wider">Peminatan</th>
+                          </>
                         )}
                       </tr>
                     </thead>
@@ -538,9 +670,22 @@ export const CreateAccountDesktop = () => {
                           <td className="px-4 py-3 truncate max-w-[150px] text-gray-500">{user.email}</td>
                           <td className="px-4 py-3 font-mono text-xs bg-gray-50/50 text-orange-600">{user.password}</td>
                           {formData.role === 'mahasiswa' ? (
-                            <td className="px-4 py-3 text-gray-600">{user.tahunMasuk}</td>
+                            <>
+                              <td className="px-4 py-3 text-gray-600">{user.tahunMasuk}</td>
+                              <td className="px-4 py-3 text-gray-600">{user.sksDicapai || "-"}</td>
+                              <td className="px-4 py-3 text-gray-600">{user.ipk || "-"}</td>
+                              <td className="px-4 py-3 text-gray-600">{user.sksNilaiD || "0"}</td>
+                              <td className="px-4 py-3 text-gray-600">{user.batasStudi || "-"}</td>
+                            </>
                           ) : (
-                            <td className="px-4 py-3 text-gray-600">{user.jabatan}</td>
+                            <>
+                              <td className="px-4 py-3 text-gray-600">{user.jabatan}</td>
+                              <td className="px-4 py-3 text-gray-600 truncate max-w-[200px]">
+                                {user.peminatan && Array.isArray(user.peminatan) && user.peminatan.length > 0
+                                  ? user.peminatan.join(", ")
+                                  : (typeof user.peminatan === 'string' && user.peminatan ? user.peminatan : "-")}
+                              </td>
+                            </>
                           )}
                         </tr>
                       ))}

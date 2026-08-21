@@ -88,7 +88,7 @@ export function EditAccountMobile() {
                  {formData.role === 'mahasiswa' ? (
                      <>
                         <div className="flex flex-col gap-2">
-                            <label className="text-sm font-medium text-gray-700">NIM</label>
+                            <label className="text-sm font-medium text-gray-700">NIM / NPM</label>
                              <input 
                                 type="text"
                                 name="nim"
@@ -112,6 +112,58 @@ export function EditAccountMobile() {
                                 className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500/10 focus:border-pink-500 transition-all text-sm"
                              />
                         </div>
+
+                        <div className="pt-2 border-t border-gray-100 flex flex-col gap-3">
+                             <span className="text-xs font-bold text-orange-600">Data Akademik</span>
+
+                             <div className="flex flex-col gap-1.5">
+                                 <label className="text-xs font-medium text-gray-700">SKS Dicapai</label>
+                                 <input 
+                                     type="number"
+                                     name="sksDicapai"
+                                     value={formData.sksDicapai}
+                                     onChange={handleInputChange}
+                                     placeholder="e.g. 110"
+                                     className="w-full px-3 py-2 rounded-lg border border-gray-200 text-xs"
+                                 />
+                             </div>
+
+                             <div className="flex flex-col gap-1.5">
+                                 <label className="text-xs font-medium text-gray-700">SKS Tidak Lulus (D/E)</label>
+                                 <input 
+                                     type="number"
+                                     name="sksNilaiD"
+                                     value={formData.sksNilaiD}
+                                     onChange={handleInputChange}
+                                     placeholder="e.g. 0"
+                                     className="w-full px-3 py-2 rounded-lg border border-gray-200 text-xs"
+                                 />
+                             </div>
+
+                             <div className="flex flex-col gap-1.5">
+                                 <label className="text-xs font-medium text-gray-700">IPK</label>
+                                 <input 
+                                     type="text"
+                                     name="ipk"
+                                     value={formData.ipk}
+                                     onChange={handleInputChange}
+                                     placeholder="Ketik 3 angka (cth: 350 -> 3.50)"
+                                     className="w-full px-3 py-2 rounded-lg border border-gray-200 text-xs"
+                                 />
+                             </div>
+
+                             <div className="flex flex-col gap-1.5">
+                                 <label className="text-xs font-medium text-gray-700">Batas Studi</label>
+                                 <input 
+                                     type="text"
+                                     name="batasStudi"
+                                     value={formData.batasStudi || (formData.tahunMasuk && !isNaN(parseInt(formData.tahunMasuk)) ? (parseInt(formData.tahunMasuk) + 6).toString() : "")}
+                                     onChange={handleInputChange}
+                                     placeholder="Tahun Masuk + 6"
+                                     className="w-full px-3 py-2 rounded-lg border border-gray-200 text-xs"
+                                 />
+                             </div>
+                         </div>
                      </>
                  ) : (
                      <>
@@ -159,6 +211,18 @@ export function EditAccountMobile() {
                                 }}
                                 placeholder="Select peminatan..."
                             />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm font-medium text-gray-700">Kuota Maks. Bimbingan</label>
+                             <input 
+                                type="number"
+                                name="maxBimbingan"
+                                value={formData.maxBimbingan}
+                                onChange={handleInputChange}
+                                placeholder="6"
+                                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500/10 focus:border-pink-500 transition-all text-sm"
+                             />
+                             <p className="text-xs text-gray-500">Kosongkan untuk default (6).</p>
                         </div>
                      </>
                  )}

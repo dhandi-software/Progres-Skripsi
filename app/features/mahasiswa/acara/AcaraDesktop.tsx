@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale/id";
-import { 
-    ClipboardList, Send, MessageSquare, 
-    X, ChevronRight, 
-    ArrowLeft, MoreVertical, Users, 
+import {
+    ClipboardList, Send, MessageSquare,
+    X, ChevronRight,
+    ArrowLeft, MoreVertical, Users,
     Link as LinkIcon, Check
 } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { useAuth } from "~/hooks/useAuth";
-import { useLocation, useSearchParams } from "react-router"; 
+import { useLocation, useSearchParams } from "react-router";
 import { acaraApi } from "~/api/acaraApi";
 import { profileApi } from "~/api/profileApi";
 import type { Acara, AcaraResponse } from "~/api/acaraApi";
@@ -44,7 +44,7 @@ export function AcaraDesktop({ title }: { title: string }) {
     const [page, setPage] = useState(1);
     const [pagination, setPagination] = useState<AcaraResponse["pagination"] | null>(null);
     const [searchParams, setSearchParams] = useSearchParams();
-    const [toast, setToast] = useState<{title: string, variant: "success" | "destructive"} | null>(null);
+    const [toast, setToast] = useState<{ title: string, variant: "success" | "destructive" } | null>(null);
     const [isCopying, setIsCopying] = useState(false);
 
     const fetchData = async (currentPage: number) => {
@@ -132,14 +132,26 @@ export function AcaraDesktop({ title }: { title: string }) {
     const transformContent = (content: string) => {
         if (!content) return "";
         const baseUploads = UPLOADS_URL.replace(/\/$/, "");
-        const transformed = content
+        let transformed = content
             .replace(/src="\/uploads\//g, `src="${baseUploads}/uploads/`)
             .replace(/href="\/uploads\//g, `href="${baseUploads}/uploads/`)
             .replace(/<img([^>]*)src="([^">]+)"([^>]*)>/g, (match, p1, src, p2) => {
                 const updatedImg = `<img${p1}src="${src}"${p2}`.replace(/<img /g, '<img class="max-w-[800px] w-full h-auto max-h-[600px] mx-auto block rounded-[32px] my-12 shadow-2xl border border-slate-100 object-contain bg-slate-50/30 hover:scale-[1.01] transition-transform cursor-pointer" ');
                 return `<a href="${src}" target="_blank" rel="noopener noreferrer">${updatedImg}</a>`;
             });
-        
+
+        // Auto-link plain text URLs
+        const parts = transformed.split(/(<[^>]+>)/g);
+        for (let i = 0; i < parts.length; i++) {
+            if (i % 2 === 0) { // Text nodes are at even indices
+                parts[i] = parts[i].replace(
+                    /(https?:\/\/[^\s<]+)/g,
+                    '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-[#00bcd4] font-bold underline">$1</a>'
+                );
+            }
+        }
+        transformed = parts.join('');
+
         return sanitizeHtml(transformed);
     };
 
@@ -170,28 +182,28 @@ export function AcaraDesktop({ title }: { title: string }) {
         return (
             <div className="flex flex-col h-full w-full bg-white animate-in fade-in slide-in-from-right-4 duration-500">
                 <div className="flex items-center gap-8 px-16 py-10 border-b border-slate-100 sticky top-0 bg-white z-10">
-                    <button 
+                    <button
                         onClick={handleBack}
                         className="w-14 h-14 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 hover:text-[#00bcd4] hover:border-[#00bcd4] transition-all duration-300 shadow-sm"
                     >
                         <ArrowLeft size={24} />
                     </button>
-                    <div className="w-16 h-16 rounded-full bg-[#00bcd4] flex items-center justify-center text-white shadow-lg shadow-[#00bcd4]/20">
+                    <div className="w-16 h-16 rounded-full bg-[#00bcd4]/10 flex items-center justify-center text-[#00bcd4] shadow-lg shadow-[#00bcd4]/20">
                         <ClipboardList size={32} />
-                    </div>
+                    </div> 
                     <div className="flex-1">
                         <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-tight">{selectedAcara.title}</h1>
                         <div className="flex items-center gap-3 mt-2.5 flex-wrap">
                             <span className="text-sm font-bold text-slate-800">{selectedAcara.user?.role === 'admin' ? 'Admin' : (selectedAcara.user?.mahasiswa?.nama || selectedAcara.user?.dosen?.nama || selectedAcara.user?.username || selectedAcara.dosen.nama || "Sistem")}</span>
                             <span className={cn(
                                 "text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider leading-none",
-                                (selectedAcara.user?.role || "DOSEN").toUpperCase() === "MAHASISWA" 
-                                    ? "bg-blue-50 text-blue-500 border border-blue-100/50" 
+                                (selectedAcara.user?.role || "DOSEN").toUpperCase() === "MAHASISWA"
+                                    ? "bg-blue-50 text-blue-500 border border-blue-100/50"
                                     : (selectedAcara.user?.role || "DOSEN").toUpperCase() === "DOSEN" || (selectedAcara.user?.role || "DOSEN").toUpperCase() === "KAPRODI"
-                                    ? "bg-purple-50 text-purple-500 border border-purple-100/50"
-                                    : (selectedAcara.user?.role || "DOSEN").toUpperCase() === "ADMIN"
-                                    ? "bg-red-50 text-red-500 border border-red-100/50"
-                                    : "bg-slate-50 text-slate-500 border border-slate-100"
+                                        ? "bg-purple-50 text-purple-500 border border-purple-100/50"
+                                        : (selectedAcara.user?.role || "DOSEN").toUpperCase() === "ADMIN"
+                                            ? "bg-red-50 text-red-500 border border-red-100/50"
+                                            : "bg-slate-50 text-slate-500 border border-slate-100"
                             )}>
                                 {(selectedAcara.user?.role || "DOSEN").toUpperCase() === "MAHASISWA" ? "Mahasiswa" : (selectedAcara.user?.role || "DOSEN").toUpperCase() === "DOSEN" || (selectedAcara.user?.role || "DOSEN").toUpperCase() === "KAPRODI" ? "Dosen" : (selectedAcara.user?.role || "DOSEN").toUpperCase() === "ADMIN" ? "Admin" : "Staff"}
                             </span>
@@ -207,7 +219,7 @@ export function AcaraDesktop({ title }: { title: string }) {
                                 <MoreVertical className="text-slate-300 group-hover/menu:text-slate-600" />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48 bg-white border border-slate-100 shadow-xl rounded-2xl p-2 z-[200]">
-                                <DropdownMenuItem 
+                                <DropdownMenuItem
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         handleCopyLink();
@@ -242,9 +254,9 @@ export function AcaraDesktop({ title }: { title: string }) {
                                     return (
                                         <div key={comment.id} className="flex gap-6 group">
                                             {hasPhoto ? (
-                                                <img 
-                                                    src={profileApi.getProfilePhotoUrl(comment.user.photo!)} 
-                                                    alt={displayName} 
+                                                <img
+                                                    src={profileApi.getProfilePhotoUrl(comment.user.photo!)}
+                                                    alt={displayName}
                                                     className="w-12 h-12 rounded-full object-cover shrink-0 border border-slate-200 shadow-sm"
                                                 />
                                             ) : (
@@ -259,14 +271,14 @@ export function AcaraDesktop({ title }: { title: string }) {
                                                     </span>
                                                     <span className={cn(
                                                         "text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider leading-none",
-                                                        comment.user.role.toUpperCase() === "MAHASISWA" 
-                                                            ? "bg-blue-50 text-blue-500 border border-blue-100/50" 
-                                                             : comment.user.role.toUpperCase() === "DOSEN" || comment.user.role.toUpperCase() === "KAPRODI"
-                                                             ? "bg-purple-50 text-purple-500 border border-purple-100/50"
-                                                             : "bg-slate-50 text-slate-500 border border-slate-100"
-                                                     )}>
-                                                         {comment.user.role.toUpperCase() === "MAHASISWA" ? "Mahasiswa" : comment.user.role.toUpperCase() === "DOSEN" || comment.user.role.toUpperCase() === "KAPRODI" ? "Dosen" : "Staff"}
-                                                     </span>
+                                                        comment.user.role.toUpperCase() === "MAHASISWA"
+                                                            ? "bg-blue-50 text-blue-500 border border-blue-100/50"
+                                                            : comment.user.role.toUpperCase() === "DOSEN" || comment.user.role.toUpperCase() === "KAPRODI"
+                                                                ? "bg-purple-50 text-purple-500 border border-purple-100/50"
+                                                                : "bg-slate-50 text-slate-500 border border-slate-100"
+                                                    )}>
+                                                        {comment.user.role.toUpperCase() === "MAHASISWA" ? "Mahasiswa" : comment.user.role.toUpperCase() === "DOSEN" || comment.user.role.toUpperCase() === "KAPRODI" ? "Dosen" : "Staff"}
+                                                    </span>
                                                     <span className="text-[11px] font-bold text-slate-400">{format(new Date(comment.createdAt), "dd MMM, HH:mm", { locale: id })}</span>
                                                 </div>
                                                 <p className="text-sm text-slate-700 leading-relaxed font-medium">{comment.content}</p>
@@ -277,10 +289,10 @@ export function AcaraDesktop({ title }: { title: string }) {
                             </div>
                             <form onSubmit={handleAddComment} className="flex gap-6 mt-16 items-center">
                                 {hasUserPhoto ? (
-                                    <img 
-                                        src={currentUserPhoto} 
-                                        alt={myName} 
-                                        className="w-12 h-12 rounded-full object-cover shrink-0 border border-slate-200 shadow-sm" 
+                                    <img
+                                        src={currentUserPhoto}
+                                        alt={myName}
+                                        className="w-12 h-12 rounded-full object-cover shrink-0 border border-slate-200 shadow-sm"
                                     />
                                 ) : (
                                     <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 shrink-0 font-black text-lg border border-slate-200 shadow-sm">
@@ -288,7 +300,7 @@ export function AcaraDesktop({ title }: { title: string }) {
                                     </div>
                                 )}
                                 <div className="flex-1 group relative">
-                                    <input 
+                                    <input
                                         value={newComment}
                                         onChange={(e) => setNewComment(e.target.value)}
                                         placeholder="Tambahkan komentar kelas..."
@@ -308,33 +320,33 @@ export function AcaraDesktop({ title }: { title: string }) {
         <div className="flex flex-col min-h-screen w-full bg-slate-50/50">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 p-8 lg:p-12">
                 <div>
-                     <h1 className="text-3xl font-black text-slate-900 tracking-tight">Timeline Pengumuman & Instruksi</h1>
-                     <p className="text-slate-500 text-sm mt-2 font-medium">Daftar pengumuman dan instruksi bimbingan dari dosen untuk mahasiswa.</p>
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">Timeline Pengumuman & Instruksi</h1>
+                    <p className="text-slate-500 text-sm mt-2 font-medium">Daftar pengumuman dan instruksi bimbingan dari dosen untuk mahasiswa.</p>
                 </div>
             </div>
 
             <div className="px-8 lg:px-12 pb-12 w-full">
                 <div className="grid grid-cols-1 gap-6 w-full">
                     {isLoading ? (
-                        [1,2,3].map(i => <div key={i} className="h-28 bg-white/50 border border-slate-100 rounded-[32px] animate-pulse" />)
+                        [1, 2, 3].map(i => <div key={i} className="h-28 bg-white/50 border border-slate-100 rounded-[32px] animate-pulse" />)
                     ) : acaras.length === 0 ? (
                         <div className="bg-white rounded-[40px] p-24 text-center border-2 border-dashed border-slate-100 shadow-sm">
-                             <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-8 text-slate-200"><ClipboardList size={56} /></div>
-                             <h3 className="text-2xl font-black text-slate-900 tracking-tight">Belum Ada Posting Terdaftar</h3>
-                             <p className="text-slate-400 mx-auto mt-4 font-medium">Pengumuman atau instruksi bimbingan dari dosen akan muncul di sini.</p>
+                            <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-8 text-slate-200"><ClipboardList size={56} /></div>
+                            <h3 className="text-2xl font-black text-slate-900 tracking-tight">Belum Ada Posting Terdaftar</h3>
+                            <p className="text-slate-400 mx-auto mt-4 font-medium">Pengumuman atau instruksi bimbingan dari dosen akan muncul di sini.</p>
                         </div>
                     ) : (
                         acaras.map(item => {
                             const publisherName = item.user?.role === 'admin' ? 'Admin' : (item.user?.mahasiswa?.nama || item.user?.dosen?.nama || item.user?.username || item.dosen?.nama || "Sistem");
                             const publisherRole = item.user?.role || "DOSEN";
                             return (
-                                <div 
-                                    key={item.id} 
+                                <div
+                                    key={item.id}
                                     onClick={() => handleSelectAcara(item)}
                                     className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-6 lg:p-8 flex items-center justify-between gap-6 hover:shadow-2xl hover:shadow-slate-200/50 hover:border-brand-primary/10 transition-all duration-300 group cursor-pointer w-full relative overflow-hidden"
                                 >
                                     <div className="absolute inset-y-0 left-0 w-2 bg-slate-50 group-hover:bg-brand-primary transition-colors duration-300" />
-                                    
+
                                     <div className="flex items-center gap-6 flex-1 min-w-0 ml-4">
                                         <div className="w-14 h-14 rounded-2xl bg-[#00bcd4]/10 flex items-center justify-center text-[#00bcd4] shrink-0 group-hover:scale-110 transition-transform duration-500">
                                             <ClipboardList size={28} />
@@ -346,13 +358,13 @@ export function AcaraDesktop({ title }: { title: string }) {
                                                 </span>
                                                 <span className={cn(
                                                     "text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider leading-none",
-                                                    publisherRole.toUpperCase() === "MAHASISWA" 
-                                                        ? "bg-blue-50 text-blue-500 border border-blue-100/50" 
+                                                    publisherRole.toUpperCase() === "MAHASISWA"
+                                                        ? "bg-blue-50 text-blue-500 border border-blue-100/50"
                                                         : publisherRole.toUpperCase() === "DOSEN" || publisherRole.toUpperCase() === "KAPRODI"
-                                                        ? "bg-purple-50 text-purple-500 border border-purple-100/50"
-                                                        : publisherRole.toUpperCase() === "ADMIN"
-                                                        ? "bg-red-50 text-red-500 border border-red-100/50"
-                                                        : "bg-slate-50 text-slate-500 border border-slate-100"
+                                                            ? "bg-purple-50 text-purple-500 border border-purple-100/50"
+                                                            : publisherRole.toUpperCase() === "ADMIN"
+                                                                ? "bg-red-50 text-red-500 border border-red-100/50"
+                                                                : "bg-slate-50 text-slate-500 border border-slate-100"
                                                 )}>
                                                     {publisherRole.toUpperCase() === "MAHASISWA" ? "Mahasiswa" : publisherRole.toUpperCase() === "DOSEN" || publisherRole.toUpperCase() === "KAPRODI" ? "Dosen" : publisherRole.toUpperCase() === "ADMIN" ? "Admin" : "Staff"}
                                                 </span>
@@ -365,43 +377,43 @@ export function AcaraDesktop({ title }: { title: string }) {
                                                     <span className="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm group-hover:animate-pulse" />
                                                 )}
                                             </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-xs font-bold text-slate-400">{format(new Date(item.createdAt), "dd MMM yyyy", { locale: id })}</span>
-                                            <span className="w-1 h-1 rounded-full bg-slate-200" />
-                                            <span className="text-[10px] font-black uppercase tracking-wider text-brand-primary/60">
-                                                {item.type === "ASSIGNMENT" ? "Instruksi" : "Pengumuman"}
-                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs font-bold text-slate-400">{format(new Date(item.createdAt), "dd MMM yyyy", { locale: id })}</span>
+                                                <span className="w-1 h-1 rounded-full bg-slate-200" />
+                                                <span className="text-[10px] font-black uppercase tracking-wider text-brand-primary/60">
+                                                    {item.type === "ASSIGNMENT" ? "Instruksi" : "Pengumuman"}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4 shrink-0 pr-2">
+                                        {item.comments.length > 0 && (
+                                            <div className="hidden lg:flex items-center gap-1.5 text-slate-400 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
+                                                <MessageSquare size={14} />
+                                                <span className="text-[11px] font-bold">{item.comments.length}</span>
+                                            </div>
+                                        )}
+                                        <div className="p-3 text-slate-300">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger className="p-3 border-none bg-transparent hover:bg-slate-50 rounded-full transition-colors cursor-pointer outline-none">
+                                                    <MoreVertical size={20} />
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-48 bg-white border border-slate-100 shadow-xl rounded-2xl p-2 z-[50]">
+                                                    <DropdownMenuItem
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleCopySpecificLink(item.id);
+                                                        }}
+                                                        className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 cursor-pointer text-slate-600 hover:text-[#00bcd4] transition-all font-bold text-sm"
+                                                    >
+                                                        <LinkIcon size={16} />
+                                                        Salin Link
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-4 shrink-0 pr-2">
-                                    {item.comments.length > 0 && (
-                                        <div className="hidden lg:flex items-center gap-1.5 text-slate-400 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
-                                            <MessageSquare size={14} />
-                                            <span className="text-[11px] font-bold">{item.comments.length}</span>
-                                        </div>
-                                    )}
-                                    <div className="p-3 text-slate-300">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger className="p-3 border-none bg-transparent hover:bg-slate-50 rounded-full transition-colors cursor-pointer outline-none">
-                                                <MoreVertical size={20} />
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end" className="w-48 bg-white border border-slate-100 shadow-xl rounded-2xl p-2 z-[50]">
-                                                <DropdownMenuItem 
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleCopySpecificLink(item.id);
-                                                    }}
-                                                    className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 cursor-pointer text-slate-600 hover:text-[#00bcd4] transition-all font-bold text-sm"
-                                                >
-                                                    <LinkIcon size={16} />
-                                                    Salin Link
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </div>
-                                </div>
-                            </div>
                             );
                         })
                     )}
@@ -421,7 +433,7 @@ export function AcaraDesktop({ title }: { title: string }) {
                                         className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
                                     />
                                 </PaginationItem>
-                                
+
                                 {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((p) => (
                                     <PaginationItem key={p}>
                                         <PaginationLink
@@ -455,10 +467,10 @@ export function AcaraDesktop({ title }: { title: string }) {
             </div>
             {toast && (
                 <div className="fixed top-12 left-1/2 -translate-x-1/2 z-[200] w-fit min-w-[300px] animate-in slide-in-from-top duration-500">
-                    <Toast 
-                        title={toast.title} 
-                        variant={toast.variant} 
-                        onClose={() => setToast(null)} 
+                    <Toast
+                        title={toast.title}
+                        variant={toast.variant}
+                        onClose={() => setToast(null)}
                     />
                 </div>
             )}

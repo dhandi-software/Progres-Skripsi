@@ -5,6 +5,10 @@ import { CustomSelect } from "~/components/ui/custom-select";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext } from "~/components/ui/pagination";
 import { useNavigate } from "react-router";
 
+import { UPLOADS_URL } from "~/api/client";
+import { useAuth } from "~/hooks/useAuth";
+import { io } from "socket.io-client";
+
 const getStatusPenilaian = (status: string) => {
     switch (status) {
         case 'ASSIGNED': return '-';
@@ -16,6 +20,7 @@ const getStatusPenilaian = (status: string) => {
 };
 
 export function BimbinganDesktop() {
+    const { user } = useAuth();
     const [students, setStudents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
@@ -55,6 +60,21 @@ export function BimbinganDesktop() {
         fetchStudents(searchQuery, statusFilter);
         setCurrentPage(1);
     }, [statusFilter]);
+
+    // Real-time updates
+    useEffect(() => {
+        if (!user) return;
+        const socket = io(UPLOADS_URL);
+        socket.emit("join", user.id);
+        
+        socket.on("bimbingan_submitted", () => {
+            fetchStudents(searchQuery, statusFilter);
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, [user, searchQuery, statusFilter]);
 
     const handleStudentClick = (student: any) => {
         // Navigate to detail route and pass student data as state
@@ -156,9 +176,10 @@ export function BimbinganDesktop() {
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500 font-semibold">
-                                    <th className="p-4 pl-6 w-1/4">Nama & NIM</th>
-                                    <th className="p-4 w-1/3">Judul Disetujui</th>
-                                    <th className="p-4 w-1/4">Target Saat Ini</th>
+                                    <th className="p-4 pl-6 w-[20%]">Nama & NIM</th>
+                                    <th className="p-4 w-[30%]">Judul Disetujui</th>
+                                    <th className="p-4 w-[15%] text-center">Total Bimbingan</th>
+                                    <th className="p-4 w-[20%]">Target Saat Ini</th>
                                     <th className="p-4 pr-6 text-right w-[150px]">Aksi</th>
                                 </tr>
                             </thead>
@@ -183,6 +204,11 @@ export function BimbinganDesktop() {
                                                 <p className="text-sm font-medium text-gray-700 line-clamp-3 leading-relaxed">
                                                     {pengajuan.judul}
                                                 </p>
+                                            </td>
+                                            <td className="p-4 align-top text-center">
+                                                <div className="inline-flex items-center justify-center px-2.5 py-1 bg-blue-50 text-blue-700 font-bold rounded-lg text-sm border border-blue-100">
+                                                    {bimbinganList.length} Kali
+                                                </div>
                                             </td>
                                             <td className="p-4 align-top">
                                                 {activeTask ? (

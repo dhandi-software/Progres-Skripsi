@@ -9,6 +9,7 @@ import {
 export default [
     route("login", "routes/login/login.tsx"),
     route("forgot-password", "routes/forgot-password/forgot-password.tsx"),
+    route("502", "routes/maintenance.tsx", { id: "maintenance-route" }),
 
     layout("routes/landing/landing-layout.tsx", [
         route("/", "routes/landing/Home.tsx"),

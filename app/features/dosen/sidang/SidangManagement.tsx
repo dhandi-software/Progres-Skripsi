@@ -298,6 +298,7 @@ export default function SidangManagement() {
                                  <Input 
                                     type="date" 
                                     value={schedData.tanggalSidang}
+                                    min={new Date().toISOString().split("T")[0]}
                                     onChange={e => setSchedData({...schedData, tanggalSidang: e.target.value})}
                                     className="bg-slate-50 border-none h-12 rounded-2xl font-bold"
                                  />

@@ -213,6 +213,13 @@ export function LaporanDesktop({ title }: { title?: string }) {
 
 
     return (
+        <>
+        <style type="text/css" media="print">
+            {`
+            @page { margin: 0 !important; }
+            body { margin: 1.6cm !important; }
+            `}
+        </style>
         <div className={cn(
             "print-container-root flex flex-col min-h-screen w-full transition-colors duration-300 md:p-8 p-4",
             isLowVision ? "bg-white text-black" : "bg-[#FAFAFA]"
@@ -829,5 +836,6 @@ export function LaporanDesktop({ title }: { title?: string }) {
                 </div>
             )}
         </div>
+        </>
     );
 }

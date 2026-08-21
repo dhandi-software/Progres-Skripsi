@@ -168,7 +168,7 @@ export function AppSidebar() {
       try {
         const data = await pengajuanApi.getPengajuanByDosen();
         if (data && Array.isArray(data)) {
-          const count = data.filter((item: any) => item.status === 'PENDING').length;
+          const count = data.filter((item: any) => item.status === 'PENDING' || item.status === 'PENDING_KOORDINATOR').length;
           setPendingCount(count);
         }
       } catch (error) {

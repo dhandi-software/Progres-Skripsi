@@ -75,7 +75,7 @@ export function EditAccountDesktop() {
                 </p>
             </div>
 
-            <div className="flex flex-col gap-6 w-full max-w-5xl">
+            <div className="flex flex-col gap-6 w-full">
                 <div className="flex flex-col gap-6">
                     {/* Email Field */}
                     <div className="flex flex-col gap-3">
@@ -113,34 +113,95 @@ export function EditAccountDesktop() {
                 {/* Conditional Fields for Mahasiswa */}
                 {formData.role === "mahasiswa" && (
                     <div className="flex flex-col gap-6">
-                        <div className="flex flex-col gap-3">
-                            <label className="text-base font-semibold text-[#18181B]">
-                                NIM
-                            </label>
-                            <input
-                                type="text"
-                                name="nim"
-                                value={formData.nim}
-                                onChange={handleInputChange}
-                                placeholder="e.g. 4519210001"
-                                disabled={isLoading}
-                                className="w-full px-5 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-base disabled:opacity-50 disabled:bg-gray-50 bg-white"
-                            />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="flex flex-col gap-3">
+                                <label className="text-base font-semibold text-[#18181B]">
+                                    NIM / NPM
+                                </label>
+                                <input
+                                    type="text"
+                                    name="nim"
+                                    value={formData.nim}
+                                    onChange={handleInputChange}
+                                    placeholder="e.g. 4519210001"
+                                    disabled={isLoading}
+                                    className="w-full px-5 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-base disabled:opacity-50 disabled:bg-gray-50 bg-white"
+                                />
+                            </div>
+
+                            <div className="flex flex-col gap-3">
+                                <label className="text-base font-semibold text-[#18181B]">
+                                    Tahun Masuk
+                                </label>
+                                <input
+                                    type="text"
+                                    name="tahunMasuk"
+                                    value={formData.tahunMasuk}
+                                    onChange={handleInputChange}
+                                    placeholder="e.g. 2023"
+                                    disabled={isLoading}
+                                    className="w-full px-5 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-base disabled:opacity-50 disabled:bg-gray-50 bg-white"
+                                />
+                            </div>
                         </div>
 
-                        <div className="flex flex-col gap-3">
-                            <label className="text-base font-semibold text-[#18181B]">
-                                Tahun Masuk
-                            </label>
-                            <input
-                                type="text"
-                                name="tahunMasuk"
-                                value={formData.tahunMasuk}
-                                onChange={handleInputChange}
-                                placeholder="e.g. 2023"
-                                disabled={isLoading}
-                                className="w-full px-5 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-base disabled:opacity-50 disabled:bg-gray-50 bg-white"
-                            />
+                        {/* Data Akademik Edit Section */}
+                        <div className="p-5 bg-orange-50/40 border border-orange-100 rounded-2xl flex flex-col gap-4">
+                            <h3 className="text-sm font-bold text-[#D25026]">Data Akademik Mahasiswa</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-xs font-semibold text-gray-700">Jumlah SKS yang dicapai <span className="font-normal text-gray-500">(tanpa D, E, Blank)</span></label>
+                                    <input
+                                        type="number"
+                                        name="sksDicapai"
+                                        value={formData.sksDicapai}
+                                        onChange={handleInputChange}
+                                        placeholder="e.g. 110"
+                                        disabled={isLoading}
+                                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] text-sm bg-white"
+                                    />
+                                </div>
+
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-xs font-semibold text-gray-700">Jumlah SKS Tidak Lulus (D dan E)</label>
+                                    <input
+                                        type="number"
+                                        name="sksNilaiD"
+                                        value={formData.sksNilaiD}
+                                        onChange={handleInputChange}
+                                        placeholder="e.g. 0"
+                                        disabled={isLoading}
+                                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] text-sm bg-white"
+                                    />
+                                </div>
+
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-xs font-semibold text-gray-700">Indeks Prestasi Komulatif (IPK)</label>
+                                    <input
+                                        type="text"
+                                        name="ipk"
+                                        value={formData.ipk}
+                                        onChange={handleInputChange}
+                                        placeholder="Ketik 3 angka (cth: 350 -> 3.50)"
+                                        disabled={isLoading}
+                                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] text-sm bg-white"
+                                    />
+                                    <p className="text-[10px] text-gray-500">Otomatis memasukkan titik (misal ketik 350 jadi 3.50)</p>
+                                </div>
+
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-xs font-semibold text-gray-700">Batas Studi (Tahun)</label>
+                                    <input
+                                        type="text"
+                                        name="batasStudi"
+                                        value={formData.batasStudi || (formData.tahunMasuk && !isNaN(parseInt(formData.tahunMasuk)) ? (parseInt(formData.tahunMasuk) + 6).toString() : "")}
+                                        onChange={handleInputChange}
+                                        placeholder="e.g. 2029 (Otomatis Tahun Masuk + 6)"
+                                        disabled={isLoading}
+                                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] text-sm bg-white"
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -216,6 +277,21 @@ export function EditAccountDesktop() {
                                 }}
                                 placeholder="Select peminatan..."
                             />
+                        </div>
+                        <div className="flex flex-col gap-3">
+                            <label className="text-base font-semibold text-[#18181B]">
+                                Kuota Maksimal Bimbingan
+                            </label>
+                            <input
+                                type="number"
+                                name="maxBimbingan"
+                                value={formData.maxBimbingan}
+                                onChange={handleInputChange}
+                                placeholder="6"
+                                disabled={isLoading}
+                                className="w-full px-5 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-base disabled:opacity-50 disabled:bg-gray-50 bg-white"
+                            />
+                            <p className="text-xs text-gray-500">Kosongkan jika ingin menggunakan kuota default (6 mahasiswa).</p>
                         </div>
                     </div>
                 )}

@@ -5,7 +5,7 @@ import { Label } from "~/components/ui/label";
 import { TextField } from "~/components/ui/TextField";
 import { Link } from "react-router";
 import { useAuth } from "~/hooks/useAuth";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, User, Lock } from "lucide-react";
 import { AuthAlert } from "~/components/ui/AuthAlert";
 
 export function LoginMobile() {
@@ -47,70 +47,88 @@ export function LoginMobile() {
              {/* Full Screen Background */}
              <div className="absolute inset-0 z-0">
                 <img
-                    src="/images/Background.svg"
+                    src="/images/Background_Mobile.png"
                     alt="Background"
                     className="h-full w-full object-cover"
                 />
-                <div className="absolute inset-0 bg-black/20" />
             </div>
 
-            <div className="relative z-10 flex min-h-screen flex-col items-center justify-center p-4">
-                <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl animate-in fade-in slide-in-from-bottom-10 duration-500">
-                    
-                    {/* Header: Logo & Title */}
-                    <div className="mb-6 flex flex-col items-center text-center">
-                         <div className="mb-4 rounded-xl bg-gradient-to-br from-[#119DA4] to-[#FDE789] p-4 shadow-lg">
-                            <img 
-                                src="https://upload.wikimedia.org/wikipedia/id/thumb/4/46/Logo_Universitas_Pancasila.png/250px-Logo_Universitas_Pancasila.png" 
-                                alt="Logo Universitas Pancasila" 
-                                className="h-16 w-auto mix-blend-multiply"
-                            />
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-xl font-bold text-zinc-900 leading-tight tracking-tight">Sistem Informasi</span>
-                            <span className="text-base font-semibold text-[#119DA4] leading-tight tracking-wide">Kerja Praktik</span>
-                        </div>
-                         <h2 className="mt-4 text-base font-medium text-zinc-600">Welcome Back!</h2>
+            <div className="relative z-10 flex min-h-screen w-full flex-col items-center justify-center px-4 py-2">
+                
+                {/* Header: Logo & Title */}
+                <div className="mb-6 flex flex-col items-center text-center">
+                    <div className="mb-4 rounded-[20px] bg-white p-4 shadow-[0_4px_20px_rgb(0,0,0,0.04)]">
+                        <img 
+                            src="https://upload.wikimedia.org/wikipedia/id/thumb/4/46/Logo_Universitas_Pancasila.png/250px-Logo_Universitas_Pancasila.png" 
+                            alt="Logo Universitas Pancasila" 
+                            className="h-14 w-auto"
+                        />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <h1 className="text-2xl md:text-3xl font-extrabold text-[#1a1f2c] tracking-tight">Sistem Informasi</h1>
+                        <h2 className="text-xl md:text-2xl font-bold text-[#e09f00] tracking-tight">Kerja Praktik</h2>
+                    </div>
+                    <p className="mt-2 text-xs md:text-sm font-medium text-zinc-500 max-w-[280px] leading-relaxed">
+                        Platform terintegrasi untuk pengelolaan administrasi dan monitoring kerja praktik mahasiswa.
+                    </p>
+                </div>
+
+                <div 
+                    className="rounded-3xl bg-white p-5 shadow-[0_8px_30px_rgb(0,0,0,0.08)] w-[95%] max-w-[420px] animate-in fade-in slide-in-from-bottom-5 duration-500"
+                >
+                    <div className="mb-5">
+                        <h2 className="text-xl font-bold text-[#1a1f2c]">Welcome Back!</h2>
+                        <p className="text-xs md:text-sm text-zinc-500 mt-1">Please enter your details to sign in.</p>
                     </div>
 
                     {loginError && (
-                        <AuthAlert message={loginError} type="error" className="mb-6" />
+                        <AuthAlert message={loginError} type="error" className="mb-5" />
                     )}
 
-                    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                    <form onSubmit={handleSubmit} autoComplete="off" className="flex flex-col gap-4">
                         <TextField
                             label="Email Address"
+                            name="email_address_login"
+                            autoComplete="off"
                             placeholder="username@student.univpancasila.ac.id"
                             value={email}
                             variant="vertical"
                             onChange={(e) => setEmail(e.target.value)}
                             error={errors.email}
-                            className="bg-zinc-50 focus:bg-white transition-colors"
+                            leftIcon={<User size={18} className="text-zinc-400" />}
+                            className="bg-white"
+                            inputClassName="h-11 border-zinc-200 focus-visible:ring-[#e84e0f]/20 focus-visible:border-[#e84e0f]"
+                            labelClassName="font-bold text-xs md:text-sm text-[#1a1f2c]"
                         />
                         <div className="flex flex-col gap-1">
                             <TextField
                                 label="Password"
+                                name="user_password_login"
+                                autoComplete="new-password"
                                 placeholder="••••••••"
                                 value={password}
                                 type={showPassword ? "text" : "password"}
                                 variant="vertical"
                                 onChange={(e) => setPassword(e.target.value)}
                                 error={errors.password}
-                                className="bg-zinc-50 focus:bg-white transition-colors"
+                                leftIcon={<Lock size={18} className="text-zinc-400" />}
+                                className="bg-white"
+                                inputClassName="h-11 border-zinc-200 focus-visible:ring-[#e84e0f]/20 focus-visible:border-[#e84e0f]"
+                                labelClassName="font-bold text-xs md:text-sm text-[#1a1f2c]"
                                 rightIcon={
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
                                         className="text-zinc-400 hover:text-zinc-600 focus:outline-none flex items-center"
                                     >
-                                        {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
+                                        {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
                                     </button>
                                 }
                             />
-                             <div className="flex justify-end mt-1">
+                            <div className="flex justify-end mt-1">
                                 <Link
                                     to="/forgot-password"
-                                    className="text-xs font-medium text-[#119DA4] hover:text-[#0e8389] hover:underline transition-colors"
+                                    className="text-[11px] md:text-xs font-semibold text-[#e84e0f] hover:text-[#c43d08] hover:underline transition-colors"
                                 >
                                     Forgot password?
                                 </Link>
@@ -124,11 +142,11 @@ export function LoginMobile() {
                                 onCheckedChange={(checked) =>
                                     setRememberMe(checked === true)
                                 }
-                               className="border-gray-300 data-[state=checked]:bg-[#119DA4] data-[state=checked]:border-[#119DA4] rounded"
+                               className="border-zinc-300 data-[state=checked]:bg-[#e84e0f] data-[state=checked]:border-[#e84e0f] rounded-md h-4 w-4"
                             />
                             <Label
                                 htmlFor="remember-mobile"
-                                className="text-sm font-normal text-zinc-600 cursor-pointer select-none"
+                                className="text-xs md:text-sm font-medium text-zinc-600 cursor-pointer select-none"
                             >
                                 Remember me
                             </Label>
@@ -137,20 +155,20 @@ export function LoginMobile() {
                         <Button
                             type="submit"
                             size="lg"
-                            className="w-full mt-2 h-11 bg-[#119DA4] hover:bg-[#0e8389] text-white font-medium shadow-lg shadow-[#119DA4]/20 transition-all active:scale-[0.98] rounded-xl text-sm"
+                            className="w-full mt-2 h-11 bg-[#e84e0f] hover:bg-[#d44309] text-white font-semibold transition-all active:scale-[0.98] rounded-xl text-sm md:text-base"
                             disabled={isLoading}
                         >
                             {isLoading ? "Signing in..." : "Sign In"}
                         </Button>
                     </form>
-
-                     <div className="mt-8 text-center">
-                        <p className="text-[10px] text-zinc-400">
-                            © {new Date().getFullYear()} Universitas Pancasila. All rights reserved.
-                        </p>
-                    </div>
                 </div>
-            </div >
-        </main >
+
+                <div className="mt-4 pb-2 text-center">
+                    <p className="text-[10px] md:text-xs font-medium text-zinc-500">
+                        © {new Date().getFullYear()} Universitas Pancasila.<br/>All rights reserved.
+                    </p>
+                </div>
+            </div>
+        </main>
     );
 }

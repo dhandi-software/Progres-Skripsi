@@ -89,11 +89,12 @@ export function usePeninjauan(user: User | null) {
 
         // Kalau Semua Status biarkan yang sudah di acc (APPROVED) duluan didepan, lalu pending, dst.
         // The user request: "kalau semua role biarkan yang sudah di acc duluan didepan"
+        // Urutan kustom: PENDING di depan
         if (filterStatus === "ALL") {
-            // Urutan kustom: APPROVED di depan
             const statusOrder: Record<string, number> = {
-                "APPROVED": 1,
-                "PENDING": 2,
+                "PENDING": 1,
+                "PENDING_KOORDINATOR": 1,
+                "APPROVED": 2,
                 "REVISION": 3,
                 "REJECTED": 4
             };

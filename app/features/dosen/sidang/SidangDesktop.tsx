@@ -670,12 +670,13 @@ export function SidangDesktop() {
                             <div className="space-y-8 flex-1">
                                 <div className="space-y-3">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Tanggal Sidang</label>
-                                    <div className="bg-slate-50/80 p-4 rounded-3xl border border-slate-100 group focus-within:border-brand-primary/30 transition-all">
+                                <div className="bg-slate-50/80 p-4 rounded-3xl border border-slate-100 group focus-within:border-brand-primary/30 transition-all">
                                         <MonthYearFilter 
                                             date={selectedDate}
                                             setDate={setSelectedDate}
                                             showLabel={false}
                                             className="w-full"
+                                            minDate={new Date()}
                                         />
                                     </div>
                                 </div>

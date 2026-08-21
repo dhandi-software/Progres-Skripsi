@@ -24,6 +24,19 @@ interface LogbookProps {
     mahasiswaId?: string;
 }
 
+const parseSafeDate = (val: string): Date => {
+    if (!val) return new Date();
+    if (typeof val === 'string') {
+        const match = val.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (match) {
+            const [, y, m, d] = match;
+            return new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+        }
+    }
+    const parsed = new Date(val);
+    return isNaN(parsed.getTime()) ? new Date() : parsed;
+};
+
 export function LogbookMobile({ mahasiswaId }: LogbookProps) {
     const { user } = useAuth();
     const role = user?.role?.toLowerCase();
@@ -464,14 +477,19 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                                                 </div>
                                                 <div className="p-1">
                                                     <MonthYearFilter 
-                                                        date={new Date(entry.tanggalPukul)}
+                                                        date={parseSafeDate(entry.tanggalPukul)}
                                                         setDate={(d) => {
-                                                            if (isViewingStudent) return;
-                                                            if (d) {
-                                                                const timePart = entry.tanggalPukul.split('T')[1] || "09:00";
-                                                                const newDateTime = `${format(d, "yyyy-MM-dd")}T${timePart}`;
-                                                                handleEntryChange(entry.id, 'tanggalPukul', newDateTime);
+                                                            if (isViewingStudent || !d) return;
+                                                            const year = d.getFullYear();
+                                                            const month = String(d.getMonth() + 1).padStart(2, '0');
+                                                            const day = String(d.getDate()).padStart(2, '0');
+                                                            const dateStr = `${year}-${month}-${day}`;
+                                                            
+                                                            let timeStr = "09:00";
+                                                            if (entry.tanggalPukul && entry.tanggalPukul.includes('T')) {
+                                                                timeStr = entry.tanggalPukul.split('T')[1].slice(0, 5);
                                                             }
+                                                            handleEntryChange(entry.id, 'tanggalPukul', `${dateStr}T${timeStr}:00`);
                                                         }}
                                                         showLabel={false}
                                                         className="w-full scale-100"
@@ -489,12 +507,15 @@ export function LogbookMobile({ mahasiswaId }: LogbookProps) {
                                                     <input 
                                                         type="time"
                                                         disabled={isViewingStudent || (!editingRowIds.has(entry.id) && !!entry.pembimbingParaf)}
-                                                        value={entry.tanggalPukul.split('T')[1]?.slice(0, 5) || "09:00"}
+                                                        value={entry.tanggalPukul && entry.tanggalPukul.includes('T') ? entry.tanggalPukul.split('T')[1].slice(0, 5) : "09:00"}
                                                         onChange={(e) => {
-                                                            const datePart = entry.tanggalPukul.split('T')[0];
-                                                            handleEntryChange(entry.id, 'tanggalPukul', `${datePart}T${e.target.value}`);
+                                                            const currentVal = entry.tanggalPukul || "";
+                                                            let datePart = new Date().toISOString().split('T')[0];
+                                                            const match = currentVal.match(/^(\d{4}-\d{2}-\d{2})/);
+                                                            if (match) datePart = match[1];
+                                                            handleEntryChange(entry.id, 'tanggalPukul', `${datePart}T${e.target.value}:00`);
                                                         }}
-                                                        className="outline-none text-lg font-black w-full bg-transparent text-gray-800 disabled:text-gray-400 tracking-widest text-center"
+                                                        className="outline-none text-sm font-black w-full bg-transparent text-gray-800 disabled:cursor-not-allowed tracking-widest text-center"
                                                     />
                                                 </div>
                                             </div>

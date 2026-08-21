@@ -13,6 +13,7 @@ interface PengajuanDetail {
     mahasiswa: {
         nama: string;
         nim: string;
+        bimbingan?: any[];
     };
     status: string;
     peminatan: string;
@@ -34,6 +35,7 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
     const [remarks, setRemarks] = useState("");
     const [deadlineRevisi, setDeadlineRevisi] = useState<Date | undefined>(undefined);
     const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
+    const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [toast, setToast] = useState<{ title: string; variant: "success" | "destructive" | "default" } | null>(null);
 
@@ -57,12 +59,12 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
         fetchDetail();
     }, [id, navigate]);
 
-    const handleAction = async (status: 'APPROVED' | 'REJECTED' | 'REVISION') => {
+    const handleAction = async (status: 'APPROVED' | 'REJECTED' | 'REVISION' | 'PENDING' | 'PENDING_KOORDINATOR') => {
         setSubmitting(true);
         try {
             const deadlineStr = deadlineRevisi ? deadlineRevisi.toISOString() : undefined;
             await pengajuanApi.updateStatus(parseInt(id), status, remarks, deadlineStr);
-            const label = status === 'APPROVED' ? 'disetujui' : status === 'REJECTED' ? 'ditolak' : 'diminta revisi';
+            const label = status === 'APPROVED' ? 'disetujui' : status === 'REJECTED' ? 'ditolak' : status === 'REVISION' ? 'diminta revisi' : 'dibatalkan keputusannya';
             showToast(`Pengajuan berhasil ${label}.`, "success");
             setIsRevisionModalOpen(false);
             setTimeout(() => navigate(`/dosen/peninjauan${location.search}`), 1800);
@@ -232,7 +234,7 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
                             </div>
                             
                             <div className="flex flex-col gap-1.5">
-                                <label className="text-sm font-semibold text-gray-700">Jumlah SKS nilai D</label>
+                                <label className="text-sm font-semibold text-gray-700">Jumlah yang tidak lulus(D,E)</label>
                                 <div className="relative">
                                     <input 
                                         type="text" 
@@ -337,7 +339,7 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
                                     <Button
                                         variant="default"
                                         size="md"
-                                        onClick={() => handleAction('APPROVED')}
+                                        onClick={() => setIsApproveModalOpen(true)}
                                         disabled={submitting}
                                         className="font-bold"
                                     >
@@ -346,6 +348,41 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
                                     </Button>
                                 </div>
                             </div>
+                        </div>
+                    )}
+
+                    {['APPROVED', 'REJECTED', 'REVISION', 'REJECTED_KOORDINATOR', 'REVISION_KOORDINATOR'].includes(detail.status) && (
+                        <div className="border-t-2 border-dashed border-gray-200 mt-8 pt-8 pb-4">
+                            {(!detail.mahasiswa.bimbingan || detail.mahasiswa.bimbingan.length === 0) ? (
+                                <div className="bg-red-50 border border-red-200 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                                    <div>
+                                        <h3 className="font-bold text-red-800 mb-1 flex items-center gap-2">
+                                            <RotateCcw className="w-5 h-5" />
+                                            Batalkan Keputusan Peninjauan
+                                        </h3>
+                                        <p className="text-sm text-red-700">Anda dapat membatalkan keputusan ini jika terjadi kesalahan, dan status akan kembali menjadi Menunggu.</p>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="md"
+                                        onClick={() => handleAction(['REJECTED_KOORDINATOR', 'REVISION_KOORDINATOR'].includes(detail.status) ? 'PENDING_KOORDINATOR' : 'PENDING')}
+                                        disabled={submitting}
+                                        className="border-red-500 bg-white text-red-700 hover:bg-red-100 font-bold shrink-0"
+                                    >
+                                        Batalkan Keputusan
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center shrink-0">
+                                        <Check className="w-5 h-5 text-gray-500" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-gray-800 text-sm">Keputusan Tidak Dapat Dibatalkan</h3>
+                                        <p className="text-sm text-gray-500">Mahasiswa ini sudah mulai melakukan proses bimbingan (sudah memiliki target tugas).</p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -389,6 +426,44 @@ export function PeninjauanDetailDesktop({ id }: { id: string }) {
                                 className="flex-1 px-4 py-2.5 bg-yellow-500 text-white rounded-lg text-sm font-medium hover:bg-yellow-600 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed font-bold"
                             >
                                 {submitting ? 'Menyimpan...' : 'Kirim Revisi'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Approve Modal */}
+            {isApproveModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity animate-in fade-in-0">
+                    <div className="w-[450px] bg-white rounded-xl shadow-lg border border-gray-100 p-6 flex flex-col gap-4 relative animate-in zoom-in-95 duration-200">
+                        <div className="flex flex-col gap-2">
+                            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                <Check className="w-5 h-5 text-green-600" />
+                                Konfirmasi Persetujuan
+                            </h3>
+                            <p className="text-sm text-gray-500">
+                                {detail.status === 'PENDING_KOORDINATOR' 
+                                    ? 'Apakah Anda yakin ingin meneruskan pengajuan ini ke dosen pembimbing?' 
+                                    : 'Apakah Anda yakin ingin menyetujui pengajuan judul ini?'}
+                            </p>
+                        </div>
+
+                        <div className="flex gap-3 w-full mt-4">
+                            <button
+                                onClick={() => setIsApproveModalOpen(false)}
+                                className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setIsApproveModalOpen(false);
+                                    handleAction('APPROVED');
+                                }}
+                                disabled={submitting}
+                                className="flex-1 px-4 py-2.5 bg-[#D25026] text-white rounded-lg text-sm font-medium hover:bg-[#b0401d] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed font-bold"
+                            >
+                                Ya, Lanjutkan
                             </button>
                         </div>
                     </div>

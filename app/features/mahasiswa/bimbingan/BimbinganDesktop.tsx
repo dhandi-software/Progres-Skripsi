@@ -1,9 +1,13 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { UPLOADS_URL } from "~/api/client";
-import { BookOpen, Calendar, Clock, Loader2, CheckCircle2, FileText, Upload, Download, AlertCircle, FileStack, Eye, X } from "lucide-react";
-import { Loader2 as LoaderIcon } from "lucide-react";
+import { BookOpen, Calendar, Clock, Loader2, CheckCircle2, FileText, Upload, Download, AlertCircle, FileStack, Eye, X, Loader2 as LoaderIcon } from "lucide-react";
+import { format } from "date-fns";
+import { id } from "date-fns/locale/id";
 import { Toast } from "~/components/ui/toast";
+import { DeleteConfirmationModal } from '~/components/ui/delete-confirmation-modal';
+import { useAuth } from "~/hooks/useAuth";
+import { io } from "socket.io-client";
 
 // Use dynamic import for client-side only component
 const SharedPdfViewer = lazy(() => import('../../components/SharedPdfViewer.client').then(m => ({ default: m.SharedPdfViewer })));
@@ -42,10 +46,10 @@ const getTimeRemaining = (deadline?: string) => {
     const now = new Date();
     const dDate = new Date(deadline);
     dDate.setHours(23, 59, 59, 999);
-    
+
     const diffTime = dDate.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays < 0) return { text: `Terlambat ${Math.abs(diffDays)} hari`, isLate: true, isWarning: false };
     if (diffDays === 0) return { text: "Hari ini", isLate: false, isWarning: true };
     if (diffDays <= 3) return { text: `${diffDays} hari lagi`, isLate: false, isWarning: true };
@@ -59,25 +63,31 @@ export function BimbinganDesktop() {
     const [loading, setLoading] = useState(true);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [keteranganProgres, setKeteranganProgres] = useState("");
+    const [isDeletedFile, setIsDeletedFile] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
-    
-    const [toastProps, setToastProps] = useState<{title: string, variant?: "success" | "destructive" | "default"} | null>(null);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+    const [toastProps, setToastProps] = useState<{ title: string, variant?: "success" | "destructive" | "default" } | null>(null);
 
     const showToast = (title: string, variant: "success" | "destructive" | "default" = "success") => {
         setToastProps({ title, variant });
     };
-    
+
     // Viewer Modal State
     const [viewingReview, setViewingReview] = useState(false);
     const [viewingTaskTopik, setViewingTaskTopik] = useState("");
     const [annotations, setAnnotations] = useState<any[]>([]);
 
     const [history, setHistory] = useState<any[]>([]);
+    const [expandedHistoryId, setExpandedHistoryId] = useState<number | null>(null);
+
+    const [allTasks, setAllTasks] = useState<any[]>([]);
 
     const fetchTask = () => {
         bimbinganApi.getMahasiswaAllTasks()
             .then(tasks => {
+                setAllTasks(tasks);
                 const grouped = tasks.reduce((acc: any, task: any) => {
                     if (!acc[task.topik] || task.versi > acc[task.topik].versi) {
                         acc[task.topik] = task;
@@ -87,7 +97,7 @@ export function BimbinganDesktop() {
                 const uniqueTasks: any[] = Object.values(grouped);
                 const active = uniqueTasks.find((t: any) => t.status !== 'APPROVED');
                 const completed = uniqueTasks.filter((t: any) => t.status === 'APPROVED');
-                
+
                 setActiveTask(active || null);
                 setCompletedTasks(completed);
             })
@@ -95,9 +105,25 @@ export function BimbinganDesktop() {
             .finally(() => setLoading(false));
     };
 
+    const { user } = useAuth();
     useEffect(() => {
         fetchTask();
     }, []);
+
+    useEffect(() => {
+        if (!user) return;
+        const socket = io(UPLOADS_URL);
+        socket.emit("join", user.id);
+        
+        socket.on("bimbingan_reviewed", () => {
+            fetchTask();
+            showToast("Ada pembaruan status bimbingan!", "success");
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, [user]);
 
     useEffect(() => {
         if (activeTask) {
@@ -114,13 +140,20 @@ export function BimbinganDesktop() {
     };
 
     const handleUpload = async () => {
-        if (!activeTask || !selectedFile) return;
+        if (!activeTask) return;
+        if (activeTask.status === 'ASSIGNED' && !selectedFile) {
+            showToast("Harap pilih file terlebih dahulu.", "destructive");
+            return;
+        }
+
         setUploading(true);
         try {
-            await bimbinganApi.uploadDraftMahasiswa(activeTask.id, selectedFile, keteranganProgres);
+            await bimbinganApi.uploadDraftMahasiswa(activeTask.id, selectedFile, keteranganProgres, isDeletedFile);
             showToast("Berhasil mengunggah dokumen bimbingan!", "success");
             setSelectedFile(null);
+            setIsDeletedFile(false);
             setKeteranganProgres("");
+            setIsEditing(false);
             fetchTask();
         } catch (error) {
             console.error(error);
@@ -169,6 +202,16 @@ export function BimbinganDesktop() {
                     />
                 </div>
             )}
+            <DeleteConfirmationModal
+                isOpen={isDeleteDialogOpen}
+                onClose={() => setIsDeleteDialogOpen(false)}
+                onConfirm={() => {
+                    setIsDeletedFile(true);
+                    setIsDeleteDialogOpen(false);
+                }}
+                title="Hapus File Draf"
+                description="Apakah Anda yakin ingin menghapus file draf ini? File yang dihapus tidak akan tersimpan kecuali Anda mengunggah yang baru."
+            />
             {/* Header */}
             <div className="mb-8">
                 <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
@@ -202,7 +245,7 @@ export function BimbinganDesktop() {
                         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden relative">
                             {/* Decorative Top Banner */}
                             <div className="h-1.5 w-full bg-[#119DA4]"></div>
-                            
+
                             <div className="p-8">
                                 {activeTask ? (
                                     <div>
@@ -230,7 +273,7 @@ export function BimbinganDesktop() {
                                                         Dosen pembimbing telah memeriksa draf Anda dan memberikan catatan revisi. Silakan periksa bagian <b>Komentar & Catatan</b> di bawah, lihat anotasi dokumen jika ada, lalu unggah draf perbaikan Anda.
                                                     </p>
                                                     {activeTask.fileMahasiswa?.toLowerCase().endsWith('.pdf') && (
-                                                        <button 
+                                                        <button
                                                             onClick={() => handleOpenViewer(activeTask.id, activeTask.topik)}
                                                             className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-orange-200 text-orange-700 hover:bg-orange-100 rounded-lg text-xs font-bold transition-colors shadow-sm"
                                                         >
@@ -240,7 +283,7 @@ export function BimbinganDesktop() {
                                                 </div>
                                             </div>
                                         )}
-                                        
+
                                         {/* Jika status SUBMITTED dan sedang tidak edit, tampilkan tombol Edit saja */}
                                         {activeTask.status === 'SUBMITTED' && !isEditing && !getTimeRemaining(activeTask.jadwalBimbingan).isLate && (
                                             <div className="mb-8 p-6 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-between">
@@ -248,8 +291,11 @@ export function BimbinganDesktop() {
                                                     <h3 className="text-sm font-bold text-gray-800">Draf telah dikumpulkan</h3>
                                                     <p className="text-xs text-gray-500 mt-1">Anda dapat memperbarui draf sebelum dosen melakukan reviu.</p>
                                                 </div>
-                                                <button 
-                                                    onClick={() => setIsEditing(true)}
+                                                <button
+                                                    onClick={() => {
+                                                        setIsEditing(true);
+                                                        setKeteranganProgres(activeTask.keteranganProgres || "");
+                                                    }}
                                                     className="px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 font-bold rounded-lg transition-colors text-sm"
                                                 >
                                                     Edit Pengajuan (Draf)
@@ -262,42 +308,87 @@ export function BimbinganDesktop() {
                                             <div className="mb-8 p-6 bg-gray-50 border border-gray-200 rounded-xl">
                                                 <div className="flex justify-between items-center mb-4">
                                                     <label className="block text-sm font-bold text-gray-700">
-                                                        Form Pengumpulan Draf (.pdf, .doc, .docx)
+                                                        Form Pengumpulan Draf (.pdf)
                                                     </label>
                                                     {isEditing && (
-                                                        <button 
-                                                            onClick={() => setIsEditing(false)}
+                                                        <button
+                                                            onClick={() => {
+                                                                setIsEditing(false);
+                                                                setIsDeletedFile(false);
+                                                                setSelectedFile(null);
+                                                            }}
                                                             className="text-xs text-gray-500 hover:text-gray-700 font-bold"
                                                         >
                                                             Batal Edit
                                                         </button>
                                                     )}
                                                 </div>
-                                                <input 
-                                                    type="file" 
-                                                    accept="application/pdf"
-                                                    onChange={handleFileChange}
-                                                    disabled={getTimeRemaining(activeTask.jadwalBimbingan).isLate}
-                                                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-[#e6f4f5] file:text-[#119DA4] hover:file:bg-[#d0ebed] cursor-pointer disabled:opacity-50 mb-4 bg-white border border-gray-200 p-2 rounded-lg"
-                                                />
+                                                <div className="mb-4">
+                                                    <div className={activeTask.fileMahasiswa && !isDeletedFile && !selectedFile && activeTask.status !== 'ASSIGNED' ? "hidden" : "block relative"}>
+                                                        <input
+                                                            type="file"
+                                                            accept="application/pdf"
+                                                            onChange={handleFileChange}
+                                                            disabled={getTimeRemaining(activeTask.jadwalBimbingan).isLate}
+                                                            className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-[#e6f4f5] file:text-[#119DA4] hover:file:bg-[#d0ebed] cursor-pointer disabled:opacity-50 bg-white border border-gray-200 p-2 rounded-lg"
+                                                            id="file-upload-input"
+                                                        />
+                                                        {(selectedFile || isDeletedFile) && activeTask.fileMahasiswa && activeTask.status !== 'ASSIGNED' && (
+                                                            <button 
+                                                                onClick={() => {
+                                                                    setSelectedFile(null);
+                                                                    setIsDeletedFile(false);
+                                                                    const el = document.getElementById('file-upload-input') as HTMLInputElement;
+                                                                    if (el) el.value = '';
+                                                                }}
+                                                                className="absolute right-2 top-2 text-xs font-bold text-gray-500 hover:text-gray-700 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                                                            >
+                                                                Batal Ganti
+                                                            </button>
+                                                        )}
+                                                    </div>
+
+                                                    {activeTask.fileMahasiswa && !isDeletedFile && !selectedFile && activeTask.status !== 'ASSIGNED' && (
+                                                        <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-white">
+                                                            <div className="flex items-center gap-2 overflow-hidden">
+                                                                <FileText className="w-5 h-5 text-[#119DA4] shrink-0" />
+                                                                <span className="text-sm font-medium text-gray-700 truncate" title={activeTask.fileMahasiswa.split('/').pop()}>{activeTask.fileMahasiswa.split('/').pop()}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 shrink-0">
+                                                                <button 
+                                                                    onClick={() => {
+                                                                        const el = document.getElementById('file-upload-input') as HTMLInputElement;
+                                                                        if (el) el.click();
+                                                                    }} 
+                                                                    className="text-xs font-bold text-[#119DA4] hover:text-[#0d7a7f] bg-[#e6f4f5] hover:bg-[#d0ebed] py-1.5 px-3 rounded-full transition-colors"
+                                                                >
+                                                                    Ganti File
+                                                                </button>
+                                                                <button onClick={() => setIsDeleteDialogOpen(true)} className="text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 py-1.5 px-3 rounded-full transition-colors">
+                                                                    Hapus
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
                                                 <label className="block text-sm font-bold text-gray-700 mb-2 mt-4">
                                                     Ringkasan Progres (Opsional)
                                                 </label>
-                                                <textarea 
+                                                <textarea
                                                     value={keteranganProgres}
                                                     onChange={(e) => setKeteranganProgres(e.target.value)}
                                                     placeholder="Tuliskan ringkasan bagian apa saja yang sudah kamu kerjakan..."
                                                     className="w-full h-24 p-3 text-sm border border-gray-200 rounded-lg outline-none focus:border-[#119DA4] bg-white"
                                                 />
-                                                
+
                                                 {getTimeRemaining(activeTask.jadwalBimbingan).isLate && (
                                                     <div className="mt-4 text-xs text-red-600 font-medium bg-red-50 p-3 rounded-lg border border-red-100 flex items-start gap-2">
                                                         <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                                                         Waktu pengumpulan telah berakhir. Kamu tidak dapat mengirimkan draf lagi.
                                                     </div>
                                                 )}
-                                                {selectedFile && !getTimeRemaining(activeTask.jadwalBimbingan).isLate && (
-                                                    <button 
+                                                {(selectedFile || activeTask.status !== 'ASSIGNED') && !getTimeRemaining(activeTask.jadwalBimbingan).isLate && (
+                                                    <button
                                                         onClick={handleUpload}
                                                         disabled={uploading}
                                                         className="mt-6 w-full py-3 bg-[#4267B2] hover:bg-[#365899] disabled:opacity-50 text-white font-bold rounded-lg transition-all text-sm flex items-center justify-center gap-2"
@@ -340,11 +431,11 @@ export function BimbinganDesktop() {
                                                     </tr>
                                                     <tr className="bg-gray-50/50">
                                                         <th className="py-4 px-6 font-bold text-gray-700 w-1/3 border-r border-gray-200">Batas akhir pengumpulan</th>
-                                                        <td className="py-4 px-6 text-gray-900 bg-white font-medium">{activeTask.jadwalBimbingan ? new Date(activeTask.jadwalBimbingan).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' }) : '-'}</td>
+                                                        <td className="py-4 px-6 text-gray-900 bg-white font-medium">{activeTask.jadwalBimbingan ? new Date(activeTask.jadwalBimbingan).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}</td>
                                                     </tr>
                                                     <tr className="bg-gray-50/50">
                                                         <th className="py-4 px-6 font-bold text-gray-700 w-1/3 border-r border-gray-200">Terakhir diubah</th>
-                                                        <td className="py-4 px-6 text-gray-900 bg-white font-medium">{new Date(activeTask.tanggal).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' })}</td>
+                                                        <td className="py-4 px-6 text-gray-900 bg-white font-medium">{new Date(activeTask.tanggal).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                                                     </tr>
                                                     <tr className="bg-gray-50/50">
                                                         <th className="py-4 px-6 font-bold text-gray-700 w-1/3 border-r border-gray-200">Komentar & Catatan</th>
@@ -368,7 +459,7 @@ export function BimbinganDesktop() {
                                                                     </div>
                                                                 );
                                                             })()}
-                                                            
+
                                                             {activeTask.fileDosen && (
                                                                 <a href={`${UPLOADS_URL}${activeTask.fileDosen}`} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-xs font-bold transition-colors">
                                                                     <Download className="w-4 h-4" /> Unduh File Reviu
@@ -401,9 +492,9 @@ export function BimbinganDesktop() {
                     {/* Timeline Sidebar (Only visible if activeTask exists) */}
                     <div className="space-y-6">
                         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 overflow-hidden relative">
-                             <h2 className="text-lg font-bold text-gray-800 mb-6 border-b border-gray-100 pb-3">Riwayat Versi Draf ({activeTask?.topik || 'Target Aktif'})</h2>
-                             
-                             <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 before:to-transparent">
+                            <h2 className="text-lg font-bold text-gray-800 mb-6 border-b border-gray-100 pb-3">Riwayat Versi Draf ({activeTask?.topik || 'Target Aktif'})</h2>
+
+                            <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 before:to-transparent">
                                 {history.length > 0 ? (
                                     history.map((item, index) => (
                                         <div key={item.id} className="relative flex items-center group is-active gap-4">
@@ -422,7 +513,7 @@ export function BimbinganDesktop() {
                                                     {item.status === 'SUBMITTED' && <p>Draf diunggah</p>}
                                                     {item.status === 'REVISION' && <p className="text-orange-600 font-medium">Perlu revisi</p>}
                                                     {item.status === 'APPROVED' && <p className="text-green-600 font-medium">Disetujui (ACC)</p>}
-                                                    
+
                                                     {item.fileMahasiswa && item.status !== 'ASSIGNED' && (
                                                         <a href={`${UPLOADS_URL}${item.fileMahasiswa}`} target="_blank" rel="noreferrer" className="inline-block mt-1.5 font-bold text-blue-600 hover:text-blue-700">
                                                             Unduh File PDF
@@ -435,7 +526,7 @@ export function BimbinganDesktop() {
                                 ) : (
                                     <div className="text-center text-sm text-gray-400 py-4 italic">{activeTask ? "Riwayat versi akan muncul di sini." : "Belum ada tugas"}</div>
                                 )}
-                             </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -452,7 +543,7 @@ export function BimbinganDesktop() {
                             </p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
                             {completedTasks.map(task => {
                                 const parsed = parseCatatan(task.catatan);
                                 return (
@@ -486,6 +577,57 @@ export function BimbinganDesktop() {
                                                     </button>
                                                 )}
                                             </div>
+
+                                            {/* History Accordion */}
+                                            <div className="mt-4 pt-4 border-t border-gray-100">
+                                                <button
+                                                    onClick={() => setExpandedHistoryId(expandedHistoryId === task.id ? null : task.id)}
+                                                    className="w-full flex items-center justify-between text-xs font-bold text-gray-600 hover:text-gray-900 focus:outline-none"
+                                                >
+                                                    <span>Riwayat Revisi & Anotasi</span>
+                                                    <span className="text-[10px] bg-gray-100 px-2 py-1 rounded text-gray-500">
+                                                        {allTasks.filter(t => t.topik === task.topik).length} Versi
+                                                    </span>
+                                                </button>
+                                                {expandedHistoryId === task.id && (
+                                                    <div className="mt-4 space-y-3 pl-1 border-l-2 border-gray-100 ml-2 max-h-60 overflow-y-auto pr-2">
+                                                        {allTasks
+                                                            .filter(t => t.topik === task.topik)
+                                                            .sort((a, b) => b.versi - a.versi)
+                                                            .map(item => (
+                                                                <div key={item.id} className="relative pl-4">
+                                                                    <div className={`absolute -left-[5px] top-1.5 w-2 h-2 rounded-full ${item.status === 'APPROVED' ? 'bg-green-500' : item.status === 'REVISION' ? 'bg-orange-500' : 'bg-gray-400'}`}></div>
+                                                                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                                                        <div className="flex justify-between items-start mb-1">
+                                                                            <span className="font-bold text-xs text-gray-800">Versi {item.versi}</span>
+                                                                            <span className="text-[10px] text-gray-400">{new Date(item.tanggal).toLocaleDateString('id-ID')}</span>
+                                                                        </div>
+                                                                        <div className="text-[11px] text-gray-500 mb-2">
+                                                                            {item.status === 'APPROVED' ? 'Disetujui' : item.status === 'REVISION' ? <span className="text-orange-600">Revisi</span> : item.status === 'SUBMITTED' ? 'Menunggu Reviu' : 'Target'}
+                                                                        </div>
+                                                                        {item.fileMahasiswa && item.status !== 'ASSIGNED' && (
+                                                                            <button onClick={() => handleOpenViewer(item.id, item.topik)} className="flex items-center gap-1.5 text-[11px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1.5 rounded transition-colors w-max">
+                                                                                <Eye className="w-3.5 h-3.5" /> Lihat Dokumen & Anotasi
+                                                                            </button>
+                                                                        )}
+                                                                        {item.anotasi && item.anotasi.length > 0 && (
+                                                                             <div className="mt-2 pt-2 border-t border-gray-200">
+                                                                                 <span className="text-[10px] font-bold text-gray-600 mb-1.5 block">Terdapat {item.anotasi.length} Catatan:</span>
+                                                                                 <div className="space-y-1.5">
+                                                                                     {item.anotasi.map((ann: any, idx: number) => (
+                                                                                         <div key={idx} className="bg-white p-2 rounded border border-orange-100 text-[10px] text-gray-700">
+                                                                                             {ann.komentar}
+                                                                                         </div>
+                                                                                     ))}
+                                                                                 </div>
+                                                                             </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 );
@@ -507,10 +649,10 @@ export function BimbinganDesktop() {
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-                        
+
                         <div className="bg-gray-50 flex-1 relative min-h-[500px]">
                             <Suspense fallback={<div className="flex h-full items-center justify-center bg-gray-50"><LoaderIcon className="w-8 h-8 animate-spin text-[#119DA4]" /></div>}>
-                                <SharedPdfViewer 
+                                <SharedPdfViewer
                                     url={`${UPLOADS_URL}${[...completedTasks, activeTask].find(t => t?.topik === viewingTaskTopik)?.fileMahasiswa || ''}`}
                                     initialHighlights={annotations}
                                     readOnly={true}

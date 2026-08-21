@@ -1,7 +1,7 @@
 export interface User {
     id: string;
     email: string;
-    role: "admin" | "writer" | "editor" | "mahasiswa" | "dosen" | "dosen_pembimbing" | "kaprodi" | "staf" | "staf_univ";
+    role: "admin" | "mahasiswa" | "dosen" | "dosen_pembimbing" | "kaprodi" | "staf" | "staf_univ";
     token: string;
     name?: string;
     nama?: string;
@@ -30,7 +30,7 @@ export interface RegisterRequest {
     name: string;
     email: string;
     password: string;
-    role: "admin" | "writer" | "editor";
+    role: "admin" | "mahasiswa" | "dosen" | "staf";
 }
 
 export interface RegisterResponse {
@@ -45,7 +45,7 @@ export interface RegisterResponse {
 export interface ProfileData {
     user_id: string;
     email: string;
-    role: "admin" | "writer" | "editor";
+    role: "admin" | "mahasiswa" | "dosen" | "staf";
     name: string;
     username: string;
     photo: string;
@@ -94,7 +94,7 @@ export interface UserAccount {
     id: string;
     email: string;
     name: string;
-    role: "admin" | "writer" | "editor" | "mahasiswa" | "dosen" | "staf";
+    role: "admin" | "mahasiswa" | "dosen" | "staf";
     created_at: string;
     updated_at: string;
     avatar?: string;

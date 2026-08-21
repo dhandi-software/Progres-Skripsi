@@ -122,8 +122,9 @@ export function LogActivityDesktop() {
             >
               <option value="All Role">All Role</option>
               <option value="admin">Admin</option>
-              <option value="editor">Editor</option>
-              <option value="writer">Writer</option>
+              <option value="mahasiswa">Mahasiswa</option>
+              <option value="dosen">Dosen</option>
+              <option value="staf">Staf</option>
             </select>
           </div>
         </div>

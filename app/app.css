@@ -73,4 +73,13 @@
     0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(17, 157, 164, 0.4); }
     70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(17, 157, 164, 0); }
     100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(17, 157, 164, 0); }
+}
+
+@media print {
+    @page {
+        margin: 0; /* Menghilangkan URL dan header/footer bawaan browser */
+    }
+    body {
+        padding: 1.5cm; /* Memberikan jarak tepi agar konten tidak terpotong */
+    }
 }

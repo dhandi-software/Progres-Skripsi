@@ -366,8 +366,11 @@ export function MonitoringDesktop() {
                 const babStatus: Record<string, string> = {};
                 const babTanggal: Record<string, string> = {};
                 const babCatatan: Record<string, string> = {};
+                const babTotalBimbingan: Record<string, number> = {};
                 history.forEach((item: any) => {
                     const canonical = normalizeBab(item.topik);
+                    babTotalBimbingan[canonical] = (babTotalBimbingan[canonical] || 0) + 1;
+                    
                     const prev = babStatus[canonical];
                     // Priority: APPROVED > SUBMITTED > REVISION > ASSIGNED > undefined
                     const priority: Record<string, number> = { APPROVED: 4, SUBMITTED: 3, REVISION: 2, ASSIGNED: 1 };
@@ -383,28 +386,31 @@ export function MonitoringDesktop() {
                 // Build table rows for each bab
                 const tableRows = BAB_LIST.map((bab, bIdx) => {
                     const status = babStatus[bab];
+                    const total = babTotalBimbingan[bab] || 0;
                     return [
                         (bIdx + 1).toString(),
                         bab,
                         status ? getStatusLabel(status) : 'Belum Mulai',
                         babTanggal[bab] || '-',
-                        babCatatan[bab] ? babCatatan[bab].substring(0, 60) + (babCatatan[bab].length > 60 ? '...' : '') : '-'
+                        total > 0 ? `${total}x Bimbingan` : '-',
+                        babCatatan[bab] ? babCatatan[bab].substring(0, 50) + (babCatatan[bab].length > 50 ? '...' : '') : '-'
                     ];
                 });
 
                 autoTable(doc, {
-                    head: [['No', 'Bab / Topik', 'Status', 'Tanggal', 'Catatan Dosen']],
+                    head: [['No', 'Bab / Topik', 'Status', 'Tanggal', 'Bimbingan', 'Catatan Dosen']],
                     body: tableRows,
                     startY: currentY,
                     theme: 'grid',
                     headStyles: { fillColor: [15, 23, 42], textColor: 255, fontStyle: 'bold', fontSize: 8 },
                     bodyStyles: { fontSize: 8, textColor: [30, 41, 59] },
                     columnStyles: {
-                        0: { cellWidth: 10 },
-                        1: { cellWidth: 65 },
-                        2: { cellWidth: 30 },
-                        3: { cellWidth: 35 },
-                        4: { cellWidth: 'auto' },
+                        0: { cellWidth: 8 },
+                        1: { cellWidth: 60 },
+                        2: { cellWidth: 28 },
+                        3: { cellWidth: 30 },
+                        4: { cellWidth: 24 },
+                        5: { cellWidth: 'auto' },
                     },
                     didParseCell: (data: any) => {
                         if (data.section === 'body' && data.column.index === 2) {
@@ -443,11 +449,17 @@ export function MonitoringDesktop() {
         setIsDownloadingAll(true);
 
         try {
+            const activeData = data.filter(d => d.students.length > 0);
+            if (activeData.length === 0) {
+                setIsDownloadingAll(false);
+                return;
+            }
+
             const doc = new jsPDF({ orientation: 'landscape' });
             const pageW = doc.internal.pageSize.getWidth();
             const pageH = doc.internal.pageSize.getHeight();
             const tanggal = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-            const totalMahasiswa = data.reduce((acc, curr) => acc + curr.totalStudents, 0);
+            const totalMahasiswa = activeData.reduce((acc, curr) => acc + curr.totalStudents, 0);
 
             // Cover header
             doc.setFillColor(15, 23, 42);
@@ -458,12 +470,12 @@ export function MonitoringDesktop() {
             doc.text('LAPORAN MONITORING BIMBINGAN KESELURUHAN', 14, 14);
             doc.setFontSize(9);
             doc.setFont('helvetica', 'normal');
-            doc.text(`Total Dosen: ${data.length}  |  Total Mahasiswa: ${totalMahasiswa}  |  Tanggal: ${tanggal}`, 14, 24);
+            doc.text(`Total Dosen: ${activeData.length}  |  Total Mahasiswa: ${totalMahasiswa}  |  Tanggal: ${tanggal}`, 14, 24);
 
             let currentY = 44;
             let dosenIndex = 0;
 
-            for (const dosenData of data) {
+            for (const dosenData of activeData) {
                 // ── Dosen section divider ──
                 if (currentY > pageH - 50) { doc.addPage(); currentY = 14; }
 
@@ -475,15 +487,6 @@ export function MonitoringDesktop() {
                 doc.text(`${dosenIndex + 1}. Dosen Pembimbing: ${dosenData.dosen.nama}  (${dosenData.totalStudents} Mahasiswa)`, 14, currentY + 8);
                 currentY += 16;
                 dosenIndex++;
-
-                if (dosenData.students.length === 0) {
-                    doc.setFontSize(9);
-                    doc.setTextColor(148, 163, 184);
-                    doc.setFont('helvetica', 'italic');
-                    doc.text('Belum ada mahasiswa bimbingan.', 20, currentY + 6);
-                    currentY += 14;
-                    continue;
-                }
 
                 let studentIndex = 0;
                 for (const student of dosenData.students) {
@@ -511,11 +514,12 @@ export function MonitoringDesktop() {
                     // Group history by normalized bab, collect revision count
                     const babStatus: Record<string, string> = {};
                     const babTanggal: Record<string, string> = {};
-                    const babRevisi: Record<string, number> = {};
+                    const babTotalBimbingan: Record<string, number> = {};
                     const babCatatan: Record<string, string> = {};
 
                     history.forEach((item: any) => {
                         const canonical = normalizeBab(item.topik);
+                        babTotalBimbingan[canonical] = (babTotalBimbingan[canonical] || 0) + 1;
                         const priority: Record<string, number> = { APPROVED: 4, SUBMITTED: 3, REVISION: 2, ASSIGNED: 1 };
                         const pNew = priority[item.status] || 0;
                         const pPrev = babStatus[canonical] ? (priority[babStatus[canonical]] || 0) : -1;
@@ -526,27 +530,24 @@ export function MonitoringDesktop() {
                                 : '-';
                             babCatatan[canonical] = item.catatan || '';
                         }
-                        if (item.status === 'REVISION') {
-                            babRevisi[canonical] = (babRevisi[canonical] || 0) + 1;
-                        }
                     });
 
                     const tableRows = BAB_LIST.map((bab, bIdx) => {
                         const status = babStatus[bab];
-                        const revCount = babRevisi[bab] || 0;
+                        const total = babTotalBimbingan[bab] || 0;
                         const catatan = babCatatan[bab] || '';
                         return [
                             (bIdx + 1).toString(),
                             bab,
                             status ? getStatusLabel(status) : 'Belum Mulai',
                             babTanggal[bab] || '-',
-                            revCount > 0 ? `${revCount}x revisi` : '-',
-                            catatan ? catatan.substring(0, 55) + (catatan.length > 55 ? '…' : '') : '-',
+                            total > 0 ? `${total}x Bimbingan` : '-',
+                            catatan ? catatan.substring(0, 50) + (catatan.length > 50 ? '…' : '') : '-',
                         ];
                     });
 
                     autoTable(doc, {
-                        head: [['No', 'Bab / Topik', 'Status', 'Tanggal', 'Revisi', 'Catatan Dosen']],
+                        head: [['No', 'Bab / Topik', 'Status', 'Tanggal', 'Bimbingan', 'Catatan Dosen']],
                         body: tableRows,
                         startY: currentY,
                         theme: 'grid',
@@ -679,13 +680,22 @@ export function MonitoringDesktop() {
                                                 onClick={() => setSelectedDosen(dosenData)}
                                                 className="p-8 rounded-[32px] bg-white/80 backdrop-blur-xl border border-white text-slate-900 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:-translate-y-1 cursor-pointer flex flex-col justify-between h-[200px]"
                                             >
+                                                {/* ===== KARTU DATA DOSEN (MULAI) ===== */}
+                                                {/* Kartu ini dibuat berulang kali sesuai dengan jumlah data dosen */}
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-4">
+                                                        {/* 1. BAGIAN AVATAR (HURUF INISIAL) */}
+                                                        {/* Mengambil huruf pertama dari nama dosen menggunakan .charAt(0) */}
                                                         <div className="w-14 h-14 rounded-[20px] bg-slate-100/50 flex items-center justify-center font-black text-2xl text-slate-700 border border-slate-200/50">
                                                             {dosenData.dosen.nama.charAt(0)}
                                                         </div>
+
+                                                        {/* 2. BAGIAN NAMA & JUMLAH MAHASISWA */}
                                                         <div>
+                                                            {/* Menampilkan Nama Lengkap Dosen */}
                                                             <h4 className="font-bold text-base text-slate-800 line-clamp-1">{dosenData.dosen.nama}</h4>
+                                                            
+                                                            {/* Menampilkan Total Mahasiswa Bimbingan yang ditangani */}
                                                             <p className="text-[11px] font-medium tracking-widest text-slate-500 mt-1 uppercase">
                                                                 {dosenData.totalStudents} Mahasiswa
                                                             </p>
@@ -693,15 +703,21 @@ export function MonitoringDesktop() {
                                                     </div>
                                                 </div>
                                                 
+                                                {/* 3. BAGIAN PROGRESS BAR (SKOR KEDISIPLINAN) */}
                                                 <div className="mt-auto">
                                                     <div className="flex justify-between text-xs font-black uppercase tracking-widest mb-1.5 text-slate-800">
                                                         <span>Skor Kedisiplinan Progres</span>
+                                                        {/* Menampilkan Angka Persentase (%) */}
                                                         <span>{dosenData.activeProgress}%</span>
                                                     </div>
+                                                    
+                                                    {/* Background dari progress bar (abu-abu) */}
                                                     <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                                                        {/* Warna isi progress bar (oranye/brand-primary) dengan lebar mengikuti persentase data */}
                                                         <div className="h-full bg-brand-primary" style={{ width: `${dosenData.activeProgress}%` }} />
                                                     </div>
                                                 </div>
+                                                {/* ===== KARTU DATA DOSEN (SELESAI) ===== */}
                                             </div>
                                         ))}
                                     </div>
@@ -806,6 +822,7 @@ export function MonitoringDesktop() {
                                                         <div>
                                                             <p className="font-bold text-slate-800 text-sm mb-0.5">{student.mahasiswa.nama}</p>
                                                             <p className="text-xs font-mono text-slate-500">{student.mahasiswa.nim}</p>
+                                                            <p className="text-xs font-semibold text-brand-primary mt-0.5">{student.mahasiswa?._count?.bimbingan || 0} Kali Bimbingan</p>
                                                         </div>
                                                     </div>
 

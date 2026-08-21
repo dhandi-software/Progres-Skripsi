@@ -10,6 +10,8 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { ProgressStats } from "../../../mahasiswa/profilemahasiswa/components/progress-stats";
 import { BadgeWall } from "../../../mahasiswa/profilemahasiswa/components/badge-wall";
 import { PublicProfileModal } from "~/components/profile/PublicProfileModal";
+import { useAuth } from "~/hooks/useAuth";
+import { io } from "socket.io-client";
 
 const getStatusPengajuan = (status: string) => {
     switch (status) {
@@ -85,6 +87,24 @@ export function BimbinganDetailMobile() {
     const showToast = (title: string, variant: "success" | "destructive" | "default" = "success") => {
         setToastProps({ title, variant });
     };
+
+    const { user } = useAuth();
+
+    // Real-time updates
+    useEffect(() => {
+        if (!user || !student) return;
+        const socket = io(UPLOADS_URL);
+        socket.emit("join", user.id);
+        
+        socket.on("bimbingan_submitted", () => {
+            fetchStudentTasks(student.mahasiswa.nim);
+            showToast("Mahasiswa telah mengumpulkan draf/revisi!", "success");
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, [user, student]);
 
     const fetchStudentTasks = async (mahasiswaId: string) => {
         setLoading(true);
@@ -296,7 +316,7 @@ export function BimbinganDetailMobile() {
     ];
 
     const handleOpenReview = (task: any, isReadOnly: boolean = false) => {
-        navigate(`/dosen/bimbingan/${task.mahasiswaNim}/review/${task.id}`);
+        navigate(`/dosen/bimbingan/${task.mahasiswaNim}/review/${task.id}`, { state: { isReadOnly } });
     };
 
     const handleSaveGrade = async (task: any) => {
@@ -322,6 +342,8 @@ export function BimbinganDetailMobile() {
             setSavingGradeId(null);
         }
     };
+
+    const isAllTasksCompleted = taskOptions.every(opt => completedTasks.some(t => t.topik === opt.value));
 
     return (
         <div className="min-h-screen bg-gray-50 pb-20 font-geist relative">
@@ -443,6 +465,12 @@ export function BimbinganDetailMobile() {
                                                         {getTimeRemaining(studentActiveTask.jadwalBimbingan).text}
                                                     </span>
                                                 </div>
+                                                {studentActiveTask.keteranganProgres && (
+                                                    <div className="flex justify-between pt-2 border-t border-gray-200 gap-2">
+                                                        <span className="font-bold text-gray-700 shrink-0">Catatan Mahasiswa</span>
+                                                        <span className="font-bold text-gray-900 text-right italic whitespace-pre-wrap break-words">"{studentActiveTask.keteranganProgres}"</span>
+                                                    </div>
+                                                )}
                                             </div>
 
                                             {(studentActiveTask.status === 'SUBMITTED' || studentActiveTask.status === 'REVISION') && (
@@ -512,6 +540,12 @@ export function BimbinganDetailMobile() {
                                                                     item.status === 'REVISION' ? <span className="text-orange-600 font-medium">Anda memberikan revisi</span> :
                                                                         item.status === 'APPROVED' ? <span className="text-green-600 font-medium">Telah di-ACC</span> : ""}
                                                         </p>
+                                                        {item.keteranganProgres && item.status !== 'ASSIGNED' && (
+                                                            <div className="mt-2 bg-blue-50/50 p-2 rounded border border-blue-100 text-left">
+                                                                <span className="text-[9px] font-bold text-blue-700 block mb-0.5">Catatan Mahasiswa:</span>
+                                                                <p className="text-[10px] text-gray-700 italic">"{item.keteranganProgres}"</p>
+                                                            </div>
+                                                        )}
                                                     </button>
                                                     {item.fileMahasiswa && item.status !== 'ASSIGNED' && (
                                                         <a href={`${UPLOADS_URL}${item.fileMahasiswa}`} target="_blank" rel="noreferrer" className="mt-2 text-[10px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 w-max bg-blue-50 px-2 py-1 rounded">
@@ -559,6 +593,16 @@ export function BimbinganDetailMobile() {
                                         )) : (
                                             <div className="text-xs text-gray-400 italic">Belum ada riwayat</div>
                                         )}
+                                    </div>
+                                </div>
+                            ) : isAllTasksCompleted ? (
+                                <div className="flex flex-col items-center justify-center text-center p-6 space-y-3">
+                                    <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
+                                        <Trophy className="w-7 h-7 text-green-600" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-base text-gray-900">Bimbingan Selesai!</h3>
+                                        <p className="text-[10px] text-gray-500 mt-1">Seluruh tahapan bimbingan telah diselesaikan.</p>
                                     </div>
                                 </div>
                             ) : (
@@ -846,6 +890,57 @@ export function BimbinganDetailMobile() {
                                                         <button onClick={() => handleOpenReview(task, true)} className="flex items-center justify-center p-2 bg-white border border-gray-200 text-gray-700 rounded-lg shrink-0" title="Lihat Anotasi">
                                                             <Eye className="w-4 h-4 text-gray-500" />
                                                         </button>
+                                                    )}
+                                                </div>
+
+                                                {/* History Accordion Mobile Dosen */}
+                                                <div className="mt-3 pt-3 border-t border-gray-100">
+                                                    <button
+                                                        onClick={() => setExpandedHistoryId(expandedHistoryId === task.id ? null : task.id)}
+                                                        className="w-full flex items-center justify-between text-[11px] font-bold text-gray-600 focus:outline-none py-1.5 active:opacity-70"
+                                                    >
+                                                        <span>Riwayat Revisi & Anotasi</span>
+                                                        <span className="text-[9px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">
+                                                            {allStudentTasks.filter(t => t.topik === task.topik).length} Versi
+                                                        </span>
+                                                    </button>
+                                                    {expandedHistoryId === task.id && (
+                                                        <div className="mt-3 space-y-2 pl-1 border-l-2 border-gray-100 ml-1.5 max-h-60 overflow-y-auto pr-1">
+                                                            {allStudentTasks
+                                                                .filter(t => t.topik === task.topik)
+                                                                .sort((a, b) => b.versi - a.versi)
+                                                                .map(item => (
+                                                                    <div key={item.id} className="relative pl-3">
+                                                                        <div className={`absolute -left-[4px] top-1.5 w-1.5 h-1.5 rounded-full ${item.status === 'APPROVED' ? 'bg-green-500' : item.status === 'REVISION' ? 'bg-orange-500' : 'bg-gray-400'}`}></div>
+                                                                        <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                                                                            <div className="flex justify-between items-start mb-1">
+                                                                                <span className="font-bold text-[11px] text-gray-800">Versi {item.versi}</span>
+                                                                                <span className="text-[9px] text-gray-400">{new Date(item.tanggal).toLocaleDateString('id-ID')}</span>
+                                                                            </div>
+                                                                            <div className="text-[10px] text-gray-500 mb-2">
+                                                                                {item.status === 'APPROVED' ? 'Disetujui' : item.status === 'REVISION' ? <span className="text-orange-600">Revisi Diberikan</span> : item.status === 'SUBMITTED' ? 'Telah Diunggah' : 'Target Diberikan'}
+                                                                            </div>
+                                                                            {item.fileMahasiswa && item.status !== 'ASSIGNED' && (
+                                                                                <button onClick={() => handleOpenReview(item, true)} className="flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1.5 rounded w-full justify-center">
+                                                                                    <Eye className="w-3 h-3" /> Lihat Dokumen & Anotasi
+                                                                                </button>
+                                                                            )}
+                                                                            {item.anotasi && item.anotasi.length > 0 && (
+                                                                                 <div className="mt-2 pt-2 border-t border-gray-200">
+                                                                                     <span className="text-[9px] font-bold text-gray-600 mb-1 block">Terdapat {item.anotasi.length} Catatan:</span>
+                                                                                     <div className="space-y-1">
+                                                                                         {item.anotasi.map((ann: any, idx: number) => (
+                                                                                             <div key={idx} className="bg-white p-1.5 rounded border border-orange-100 text-[9px] text-gray-700">
+                                                                                                 {ann.komentar}
+                                                                                             </div>
+                                                                                         ))}
+                                                                                     </div>
+                                                                                 </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                        </div>
                                                     )}
                                                 </div>
                                             </div>

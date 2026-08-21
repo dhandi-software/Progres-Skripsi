@@ -67,12 +67,15 @@ export type TextFieldProps = {
     errorMessage?: string;
     label?: string;
     id?: string;
+    name?: string;
+    autoComplete?: string;
     value?: string;
     onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
     className?: string;
     inputClassName?: string;
     labelClassName?: string;
+    leftIcon?: React.ReactNode;
     rightIcon?: React.ReactNode;
     multiline?: boolean;
     rows?: number;
@@ -88,11 +91,14 @@ export function TextField({
     errorMessage = "",
     label,
     id,
+    name,
+    autoComplete,
     value,
     onChange,
     onKeyDown,
     className,
     inputClassName,
+    leftIcon,
     rightIcon,
     multiline = false,
     rows = 3,
@@ -144,7 +150,12 @@ export function TextField({
                     isVertical ? "w-full" : "flex-1 min-w-0",
                 )}
             >
-                <div className="relative w-full">
+                <div className="relative w-full flex items-center">
+                    {leftIcon && !multiline && (
+                        <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-muted-foreground">
+                            {leftIcon}
+                        </div>
+                    )}
                     {multiline ? (
                         // Textarea untuk multi-line input
                         <textarea
@@ -171,6 +182,8 @@ export function TextField({
                         <Input
                             id={inputId}
                             type={type}
+                            name={name}
+                            autoComplete={autoComplete}
                             placeholder={placeholder}
                             disabled={disabled}
                             value={value}
@@ -178,13 +191,14 @@ export function TextField({
                             onChange={onChange}
                             onKeyDown={onKeyDown}
                             className={cn(
-                                "pr-10", // space buat icon kanan
+                                rightIcon ? "pr-10" : "", // space buat icon kanan
+                                leftIcon ? "pl-10" : "", // space buat icon kiri
                                 inputClassName,
                             )}
                         />
                     )}
                     {rightIcon && !multiline && (
-                        <div className="absolute inset-y-0 right-3 flex items-center cursor-pointer">
+                        <div className="absolute inset-y-0 right-3 flex items-center cursor-pointer text-muted-foreground">
                             {rightIcon}
                         </div>
                     )}

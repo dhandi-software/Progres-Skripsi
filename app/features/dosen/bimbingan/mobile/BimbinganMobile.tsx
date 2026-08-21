@@ -5,6 +5,10 @@ import { CustomSelect } from "~/components/ui/custom-select";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext } from "~/components/ui/pagination";
 import { useNavigate } from "react-router";
 
+import { UPLOADS_URL } from "~/api/client";
+import { useAuth } from "~/hooks/useAuth";
+import { io } from "socket.io-client";
+
 const getStatusPenilaian = (status: string) => {
     switch (status) {
         case 'ASSIGNED': return '-';
@@ -16,6 +20,7 @@ const getStatusPenilaian = (status: string) => {
 };
 
 export function BimbinganMobile() {
+    const { user } = useAuth();
     const [students, setStudents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
@@ -55,6 +60,21 @@ export function BimbinganMobile() {
         fetchStudents(searchQuery, statusFilter);
         setCurrentPage(1);
     }, [statusFilter]);
+
+    // Real-time updates
+    useEffect(() => {
+        if (!user) return;
+        const socket = io(UPLOADS_URL);
+        socket.emit("join", user.id);
+        
+        socket.on("bimbingan_submitted", () => {
+            fetchStudents(searchQuery, statusFilter);
+        });
+
+        return () => {
+            socket.disconnect();
+        };
+    }, [user, searchQuery, statusFilter]);
 
     const handleStudentClick = (student: any) => {
         navigate(`/dosen/bimbingan/${student.mahasiswa.nim}`, { state: { student } });
@@ -164,7 +184,11 @@ export function BimbinganMobile() {
                                                     <span className="bg-red-100 text-red-700 text-[9px] px-1.5 py-0.5 rounded border border-red-200 font-bold uppercase tracking-widest whitespace-nowrap inline-flex">BARU</span>
                                                 )}
                                             </div>
-                                            <p className="text-xs font-mono text-gray-500 mt-0.5">{mhs.nim}</p>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                <p className="text-xs font-mono text-gray-500">{mhs.nim}</p>
+                                                <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">{bimbinganList.length} Bimbingan</span>
+                                            </div>
                                         </div>
                                         <button
                                             onClick={() => handleStudentClick(pengajuan)}
