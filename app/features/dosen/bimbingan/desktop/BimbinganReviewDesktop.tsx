@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, Suspense, lazy } from "react";
 import { Eye, Download, FileText, Send, Loader2, FileStack, ArrowLeft } from "lucide-react";
-import { UPLOADS_URL } from "~/api/client";
+import { UPLOADS_URL, getFileUrl } from "~/api/client";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { useNavigate, useLocation } from "react-router";
 import { Toast } from "~/components/ui/toast";
@@ -211,7 +211,7 @@ export const BimbinganReviewDesktop: React.FC<BimbinganReviewDesktopProps> = ({ 
                                 Live Document Viewer & Annotation
                             </h4>
                             <a
-                                href={`${UPLOADS_URL}${reviewingTask.fileMahasiswa}`}
+                                href={getFileUrl(reviewingTask.fileMahasiswa)}
                                 target="_blank" rel="noreferrer"
                                 className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-blue-600 hover:bg-blue-50 transition-all flex items-center gap-1.5 shadow-sm"
                             >
@@ -221,7 +221,7 @@ export const BimbinganReviewDesktop: React.FC<BimbinganReviewDesktopProps> = ({ 
                         <div className="h-[calc(100vh-200px)] min-h-[600px] rounded-2xl overflow-hidden shadow-xl border border-gray-200 bg-white">
                             <Suspense fallback={<div className="flex h-full items-center justify-center bg-white"><Loader2 className="w-10 h-10 animate-spin text-[#119DA4]" /></div>}>
                                 <SharedPdfViewer
-                                    url={`${UPLOADS_URL}${reviewingTask.fileMahasiswa}`}
+                                    url={getFileUrl(reviewingTask.fileMahasiswa)}
                                     initialHighlights={annotations}
                                     onAddHighlight={readOnlyMode ? undefined : handleAddHighlight}
                                     onDeleteHighlight={readOnlyMode ? undefined : handleDeleteHighlight}
@@ -240,7 +240,7 @@ export const BimbinganReviewDesktop: React.FC<BimbinganReviewDesktopProps> = ({ 
                             Dokumen ini (<strong className="text-gray-700">.{reviewingTask.fileMahasiswa?.split('.').pop()}</strong>) tidak dapat di-preview dan dianotasi langsung. Fitur Live Annotation mendukung file <strong className="text-[#119DA4]">.pdf</strong>.
                         </p>
                         <a
-                            href={`${UPLOADS_URL}${reviewingTask.fileMahasiswa}`}
+                            href={getFileUrl(reviewingTask.fileMahasiswa)}
                             target="_blank" rel="noreferrer"
                             className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-[#119DA4] text-white font-bold rounded-2xl text-base shadow-lg shadow-cyan-500/30 transition-all hover:scale-105 active:scale-95"
                         >

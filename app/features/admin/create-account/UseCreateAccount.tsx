@@ -37,15 +37,24 @@ export const useCreateAccount = () => {
     maxBimbingan: "",
   });
 
+  const [isValidRole, setIsValidRole] = useState(true);
+
   // Sync role with URL param on mount
   useEffect(() => {
-    if (roleParam && (roleParam === "mahasiswa" || roleParam === "dosen" || roleParam === "staf")) {
-        setFormData(prev => ({ 
-            ...prev, 
-            role: roleParam,
-            emailDomain: roleParam === 'mahasiswa' ? "@student.univ.ac.id" : "@univ.ac.id",
-            jabatan: roleParam === 'dosen' ? "Dosen Reguler" : prev.jabatan
-        }));
+    if (roleParam) {
+        if (roleParam === "mahasiswa" || roleParam === "dosen" || roleParam === "staf") {
+            setIsValidRole(true);
+            setFormData(prev => ({ 
+                ...prev, 
+                role: roleParam,
+                emailDomain: roleParam === 'mahasiswa' ? "@student.univ.ac.id" : "@univ.ac.id",
+                jabatan: roleParam === 'dosen' ? "Dosen Reguler" : prev.jabatan
+            }));
+        } else {
+            setIsValidRole(false);
+        }
+    } else {
+        setIsValidRole(true);
     }
   }, [roleParam]);
 
@@ -173,13 +182,13 @@ export const useCreateAccount = () => {
                   if (cellText.includes('nama') || cellText.includes('name')) {
                        namaColIdx = j;
                   }
-                  if (cellText === 'email') {
+                  if (cellText.includes('email') || cellText.includes('e-mail') || cellText === 'mail') {
                        emailColIdx = j;
                   }
-                  if (!isMahasiswa && (cellText === 'jabatan' || cellText === 'position')) {
+                  if (!isMahasiswa && (cellText === 'jabatan' || cellText === 'position' || cellText.includes('jabat'))) {
                        jabatanColIdx = j;
                   }
-                  if (!isMahasiswa && cellText.includes('peminatan')) {
+                  if (!isMahasiswa && (cellText.includes('peminatan') || cellText.includes('minat') || cellText.includes('keahlian') || cellText.includes('bidang') || cellText.includes('topik'))) {
                        peminatanColIdx = j;
                   }
              }
@@ -225,7 +234,7 @@ export const useCreateAccount = () => {
              if (!isMahasiswa && peminatanColIdx !== -1) {
                  const rawPeminatan = String(row[peminatanColIdx] || '').trim();
                  if (rawPeminatan) {
-                     peminatan = rawPeminatan.split(',').map(p => p.trim());
+                     peminatan = rawPeminatan.split(/[,;/]+/).map(p => p.trim()).filter(Boolean);
                  }
              }
 
@@ -559,5 +568,6 @@ export const useCreateAccount = () => {
     handleCancel,
     handleDownloadPreview,
     clearExcel,
+    isValidRole,
   };
 };

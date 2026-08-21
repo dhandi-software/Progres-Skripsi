@@ -14,8 +14,19 @@ const baseUrl = envUrl.replace(/\/$/, "");
 // Use '/api' prefix as requested ("tetep yang saya punya")
 export const API_URL = baseUrl.endsWith("/api") ? baseUrl : `${baseUrl}/api`;
 
-// We also export the static uploads URL for static file links
-export const UPLOADS_URL = baseUrl || "http://localhost:5002";
+// We also export the static uploads URL for static file links (strip /api suffix for static files)
+const rawUploads = baseUrl.replace(/\/api\/?$/, "");
+export const UPLOADS_URL = rawUploads;
+
+export const getFileUrl = (fileUrl?: string | null): string => {
+    if (!fileUrl) return "";
+    if (fileUrl.startsWith("http://") || fileUrl.startsWith("https://")) {
+        return fileUrl;
+    }
+    const cleanPath = fileUrl.startsWith("/") ? fileUrl : `/${fileUrl}`;
+    const normalized = cleanPath.startsWith("/api/uploads") ? cleanPath.replace("/api/uploads", "/uploads") : cleanPath;
+    return UPLOADS_URL ? `${UPLOADS_URL}${normalized}` : normalized;
+};
 
 export const client = axios.create({
     baseURL: API_URL,
@@ -30,9 +41,14 @@ export const client = axios.create({
 client.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response && error.response.status === 401) {
-            // Handle unauthorized (e.g., redirect to login)
+        const status = error.response?.status;
+        if (status === 401) {
             console.warn("Unauthorized request - JWT might be expired");
+        }
+        if (status === 502 || status === 503 || status === 504) {
+            if (typeof window !== "undefined" && !window.location.pathname.startsWith("/502")) {
+                window.location.href = "/502";
+            }
         }
         return Promise.reject(error);
     }

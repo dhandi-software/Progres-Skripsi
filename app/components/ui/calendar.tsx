@@ -477,9 +477,10 @@ function MonthYearFilter({ date, setDate, showLabel = true, className, compact =
             {view === 'days' && (
                 <Calendar
                     mode="single"
+                    required={true}
                     selected={date}
                     onSelect={(d) => {
-                        setDate(d);
+                        if (d) setDate(d);
                         setIsOpen(false);
                     }}
                     disabled={[

@@ -160,10 +160,15 @@ const SharedPdfViewerComponent: React.FC<SharedPdfViewerProps> = ({
             <div className="flex-1 relative h-full">
                 <PdfLoader 
                     url={url} 
-                    workerSrc="https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.worker.min.js"
+                    workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js"
                     beforeLoad={
                         <div className="flex w-full h-full items-center justify-center">
                             <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+                        </div>
+                    }
+                    errorMessage={
+                        <div className="flex flex-col items-center justify-center h-full p-2 text-center bg-white">
+                            <iframe src={url} className="w-full h-full min-h-[500px] rounded-lg border border-gray-200" title="PDF Viewer" />
                         </div>
                     }
                 >

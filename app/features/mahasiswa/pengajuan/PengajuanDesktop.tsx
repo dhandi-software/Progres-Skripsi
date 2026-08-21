@@ -443,29 +443,46 @@ export function PengajuanDesktop() {
                                 options={[...dosenList]
                                     .filter(d => {
                                         if (!formData.peminatan) return true;
-                                        let isMatch = d.peminatan && Array.isArray(d.peminatan) && d.peminatan.includes(formData.peminatan);
-                                        if (!isMatch && formData.peminatan === "Network and Cyber Security") {
-                                            isMatch = d.peminatan && Array.isArray(d.peminatan) && d.peminatan.includes("Cyber Security");
+                                        let dosenPeminatans: string[] = [];
+                                        if (Array.isArray(d.peminatan)) {
+                                            dosenPeminatans = d.peminatan.map((p: any) => String(p).toLowerCase().trim());
+                                        } else if (typeof d.peminatan === 'string' && d.peminatan) {
+                                            dosenPeminatans = d.peminatan.split(/[,;/]+/).map((p: string) => p.toLowerCase().trim());
                                         }
-                                        return isMatch;
+                                        
+                                        // Strict filtering: If dosen has no peminatan or doesn't match selected peminatan, return false
+                                        if (dosenPeminatans.length === 0) return false;
+
+                                        const target = formData.peminatan.toLowerCase().trim();
+                                        return dosenPeminatans.some((p: string) => 
+                                            p.includes(target) || target.includes(p) ||
+                                            (target.includes("cyber") && p.includes("cyber")) ||
+                                            (target.includes("software") && p.includes("software")) ||
+                                            ((target.includes("ai") || target.includes("intelligence")) && (p.includes("ai") || p.includes("intelligence"))) ||
+                                            (target.includes("data") && p.includes("data"))
+                                        );
                                     })
                                     .sort((a, b) => {
-                                        const aSelectable = (a.jabatan || '').toLowerCase().includes('pembimbing') || (a.jabatan || '').toLowerCase().includes('koordinator');
-                                        const bSelectable = (b.jabatan || '').toLowerCase().includes('pembimbing') || (b.jabatan || '').toLowerCase().includes('koordinator');
+                                        const aSelectable = !(a.jabatan || '').toLowerCase().includes('reguler');
+                                        const bSelectable = !(b.jabatan || '').toLowerCase().includes('reguler');
                                         if (aSelectable && !bSelectable) return -1;
                                         if (!aSelectable && bSelectable) return 1;
-                                        return a.nama.localeCompare(b.nama);
+                                        return (a.nama || '').localeCompare(b.nama || '');
                                     })
                                     .map(d => {
-                                        const isSelectable = (d.jabatan || '').toLowerCase().includes('pembimbing') || (d.jabatan || '').toLowerCase().includes('koordinator');
-                                        const peminatanText = d.peminatan && Array.isArray(d.peminatan) && d.peminatan.length > 0 
-                                            ? ` - [${d.peminatan.join(', ')}]` 
-                                            : '';
+                                        const isSelectable = !(d.jabatan || '').toLowerCase().includes('reguler');
+                                        const peminatanArray: string[] = Array.isArray(d.peminatan) 
+                                            ? d.peminatan.map((p: any) => String(p).trim()).filter(Boolean)
+                                            : (typeof d.peminatan === 'string' && d.peminatan ? d.peminatan.split(/[,;/]+/).map((s: string) => s.trim()).filter(Boolean) : []);
+                                        
+                                        const peminatanText = peminatanArray.length > 0 
+                                            ? ` - [${peminatanArray.join(', ')}]` 
+                                            : ' - [Tanpa Peminatan]';
                                         const isFull = (d.terisi ?? 0) >= (d.kuota ?? 6);
                                         const kuotaText = isSelectable ? ` (${d.terisi ?? 0}/${d.kuota ?? 6})` : '';
                                         return { 
-                                            label: isSelectable ? `${d.nama} (${d.appointment || d.jabatan})${kuotaText}${peminatanText}` : `${d.nama} (Viewer)`, 
-                                            value: d.nidn.toString(),
+                                            label: isSelectable ? `${d.nama} (${d.appointment || d.jabatan || 'Dosen Pembimbing'})${kuotaText}${peminatanText}` : `${d.nama} (Viewer)${peminatanText}`, 
+                                            value: d.nidn ? d.nidn.toString() : '',
                                             disabled: !isSelectable || isFull
                                         };
                                     })}

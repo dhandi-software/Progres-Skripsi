@@ -7,6 +7,8 @@ import { Toast } from "~/components/ui/toast";
 import { CustomSelect } from "~/components/ui/custom-select";
 import { MultipleCombobox, type ComboboxOption } from "~/components/ui/Multiple-combobox";
 
+import NotFoundRoute from "~/routes/$";
+
 export const CreateAccountMobile = () => {
   const { setOpenMobile } = useSidebar();
   const {
@@ -28,7 +30,12 @@ export const CreateAccountMobile = () => {
     massData,
     handleDownloadPreview,
     clearExcel,
+    isValidRole,
   } = useCreateAccount();
+
+  if (!isValidRole) {
+    return <NotFoundRoute />;
+  }
 
   const [isRoleOpen, setIsRoleOpen] = useState(false);
 
@@ -611,7 +618,10 @@ export const CreateAccountMobile = () => {
                                                 <th className="px-3 py-2 font-bold text-[9px] uppercase tracking-wider">Batas</th>
                                             </>
                                         ) : (
-                                            <th className="px-3 py-2 font-bold text-[9px] uppercase tracking-wider">Jabatan</th>
+                                            <>
+                                                <th className="px-3 py-2 font-bold text-[9px] uppercase tracking-wider">Jabatan</th>
+                                                <th className="px-3 py-2 font-bold text-[9px] uppercase tracking-wider">Peminatan</th>
+                                            </>
                                         )}
                                     </tr>
                                 </thead>
@@ -632,7 +642,14 @@ export const CreateAccountMobile = () => {
                                                     <td className="px-3 py-2 text-gray-600">{user.batasStudi || "-"}</td>
                                                 </>
                                             ) : (
-                                                <td className="px-3 py-2 text-gray-600">{user.jabatan}</td>
+                                                <>
+                                                    <td className="px-3 py-2 text-gray-600">{user.jabatan}</td>
+                                                    <td className="px-3 py-2 text-gray-600 truncate max-w-[100px]">
+                                                        {user.peminatan && Array.isArray(user.peminatan) && user.peminatan.length > 0
+                                                            ? user.peminatan.join(", ")
+                                                            : (typeof user.peminatan === 'string' && user.peminatan ? user.peminatan : "-")}
+                                                    </td>
+                                                </>
                                             )}
                                         </tr>
                                     ))}

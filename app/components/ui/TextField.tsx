@@ -67,6 +67,8 @@ export type TextFieldProps = {
     errorMessage?: string;
     label?: string;
     id?: string;
+    name?: string;
+    autoComplete?: string;
     value?: string;
     onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
@@ -89,6 +91,8 @@ export function TextField({
     errorMessage = "",
     label,
     id,
+    name,
+    autoComplete,
     value,
     onChange,
     onKeyDown,
@@ -178,6 +182,8 @@ export function TextField({
                         <Input
                             id={inputId}
                             type={type}
+                            name={name}
+                            autoComplete={autoComplete}
                             placeholder={placeholder}
                             disabled={disabled}
                             value={value}

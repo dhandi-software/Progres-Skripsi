@@ -85,9 +85,11 @@ export function LoginMobile() {
                         <AuthAlert message={loginError} type="error" className="mb-5" />
                     )}
 
-                    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                    <form onSubmit={handleSubmit} autoComplete="off" className="flex flex-col gap-4">
                         <TextField
                             label="Email Address"
+                            name="email_address_login"
+                            autoComplete="off"
                             placeholder="username@student.univpancasila.ac.id"
                             value={email}
                             variant="vertical"
@@ -101,6 +103,8 @@ export function LoginMobile() {
                         <div className="flex flex-col gap-1">
                             <TextField
                                 label="Password"
+                                name="user_password_login"
+                                autoComplete="new-password"
                                 placeholder="••••••••"
                                 value={password}
                                 type={showPassword ? "text" : "password"}

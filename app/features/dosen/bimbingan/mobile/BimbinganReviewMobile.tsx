@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, Suspense, lazy } from "react";
 import { Eye, Download, FileText, Send, Loader2, FileStack, ArrowLeft } from "lucide-react";
-import { UPLOADS_URL } from "~/api/client";
+import { UPLOADS_URL, getFileUrl } from "~/api/client";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { useNavigate, useLocation, useParams } from "react-router";
 import { Toast } from "~/components/ui/toast";
@@ -202,7 +202,7 @@ export const BimbinganReviewMobile: React.FC<BimbinganReviewMobileProps> = ({ ma
                                 <span className="text-[11px] font-bold text-gray-600">Dokumen Utama</span>
                             </div>
                             <a
-                                href={`${UPLOADS_URL}${reviewingTask.fileMahasiswa}`}
+                                href={getFileUrl(reviewingTask.fileMahasiswa)}
                                 target="_blank" rel="noreferrer"
                                 className="px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-[10px] font-bold text-blue-600 shadow-sm flex items-center gap-1.5"
                             >
@@ -213,7 +213,7 @@ export const BimbinganReviewMobile: React.FC<BimbinganReviewMobileProps> = ({ ma
                         <div className="h-[450px] w-full rounded-2xl overflow-hidden shadow-xl border border-gray-200 bg-white relative">
                             <Suspense fallback={<div className="flex h-full items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-[#119DA4]" /></div>}>
                                 <SharedPdfViewer
-                                    url={`${UPLOADS_URL}${reviewingTask.fileMahasiswa}`}
+                                    url={getFileUrl(reviewingTask.fileMahasiswa)}
                                     initialHighlights={annotations}
                                     onAddHighlight={readOnlyMode ? undefined : handleAddHighlight}
                                     onDeleteHighlight={readOnlyMode ? undefined : handleDeleteHighlight}

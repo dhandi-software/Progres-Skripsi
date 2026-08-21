@@ -7,6 +7,8 @@ import { useNavigate } from "react-router";
 import { CustomSelect } from "~/components/ui/custom-select";
 import { MultipleCombobox, type ComboboxOption } from "~/components/ui/Multiple-combobox";
 
+import NotFoundRoute from "~/routes/$";
+
 export const CreateAccountDesktop = () => {
   const {
     formData,
@@ -28,7 +30,12 @@ export const CreateAccountDesktop = () => {
     massData,
     handleDownloadPreview,
     clearExcel,
+    isValidRole,
   } = useCreateAccount();
+
+  if (!isValidRole) {
+    return <NotFoundRoute />;
+  }
 
   const [isRoleOpen, setIsRoleOpen] = useState(false);
 
@@ -647,7 +654,10 @@ export const CreateAccountDesktop = () => {
                             <th className="px-4 py-3 font-bold text-[11px] uppercase tracking-wider">Batas Studi</th>
                           </>
                         ) : (
-                          <th className="px-4 py-3 font-bold text-[11px] uppercase tracking-wider">Jabatan</th>
+                          <>
+                            <th className="px-4 py-3 font-bold text-[11px] uppercase tracking-wider">Jabatan</th>
+                            <th className="px-4 py-3 font-bold text-[11px] uppercase tracking-wider">Peminatan</th>
+                          </>
                         )}
                       </tr>
                     </thead>
@@ -668,7 +678,14 @@ export const CreateAccountDesktop = () => {
                               <td className="px-4 py-3 text-gray-600">{user.batasStudi || "-"}</td>
                             </>
                           ) : (
-                            <td className="px-4 py-3 text-gray-600">{user.jabatan}</td>
+                            <>
+                              <td className="px-4 py-3 text-gray-600">{user.jabatan}</td>
+                              <td className="px-4 py-3 text-gray-600 truncate max-w-[200px]">
+                                {user.peminatan && Array.isArray(user.peminatan) && user.peminatan.length > 0
+                                  ? user.peminatan.join(", ")
+                                  : (typeof user.peminatan === 'string' && user.peminatan ? user.peminatan : "-")}
+                              </td>
+                            </>
                           )}
                         </tr>
                       ))}
