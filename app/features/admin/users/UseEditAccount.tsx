@@ -19,6 +19,10 @@ export const useEditAccount = () => {
         // Specific fields
         nim: "",
         tahunMasuk: "",
+        sksDicapai: "",
+        ipk: "",
+        sksNilaiD: "",
+        batasStudi: "",
         nidn: "",
         jabatan: "",
         peminatan: [] as string[],
@@ -55,8 +59,12 @@ export const useEditAccount = () => {
                 name: user.nama || user.name || "",
                 password: "********", // Show placeholder password
                 role: user.role,
-                nim: user.nim || "",
-                tahunMasuk: user.tahunMasuk || "",
+                nim: user.nim || user.mahasiswa?.nim || "",
+                tahunMasuk: user.tahunMasuk || user.mahasiswa?.tahunMasuk || "",
+                sksDicapai: user.sksDicapai || user.mahasiswa?.sksDicapai || "",
+                ipk: user.ipk || user.mahasiswa?.ipk || "",
+                sksNilaiD: user.sksNilaiD !== undefined && user.sksNilaiD !== null ? String(user.sksNilaiD) : (user.mahasiswa?.sksNilaiD !== undefined && user.mahasiswa?.sksNilaiD !== null ? String(user.mahasiswa.sksNilaiD) : ""),
+                batasStudi: user.batasStudi || user.mahasiswa?.batasStudi || "",
                 nidn: user.nidn || "",
                 jabatan: user.jabatan || "",
                 peminatan: user.peminatan || [],
@@ -71,18 +79,37 @@ export const useEditAccount = () => {
         }
     };
 
+    const formatIpk = (val: string) => {
+        let clean = val.replace(/[^\d.]/g, '');
+        if (clean.includes('.')) {
+            const parts = clean.split('.');
+            const intPart = parts[0].slice(0, 1);
+            const decPart = parts[1].slice(0, 2);
+            return `${intPart}.${decPart}`;
+        }
+        if (clean.length === 0) return '';
+        if (clean.length === 1) return clean;
+        if (clean.length === 2) return `${clean[0]}.${clean[1]}`;
+        if (clean.length >= 3) return `${clean[0]}.${clean.slice(1, 3)}`;
+        return clean;
+    };
+
     const handleInputChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
     ) => {
-        const { name, value } = e.target;
+        let { name, value } = e.target;
 
-        // Numeric validation for NIM and NIDN
+        // Numeric validation for NIM, NIDN, and SKS
         if (
-            (name === "nim" || name === "nidn") &&
+            (name === "nim" || name === "nidn" || name === "sksDicapai" || name === "sksNilaiD") &&
             value &&
             !/^\d*$/.test(value)
         ) {
-            return; // Ignore non-numeric input
+            return;
+        }
+
+        if (name === "ipk") {
+            value = formatIpk(value);
         }
 
         // Prevent spaces in email

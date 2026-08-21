@@ -51,6 +51,11 @@ export function PengajuanMobile() {
                     calculatedBatasStudi = !isNaN(startYear) ? (startYear + 6).toString() : "";
                 }
 
+                const sksDicapai = profileRes.sksDicapai || profileRes.pengajuanJudul?.[0]?.sksDicapai?.toString() || "";
+                const sksNilaiD = profileRes.sksNilaiD !== undefined && profileRes.sksNilaiD !== null ? profileRes.sksNilaiD.toString() : (profileRes.pengajuanJudul?.[0]?.sksNilaiD?.toString() || "0");
+                const ipk = profileRes.ipk || profileRes.pengajuanJudul?.[0]?.ipk?.toString() || "";
+                const batasStudi = profileRes.batasStudi || profileRes.pengajuanJudul?.[0]?.batasStudi?.toString() || calculatedBatasStudi;
+
                 if (profileRes.pengajuanJudul && profileRes.pengajuanJudul.length > 0) {
                     const latestPengajuan = profileRes.pengajuanJudul[0];
                     setFormData({
@@ -59,10 +64,10 @@ export function PengajuanMobile() {
                         tahunAkademik: latestPengajuan.tahunAkademik || "",
                         judul: latestPengajuan.judul || "",
                         dosenId: latestPengajuan.dosenNidn?.toString() || latestPengajuan.dosenId?.toString() || "",
-                        sksDicapai: latestPengajuan.sksDicapai?.toString() || "",
-                        sksNilaiD: latestPengajuan.sksNilaiD?.toString() || "",
-                        ipk: latestPengajuan.ipk?.toString() || "",
-                        batasStudi: calculatedBatasStudi
+                        sksDicapai: sksDicapai,
+                        sksNilaiD: sksNilaiD,
+                        ipk: ipk,
+                        batasStudi: batasStudi
                     });
                 } else {
                     if (tahunMasuk) {
@@ -78,7 +83,18 @@ export function PengajuanMobile() {
                             ...prev,
                             semester: calculatedSemester > 0 ? calculatedSemester.toString() : "1",
                             tahunAkademik: calculatedTahunAkademik,
-                            batasStudi: calculatedBatasStudi
+                            sksDicapai: sksDicapai,
+                            sksNilaiD: sksNilaiD,
+                            ipk: ipk,
+                            batasStudi: batasStudi
+                        }));
+                    } else {
+                        setFormData(prev => ({
+                            ...prev,
+                            sksDicapai: sksDicapai,
+                            sksNilaiD: sksNilaiD,
+                            ipk: ipk,
+                            batasStudi: batasStudi
                         }));
                     }
                 }
@@ -476,32 +492,34 @@ export function PengajuanMobile() {
 
                     {/* Stats Group */}
                     <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-4">
-                        <h3 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-2">Statistik Akademik</h3>
+                        <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                            <h3 className="text-sm font-bold text-gray-900">Statistik Akademik</h3>
+                            <span className="text-[10px] font-semibold px-2 py-0.5 bg-gray-100 text-gray-600 rounded">Read-Only</span>
+                        </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="text-xs font-medium text-gray-500 mb-1 block">SKS Dicapai</label>
                                 <input
-                                    type="number"
+                                    type="text"
                                     name="sksDicapai"
                                     value={formData.sksDicapai}
-                                    onChange={handleInputChange}
-                                    disabled={isReadOnly}
-                                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-all"
+                                    disabled={true}
+                                    placeholder="Data Admin"
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 font-medium outline-none cursor-not-allowed"
                                     required
                                 />
                             </div>
 
                             <div>
-                                <label className="text-xs font-medium text-gray-500 mb-1 block">Jumlah yang tidak lulus(D,E)</label>
+                                <label className="text-xs font-medium text-gray-500 mb-1 block">SKS Tidak Lulus (D,E)</label>
                                 <input
-                                    type="number"
+                                    type="text"
                                     name="sksNilaiD"
                                     value={formData.sksNilaiD}
-                                    onChange={handleInputChange}
-                                    disabled={isReadOnly}
-                                    min="0"
-                                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-all"
+                                    disabled={true}
+                                    placeholder="Data Admin"
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 font-medium outline-none cursor-not-allowed"
                                     required
                                 />
                             </div>
@@ -509,31 +527,12 @@ export function PengajuanMobile() {
                             <div>
                                 <label className="text-xs font-medium text-gray-500 mb-1 block">IPK</label>
                                 <input
-                                    type="number"
-                                    step="0.01"
-                                    min="0.00"
-                                    max="4.00"
+                                    type="text"
                                     name="ipk"
                                     value={formData.ipk}
-                                    onChange={handleInputChange}
-                                    onBlur={(e) => {
-                                        let val = parseFloat(e.target.value);
-                                        if (!isNaN(val)) {
-                                            if (val > 4) {
-                                                if (val >= 10 && val <= 40) {
-                                                    val = val / 10;
-                                                } else if (val >= 100 && val <= 400) {
-                                                    val = val / 100;
-                                                } else {
-                                                    val = 4;
-                                                }
-                                            }
-                                            if (val < 0) val = 0;
-                                            setFormData(prev => ({ ...prev, ipk: val.toFixed(2) }));
-                                        }
-                                    }}
-                                    disabled={isReadOnly}
-                                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-all"
+                                    disabled={true}
+                                    placeholder="Data Admin"
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 font-medium outline-none cursor-not-allowed"
                                     required
                                 />
                             </div>
@@ -545,8 +544,8 @@ export function PengajuanMobile() {
                                     name="batasStudi"
                                     value={formData.batasStudi}
                                     disabled={true}
-                                    placeholder="Otomatis (Tahun Masuk + 6)"
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 font-medium outline-none"
+                                    placeholder="Tahun Masuk + 6"
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 font-medium outline-none cursor-not-allowed"
                                     required
                                 />
                             </div>

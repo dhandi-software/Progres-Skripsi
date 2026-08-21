@@ -1,14 +1,18 @@
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { cn } from "~/lib/utils";
 import { LogIn } from "lucide-react";
 import { Button } from "~/components/ui/button";
+import { NavbarDesktop } from "~/components/template/navbar/NavbarDesktop";
 
 export default function HeaderDesktop() {
+    const location = useLocation();
+    const isArticlePage = location.pathname.startsWith("/article/");
+
     return (
         <header className={cn("w-full pt-6 bg-transparent pb-6")}>
             <div className="mx-auto w-full max-w-[90rem]">
                 <div className="flex items-center justify-between px-4xl min-h-[4.25rem]">
-                    <div className="flex items-center flex-1">
+                    <div className="flex items-center flex-1 justify-start">
                         <Link
                             to="/"
                             className="flex items-center gap-3 shrink-0"
@@ -25,7 +29,11 @@ export default function HeaderDesktop() {
                         </Link>
                     </div>
 
-                    <div className="flex items-center h-11 gap-4">
+                    <div className="flex items-center justify-center shrink-0">
+                        {!isArticlePage && <NavbarDesktop />}
+                    </div>
+
+                    <div className="flex items-center justify-end flex-1 h-11 gap-4">
                         <Button asChild variant="default" className="rounded-full">
                             <Link to="/login" className="flex items-center gap-2">
                                 <LogIn className="w-4 h-4" />

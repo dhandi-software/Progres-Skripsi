@@ -5,5 +5,6 @@ import { NavbarDesktop } from "./NavbarDesktop";
 
 export default function Navbar() {
     const { isMobile } = useOutletContext<ContextType>();
-    return isMobile ? <NavbarMobile /> : <NavbarDesktop />;
+    // NavbarDesktop is now rendered inside HeaderDesktop for better alignment with the logo
+    return isMobile ? <NavbarMobile /> : null;
 }

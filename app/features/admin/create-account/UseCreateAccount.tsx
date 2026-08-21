@@ -18,13 +18,18 @@ export const useCreateAccount = () => {
   const [fileName, setFileName] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    email: "",
+    emailPrefix: "",
+    emailDomain: "@student.univ.ac.id",
     name: "",
     password: "",
     role: "mahasiswa", 
     // Specific fields
     nim: "",
     tahunMasuk: "",
+    sksDicapai: "",
+    ipk: "",
+    sksNilaiD: "",
+    batasStudi: "",
     nidn: "",
     nip: "",
     jabatan: "",
@@ -38,6 +43,7 @@ export const useCreateAccount = () => {
         setFormData(prev => ({ 
             ...prev, 
             role: roleParam,
+            emailDomain: roleParam === 'mahasiswa' ? "@student.univ.ac.id" : "@univ.ac.id",
             jabatan: roleParam === 'dosen' ? "Dosen Reguler" : prev.jabatan
         }));
     }
@@ -57,17 +63,35 @@ export const useCreateAccount = () => {
     }, 5000);
   };
 
+  const formatIpk = (val: string) => {
+    let clean = val.replace(/[^\d.]/g, '');
+    if (clean.includes('.')) {
+        const parts = clean.split('.');
+        const intPart = parts[0].slice(0, 1);
+        const decPart = parts[1].slice(0, 2);
+        return `${intPart}.${decPart}`;
+    }
+    if (clean.length === 0) return '';
+    if (clean.length === 1) return clean;
+    if (clean.length === 2) return `${clean[0]}.${clean[1]}`;
+    if (clean.length >= 3) return `${clean[0]}.${clean.slice(1, 3)}`;
+    return clean;
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
     
-    // Numeric validation for NIM, NIDN, and NIP
-    if ((name === "nim" || name === "nidn" || name === "nip") && value && !/^\d*$/.test(value)) {
+    // Numeric validation for NIM, NIDN, NIP, SKS
+    if ((name === "nim" || name === "nidn" || name === "nip" || name === "sksDicapai" || name === "sksNilaiD") && value && !/^\d*$/.test(value)) {
         return;
     }
 
-    // Prevent spaces in email
-    if (name === "email" && value.includes(" ")) {
-        return;
+    if (name === "ipk") {
+        value = formatIpk(value);
+    }
+
+    if (name === "emailPrefix") {
+        value = value.replace(/\s+/g, "").replace(/@.*/g, "");
     }
 
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -79,6 +103,7 @@ export const useCreateAccount = () => {
     setFormData((prev) => ({ 
         ...prev, 
         role,
+        emailDomain: role === 'mahasiswa' ? "@student.univ.ac.id" : "@univ.ac.id",
         jabatan: role === 'dosen' ? "Dosen Reguler" : prev.jabatan
     }));
     // User requested to reset the excel file when switching roles
@@ -106,6 +131,10 @@ export const useCreateAccount = () => {
         let emailColIdx = -1;
         let jabatanColIdx = -1;
         let peminatanColIdx = -1;
+        let sksColIdx = -1;
+        let ipkColIdx = -1;
+        let sksNilaiDColIdx = -1;
+        let batasStudiColIdx = -1;
         
         const isMahasiswa = role === 'mahasiswa';
 
@@ -121,6 +150,18 @@ export const useCreateAccount = () => {
                       if (cellText.includes('npm') || cellText.includes('nim') || cellText.includes('n p m') || cellText.includes('n.p.m') || cellText.includes('n.i.m') || cellText.includes('no mhs') || cellText.includes('no mahasiswa') || cellText.includes('nomor mahasiswa') || cellText === 'no') {
                           idColIdx = j;
                           headerRowIdx = i;
+                      }
+                      if (cellText.includes('sks dicapai') || cellText === 'sks' || cellText.includes('sks (tanpa')) {
+                          sksColIdx = j;
+                      }
+                      if (cellText === 'ipk' || cellText.includes('indeks prestasi')) {
+                          ipkColIdx = j;
+                      }
+                      if (cellText.includes('tidak lulus') || cellText.includes('d dan e') || cellText.includes('sks d') || cellText.includes('nilai d')) {
+                          sksNilaiDColIdx = j;
+                      }
+                      if (cellText.includes('batas studi') || cellText.includes('batas')) {
+                          batasStudiColIdx = j;
                       }
                   } else {
                       if (cellText.includes('nidn') || cellText.includes('nip') || cellText.includes('n.i.d.n') || cellText.includes('n.i.p') || cellText.includes('no dosen')) {
@@ -212,6 +253,18 @@ export const useCreateAccount = () => {
 
              if (isMahasiswa) {
                  item.tahunMasuk = tahunMasuk;
+                 if (sksColIdx !== -1) item.sksDicapai = String(row[sksColIdx] || '').trim();
+                 if (ipkColIdx !== -1) item.ipk = String(row[ipkColIdx] || '').trim();
+                 
+                 const rawSksD = sksNilaiDColIdx !== -1 ? String(row[sksNilaiDColIdx] || '').trim() : "";
+                 item.sksNilaiD = rawSksD !== "" ? rawSksD : "0";
+
+                 if (batasStudiColIdx !== -1 && row[batasStudiColIdx]) {
+                     item.batasStudi = String(row[batasStudiColIdx] || '').trim();
+                 } else if (tahunMasuk) {
+                     const startYear = parseInt(tahunMasuk);
+                     if (!isNaN(startYear)) item.batasStudi = (startYear + 6).toString();
+                 }
              } else {
                  item.jabatan = jabatan;
                  item.peminatan = peminatan;
@@ -275,13 +328,14 @@ export const useCreateAccount = () => {
   };
 
   const validate = () => {
-    if (!formData.email) {
-      showToast("Email is required", "destructive");
+    if (!formData.emailPrefix) {
+      showToast("Username/Email Prefix is required", "destructive");
       return false;
     }
 
+    const fullEmail = (formData.emailPrefix + formData.emailDomain).toLowerCase().trim();
     const allowedDomains = ["@student.univ.ac.id", "@univ.ac.id", "@gmail.com"];
-    const isValidDomain = allowedDomains.some(domain => formData.email.toLowerCase().endsWith(domain));
+    const isValidDomain = allowedDomains.some(domain => fullEmail.endsWith(domain));
     if (!isValidDomain) {
       showToast("Email harus berakhiran @student.univ.ac.id, @univ.ac.id, atau @gmail.com", "destructive");
       return false;
@@ -299,6 +353,31 @@ export const useCreateAccount = () => {
     if (formData.role.toLowerCase() === 'mahasiswa') {
         if (!formData.nim) { showToast("NIM is required", "destructive"); return false; }
         if (!formData.tahunMasuk) { showToast("Tahun Masuk is required", "destructive"); return false; }
+
+        if (!formData.sksDicapai) {
+            showToast("Jumlah SKS yang dicapai wajib diisi.", "destructive");
+            return false;
+        }
+
+        if (Number(formData.sksDicapai) < 100) {
+            showToast("Jumlah SKS yang dicapai minimal 100 SKS untuk mengajukan KP.", "destructive");
+            return false;
+        }
+
+        if (formData.sksNilaiD && Number(formData.sksNilaiD) > 0) {
+            showToast("Mahasiswa harus memperbaiki nilai yang tidak lulus (D dan E) terlebih dahulu.", "destructive");
+            return false;
+        }
+
+        if (!formData.ipk) {
+            showToast("IPK wajib diisi.", "destructive");
+            return false;
+        }
+
+        if (Number(formData.ipk) < 2.00 || Number(formData.ipk) > 4.00) {
+            showToast("IPK minimal 2.00 dan maksimal 4.00 untuk mengajukan KP.", "destructive");
+            return false;
+        }
     }
 
     if (formData.role.toLowerCase() === 'dosen') {
@@ -310,10 +389,6 @@ export const useCreateAccount = () => {
         if (!formData.nip) { showToast("NIP is required", "destructive"); return false; }
     }
 
-    // if (!passwordValidation.length || !passwordValidation.pattern || !passwordValidation.number || !passwordValidation.symbol) {
-    //   showToast("Password does not meet requirements", "destructive");
-    //   return false;
-    // }
     return true;
   };
 
@@ -339,22 +414,58 @@ export const useCreateAccount = () => {
     try {
       if (registrationMode === 'mass') {
           if (formData.role === 'mahasiswa') {
+              for (const mhs of massData) {
+                  if (!mhs.sksDicapai) {
+                      showToast(`Kolom SKS Dicapai wajib diisi pada file Excel (Mahasiswa: ${mhs.nama} - ${mhs.nim})`, "destructive");
+                      setIsLoading(false);
+                      return;
+                  }
+                  if (Number(mhs.sksDicapai) < 100) {
+                      showToast(`SKS Dicapai minimal 100 SKS untuk mengajukan KP (Mahasiswa: ${mhs.nama} - ${mhs.nim})`, "destructive");
+                      setIsLoading(false);
+                      return;
+                  }
+                  if (!mhs.ipk) {
+                      showToast(`Kolom IPK wajib diisi pada file Excel (Mahasiswa: ${mhs.nama} - ${mhs.nim})`, "destructive");
+                      setIsLoading(false);
+                      return;
+                  }
+                  if (Number(mhs.ipk) < 2.00 || Number(mhs.ipk) > 4.00) {
+                      showToast(`IPK minimal 2.00 dan maksimal 4.00 (Mahasiswa: ${mhs.nama} - ${mhs.nim})`, "destructive");
+                      setIsLoading(false);
+                      return;
+                  }
+                  if (mhs.sksNilaiD && Number(mhs.sksNilaiD) > 0) {
+                      showToast(`Mahasiswa ${mhs.nama} (${mhs.nim}) memiliki ${mhs.sksNilaiD} SKS tidak lulus (D/E). Mahasiswa harus memperbaikinya terlebih dahulu.`, "destructive");
+                      setIsLoading(false);
+                      return;
+                  }
+                  if (mhs.sksNilaiD === undefined || mhs.sksNilaiD === null || mhs.sksNilaiD === "") {
+                      mhs.sksNilaiD = "0";
+                  }
+              }
               await userApi.createMahasiswaMassal(massData);
           } else {
               await userApi.createDosenMassal(massData);
           }
       } else {
+          const fullEmail = (formData.emailPrefix + formData.emailDomain).toLowerCase().trim();
           if (formData.role.toLowerCase() === 'mahasiswa') {
+              const calculatedBatasStudi = formData.batasStudi || (formData.tahunMasuk && !isNaN(parseInt(formData.tahunMasuk)) ? (parseInt(formData.tahunMasuk) + 6).toString() : "");
               await userApi.createMahasiswa({
-                  email: formData.email,
+                  email: fullEmail,
                   password: formData.password,
                   nama: formData.name,
                   nim: formData.nim,
-                  tahunMasuk: formData.tahunMasuk
+                  tahunMasuk: formData.tahunMasuk,
+                  sksDicapai: formData.sksDicapai || undefined,
+                  ipk: formData.ipk || undefined,
+                  sksNilaiD: formData.sksNilaiD || undefined,
+                  batasStudi: calculatedBatasStudi || undefined
               });
           } else if (formData.role.toLowerCase() === 'dosen') {
               await userApi.createDosen({
-                  email: formData.email,
+                  email: fullEmail,
                   password: formData.password,
                   nama: formData.name,
                   nidn: formData.nidn,
@@ -365,7 +476,7 @@ export const useCreateAccount = () => {
               });
           } else if (formData.role.toLowerCase() === 'staf') {
               await userApi.createStaf({
-                  email: formData.email,
+                  email: fullEmail,
                   password: formData.password,
                   nama: formData.name,
                   nip: formData.nip
@@ -404,7 +515,11 @@ export const useCreateAccount = () => {
                 Nama: user.nama,
                 Email: user.email,
                 Password: user.password,
-                "Tahun Masuk": user.tahunMasuk
+                "Tahun Masuk": user.tahunMasuk,
+                "SKS Dicapai": user.sksDicapai || "",
+                "IPK": user.ipk || "",
+                "SKS Tidak Lulus (D/E)": user.sksNilaiD || "",
+                "Batas Studi": user.batasStudi || ""
             };
         } else {
             return {

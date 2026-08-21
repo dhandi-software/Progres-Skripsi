@@ -50,6 +50,11 @@ export function PengajuanDesktop() {
                     calculatedBatasStudi = !isNaN(startYear) ? (startYear + 6).toString() : "";
                 }
 
+                const sksDicapai = profileRes.sksDicapai || profileRes.pengajuanJudul?.[0]?.sksDicapai?.toString() || "";
+                const sksNilaiD = profileRes.sksNilaiD !== undefined && profileRes.sksNilaiD !== null ? profileRes.sksNilaiD.toString() : (profileRes.pengajuanJudul?.[0]?.sksNilaiD?.toString() || "0");
+                const ipk = profileRes.ipk || profileRes.pengajuanJudul?.[0]?.ipk?.toString() || "";
+                const batasStudi = profileRes.batasStudi || profileRes.pengajuanJudul?.[0]?.batasStudi?.toString() || calculatedBatasStudi;
+
                 if (profileRes.pengajuanJudul && profileRes.pengajuanJudul.length > 0) {
                     const latestPengajuan = profileRes.pengajuanJudul[0];
                     setFormData({
@@ -58,10 +63,10 @@ export function PengajuanDesktop() {
                         tahunAkademik: latestPengajuan.tahunAkademik || "",
                         judul: latestPengajuan.judul || "",
                         dosenId: latestPengajuan.dosenNidn?.toString() || latestPengajuan.dosenId?.toString() || "",
-                        sksDicapai: latestPengajuan.sksDicapai?.toString() || "",
-                        sksNilaiD: latestPengajuan.sksNilaiD?.toString() || "",
-                        ipk: latestPengajuan.ipk?.toString() || "",
-                        batasStudi: calculatedBatasStudi
+                        sksDicapai: sksDicapai,
+                        sksNilaiD: sksNilaiD,
+                        ipk: ipk,
+                        batasStudi: batasStudi
                     });
                 } else {
                     if (tahunMasuk) {
@@ -77,7 +82,18 @@ export function PengajuanDesktop() {
                             ...prev,
                             semester: calculatedSemester > 0 ? calculatedSemester.toString() : "1",
                             tahunAkademik: calculatedTahunAkademik,
-                            batasStudi: calculatedBatasStudi
+                            sksDicapai: sksDicapai,
+                            sksNilaiD: sksNilaiD,
+                            ipk: ipk,
+                            batasStudi: batasStudi
+                        }));
+                    } else {
+                        setFormData(prev => ({
+                            ...prev,
+                            sksDicapai: sksDicapai,
+                            sksNilaiD: sksNilaiD,
+                            ipk: ipk,
+                            batasStudi: batasStudi
                         }));
                     }
                 }
@@ -463,18 +479,21 @@ export function PengajuanDesktop() {
                     </div>
 
                     <div className="border-t border-gray-100 pt-6">
-                        <h3 className="text-lg font-bold text-gray-900 mb-6">Data Akademik</h3>
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-lg font-bold text-gray-900">Data Akademik</h3>
+                            <span className="text-xs font-semibold px-3 py-1 bg-gray-100 text-gray-600 rounded-full border border-gray-200">Terverifikasi Admin / Read-Only</span>
+                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="flex flex-col gap-1.5">
                                 <label className="text-sm font-semibold text-gray-700">Jumlah SKS yang dicapai <span className="text-xs font-normal text-gray-500">(tanpa nilai D, E, Blank)</span></label>
                                 <div className="relative">
                                     <input 
-                                        type="number" 
+                                        type="text" 
                                         name="sksDicapai"
                                         value={formData.sksDicapai}
-                                        onChange={handleInputChange}
-                                        disabled={isReadOnly}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all pr-12"
+                                        disabled={true}
+                                        placeholder="Terisi dari Data Admin"
+                                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 font-medium outline-none pr-12 cursor-not-allowed"
                                         required
                                     />
                                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">SKS</span>
@@ -485,13 +504,12 @@ export function PengajuanDesktop() {
                                 <label className="text-sm font-semibold text-gray-700">Jumlah yang tidak Lulus (D dan E)</label>
                                 <div className="relative">
                                     <input 
-                                        type="number" 
+                                        type="text" 
                                         name="sksNilaiD"
                                         value={formData.sksNilaiD}
-                                        onChange={handleInputChange}
-                                        disabled={isReadOnly}
-                                        min="0"
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all pr-12"
+                                        disabled={true}
+                                        placeholder="Terisi dari Data Admin"
+                                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 font-medium outline-none pr-12 cursor-not-allowed"
                                         required
                                     />
                                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">SKS</span>
@@ -501,32 +519,12 @@ export function PengajuanDesktop() {
                             <div className="flex flex-col gap-1.5">
                                 <label className="text-sm font-semibold text-gray-700">Indeks Prestasi Komulatif (IPK)</label>
                                 <input 
-                                    type="number" 
-                                    step="0.01"
-                                    min="0.00"
-                                    max="4.00"
+                                    type="text" 
                                     name="ipk"
                                     value={formData.ipk}
-                                    onChange={handleInputChange}
-                                    onBlur={(e) => {
-                                        let val = parseFloat(e.target.value);
-                                        if (!isNaN(val)) {
-                                            if (val > 4) {
-                                                if (val >= 10 && val <= 40) {
-                                                    val = val / 10;
-                                                } else if (val >= 100 && val <= 400) {
-                                                    val = val / 100;
-                                                } else {
-                                                    val = 4;
-                                                }
-                                            }
-                                            if (val < 0) val = 0;
-                                            setFormData(prev => ({ ...prev, ipk: val.toFixed(2) }));
-                                        }
-                                    }}
-                                    disabled={isReadOnly}
-                                    placeholder="e.g. 3.50"
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all"
+                                    disabled={true}
+                                    placeholder="Terisi dari Data Admin"
+                                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 font-medium outline-none cursor-not-allowed"
                                     required
                                 />
                             </div>
@@ -539,7 +537,7 @@ export function PengajuanDesktop() {
                                     value={formData.batasStudi}
                                     disabled={true}
                                     placeholder="Otomatis (Tahun Masuk + 6)"
-                                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 font-medium"
+                                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 font-medium cursor-not-allowed"
                                     required
                                 />
                             </div>

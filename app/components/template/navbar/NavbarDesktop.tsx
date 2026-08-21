@@ -21,19 +21,17 @@ export function NavbarDesktop() {
     ];
 
     return (
-        <div className="flex justify-center w-full mt-sm">
-            <NavigationMenu>
-                <NavigationMenuList className="gap-8">
-                    {links.map((link) => (
-                        <NavigationMenuItem 
-                            key={link.href} 
-                            className={`py-4 text-sm font-medium ${isActive(link.href) ? activeStyle : inactiveStyle}`}
-                        >
-                            <Link to={link.href}>{link.label}</Link>
-                        </NavigationMenuItem>
-                    ))}
-                </NavigationMenuList>
-            </NavigationMenu>
-        </div>
+        <NavigationMenu className="!flex-none !justify-center">
+            <NavigationMenuList className="gap-8 !justify-center">
+                {links.map((link) => (
+                    <NavigationMenuItem 
+                        key={link.href} 
+                        className={`py-4 text-sm font-medium ${isActive(link.href) ? activeStyle : inactiveStyle}`}
+                    >
+                        <Link to={link.href}>{link.label}</Link>
+                    </NavigationMenuItem>
+                ))}
+            </NavigationMenuList>
+        </NavigationMenu>
     );
 }

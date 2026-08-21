@@ -120,7 +120,7 @@ export const CreateAccountMobile = () => {
         {formData.role === 'mahasiswa' && (
             <>
                 <div className="flex flex-col gap-2">
-                    <label className="text-[0.875rem] font-medium text-[#18181B]">NIM</label>
+                    <label className="text-[0.875rem] font-medium text-[#18181B]">NIM / NPM</label>
                     <input
                         type="text"
                         name="nim"
@@ -128,7 +128,7 @@ export const CreateAccountMobile = () => {
                         onChange={handleInputChange}
                         placeholder="NPM"
                         disabled={isLoading}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50 bg-white"
                     />
                 </div>
 
@@ -141,8 +141,66 @@ export const CreateAccountMobile = () => {
                         onChange={handleInputChange}
                         placeholder="Tahun"
                         disabled={isLoading}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50 bg-white"
                     />
+                </div>
+
+                {/* Data Akademik Mobile */}
+                <div className="p-4 bg-orange-50/50 border border-orange-100 rounded-xl flex flex-col gap-3">
+                    <h3 className="text-xs font-bold text-[#D25026]">Data Akademik Mahasiswa</h3>
+
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[0.75rem] font-semibold text-gray-700">Jumlah SKS yang dicapai <span className="font-normal text-gray-500">(tanpa D, E, Blank)</span></label>
+                        <input
+                            type="number"
+                            name="sksDicapai"
+                            value={formData.sksDicapai}
+                            onChange={handleInputChange}
+                            placeholder="e.g. 110"
+                            disabled={isLoading}
+                            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-xs bg-white focus:outline-none focus:border-[#D25026]"
+                        />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[0.75rem] font-semibold text-gray-700">Jumlah SKS Tidak Lulus (D dan E)</label>
+                        <input
+                            type="number"
+                            name="sksNilaiD"
+                            value={formData.sksNilaiD}
+                            onChange={handleInputChange}
+                            placeholder="e.g. 0"
+                            disabled={isLoading}
+                            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-xs bg-white focus:outline-none focus:border-[#D25026]"
+                        />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[0.75rem] font-semibold text-gray-700">Indeks Prestasi Komulatif (IPK)</label>
+                        <input
+                            type="text"
+                            name="ipk"
+                            value={formData.ipk}
+                            onChange={handleInputChange}
+                            placeholder="Ketik 3 angka (cth: 350 -> 3.50)"
+                            disabled={isLoading}
+                            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-xs bg-white focus:outline-none focus:border-[#D25026]"
+                        />
+                        <p className="text-[10px] text-gray-500">Otomatis memasukkan titik (misal ketik 350 jadi 3.50)</p>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[0.75rem] font-semibold text-gray-700">Batas Studi (Tahun)</label>
+                        <input
+                            type="text"
+                            name="batasStudi"
+                            value={formData.batasStudi || (formData.tahunMasuk && !isNaN(parseInt(formData.tahunMasuk)) ? (parseInt(formData.tahunMasuk) + 6).toString() : "")}
+                            onChange={handleInputChange}
+                            placeholder="e.g. 2029 (Otomatis Tahun Masuk + 6)"
+                            disabled={isLoading}
+                            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-xs bg-white focus:outline-none focus:border-[#D25026]"
+                        />
+                    </div>
                 </div>
             </>
         )}
@@ -234,18 +292,44 @@ export const CreateAccountMobile = () => {
           />
         </div>
 
-        {/* Email Field */}
+        {/* Email Field with Suffix Selector */}
         <div className="flex flex-col gap-2">
           <label className="text-[0.875rem] font-medium text-[#18181B]">Email</label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleInputChange}
-            placeholder={formData.role === 'mahasiswa' ? "mahasiswa@student.univ.ac.id" : formData.role === 'dosen' ? "dosen@univ.ac.id" : "staf@univ.ac.id"}
-            disabled={isLoading}
-            className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] disabled:opacity-50 disabled:bg-gray-50"
-          />
+          <div className="flex rounded-xl border border-gray-300 focus-within:ring-2 focus-within:ring-[#D25026]/10 focus-within:border-[#D25026] overflow-hidden bg-white transition-all">
+            <input
+              type="text"
+              name="emailPrefix"
+              value={formData.emailPrefix}
+              onChange={handleInputChange}
+              placeholder={formData.role === 'mahasiswa' ? "Username / NPM" : "Username / NIDN"}
+              disabled={isLoading}
+              className="flex-1 px-4 py-3 outline-none text-[#18181B] placeholder:text-[#A1A1AA] text-[0.875rem] min-w-0"
+            />
+            <div className="bg-gray-100 border-l border-gray-200 flex items-center px-2 shrink-0">
+              <select
+                name="emailDomain"
+                value={formData.emailDomain}
+                onChange={handleInputChange}
+                disabled={isLoading}
+                className="bg-transparent font-medium text-xs text-gray-700 outline-none cursor-pointer"
+              >
+                {formData.role === 'mahasiswa' ? (
+                  <>
+                    <option value="@student.univ.ac.id">@student.univ.ac.id</option>
+                    <option value="@gmail.com">@gmail.com</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="@univ.ac.id">@univ.ac.id</option>
+                    <option value="@gmail.com">@gmail.com</option>
+                  </>
+                )}
+              </select>
+            </div>
+          </div>
+          <p className="text-[0.7rem] text-gray-500">
+            Email: <span className="font-semibold text-gray-700">{formData.emailPrefix || "username"}{formData.emailDomain}</span>
+          </p>
         </div>
 
         {/* Password Field */}
@@ -308,7 +392,11 @@ export const CreateAccountMobile = () => {
                               {formData.role === 'mahasiswa' && (
                                 <>
                                   <th className="px-2 py-1.5 border-r border-b border-gray-300 font-semibold text-gray-700 text-center">C</th>
-                                  <th className="px-2 py-1.5 border-b border-gray-300 font-semibold text-gray-700 text-center">D</th>
+                                  <th className="px-2 py-1.5 border-r border-b border-gray-300 font-semibold text-gray-700 text-center">D</th>
+                                  <th className="px-2 py-1.5 border-r border-b border-gray-300 font-semibold text-gray-700 text-center">E</th>
+                                  <th className="px-2 py-1.5 border-r border-b border-gray-300 font-semibold text-gray-700 text-center">F</th>
+                                  <th className="px-2 py-1.5 border-r border-b border-gray-300 font-semibold text-gray-700 text-center">G</th>
+                                  <th className="px-2 py-1.5 border-b border-gray-300 font-semibold text-gray-700 text-center">H</th>
                                 </>
                               )}
                               {formData.role === 'staf' && (
@@ -326,7 +414,11 @@ export const CreateAccountMobile = () => {
                               {formData.role === 'mahasiswa' && (
                                 <>
                                   <td className="px-2 py-1 border-r border-b border-gray-300 font-bold bg-blue-50/50">Email</td>
-                                  <td className="px-2 py-1 border-b border-gray-300 font-bold bg-blue-50/50">Tahun Masuk</td>
+                                  <td className="px-2 py-1 border-r border-b border-gray-300 font-bold bg-blue-50/50">Tahun Masuk</td>
+                                  <td className="px-2 py-1 border-r border-b border-gray-300 font-bold bg-blue-50/50">SKS Dicapai</td>
+                                  <td className="px-2 py-1 border-r border-b border-gray-300 font-bold bg-blue-50/50">IPK</td>
+                                  <td className="px-2 py-1 border-r border-b border-gray-300 font-bold bg-blue-50/50">SKS Tidak Lulus</td>
+                                  <td className="px-2 py-1 border-b border-gray-300 font-bold bg-blue-50/50">Batas Studi</td>
                                 </>
                               )}
                               {formData.role === 'staf' && (
@@ -342,10 +434,14 @@ export const CreateAccountMobile = () => {
                                 {formData.role === 'mahasiswa' ? 'Budi S.' : 'Gede W.'}
                               </td>
                               {formData.role === 'mahasiswa' && (
-                                <>
-                                  <td className="px-2 py-1 border-r border-gray-300 text-gray-400 italic">budi@..</td>
-                                  <td className="px-2 py-1 border-gray-300 text-gray-400 italic">2023</td>
-                                </>
+                                 <>
+                                   <td className="px-2 py-1 border-r border-gray-300 text-gray-400 italic">budi@student.. (ops)</td>
+                                   <td className="px-2 py-1 border-r border-gray-300 text-gray-600 font-medium">2023 <span className="text-red-500 font-normal">(wajib)</span></td>
+                                   <td className="px-2 py-1 border-r border-gray-300 text-gray-600 font-medium">110 <span className="text-red-500 font-normal">(wajib)</span></td>
+                                   <td className="px-2 py-1 border-r border-gray-300 text-gray-600 font-medium">3.50 <span className="text-red-500 font-normal">(wajib)</span></td>
+                                   <td className="px-2 py-1 border-r border-gray-300 text-gray-600 font-medium">0 <span className="text-orange-600 font-normal">(isi 0 jika tidak ada)</span></td>
+                                   <td className="px-2 py-1 border-gray-300 text-gray-400 italic">2029</td>
+                                 </>
                               )}
                               {formData.role === 'staf' && (
                                  <td className="px-2 py-1 border-gray-300 text-gray-400 italic">wahyu@..</td>
@@ -507,7 +603,13 @@ export const CreateAccountMobile = () => {
                                         <th className="px-3 py-2 font-bold text-[9px] uppercase tracking-wider">Email</th>
                                         <th className="px-3 py-2 font-bold text-[9px] uppercase tracking-wider">Password</th>
                                         {formData.role === 'mahasiswa' ? (
-                                            <th className="px-3 py-2 font-bold text-[9px] uppercase tracking-wider">Masuk</th>
+                                            <>
+                                                <th className="px-3 py-2 font-bold text-[9px] uppercase tracking-wider">Masuk</th>
+                                                <th className="px-3 py-2 font-bold text-[9px] uppercase tracking-wider">SKS</th>
+                                                <th className="px-3 py-2 font-bold text-[9px] uppercase tracking-wider">IPK</th>
+                                                <th className="px-3 py-2 font-bold text-[9px] uppercase tracking-wider">D/E</th>
+                                                <th className="px-3 py-2 font-bold text-[9px] uppercase tracking-wider">Batas</th>
+                                            </>
                                         ) : (
                                             <th className="px-3 py-2 font-bold text-[9px] uppercase tracking-wider">Jabatan</th>
                                         )}
@@ -521,9 +623,17 @@ export const CreateAccountMobile = () => {
                                             <td className="px-3 py-2 truncate max-w-[80px] font-medium">{user.nama}</td>
                                             <td className="px-3 py-2 truncate max-w-[80px] text-gray-500">{user.email}</td>
                                             <td className="px-3 py-2 font-mono text-orange-600 bg-gray-50/50">{user.password}</td>
-                                            <td className="px-3 py-2 text-gray-600">
-                                                {formData.role === 'mahasiswa' ? user.tahunMasuk : user.jabatan}
-                                            </td>
+                                            {formData.role === 'mahasiswa' ? (
+                                                <>
+                                                    <td className="px-3 py-2 text-gray-600">{user.tahunMasuk}</td>
+                                                    <td className="px-3 py-2 text-gray-600">{user.sksDicapai || "-"}</td>
+                                                    <td className="px-3 py-2 text-gray-600">{user.ipk || "-"}</td>
+                                                    <td className="px-3 py-2 text-gray-600">{user.sksNilaiD || "0"}</td>
+                                                    <td className="px-3 py-2 text-gray-600">{user.batasStudi || "-"}</td>
+                                                </>
+                                            ) : (
+                                                <td className="px-3 py-2 text-gray-600">{user.jabatan}</td>
+                                            )}
                                         </tr>
                                     ))}
                                 </tbody>
