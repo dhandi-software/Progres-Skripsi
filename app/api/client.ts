@@ -48,9 +48,9 @@ client.interceptors.response.use(
         if (status === 401) {
             console.warn("Unauthorized request - JWT might be expired");
         }
-        if (status === 502 || status === 503 || status === 504) {
-            if (typeof window !== "undefined" && !window.location.pathname.startsWith("/502")) {
-                window.location.href = "/502";
+        if (status === 502 || status === 503 || status === 504 || !error.response) {
+            if (typeof window !== "undefined" && window.location.pathname !== "/") {
+                window.location.href = "/";
             }
         }
         return Promise.reject(error);

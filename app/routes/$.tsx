@@ -6,33 +6,8 @@ export default function NotFoundRoute() {
     const location = useLocation();
     const navigate = useNavigate();
 
-    const [homeLink, setHomeLink] = useState("/");
-    const [homeLabel, setHomeLabel] = useState("Kembali ke Beranda");
-
-    useEffect(() => {
-        try {
-            const savedUser = localStorage.getItem("user");
-            if (savedUser) {
-                const parsed = JSON.parse(savedUser);
-                const role = parsed?.role?.toLowerCase();
-                if (role === "mahasiswa") {
-                    setHomeLink("/mahasiswa/dashboard");
-                    setHomeLabel("Kembali ke Dashboard");
-                } else if (role === "dosen") {
-                    setHomeLink("/dosen/dashboard");
-                    setHomeLabel("Kembali ke Dashboard");
-                } else if (role === "staf") {
-                    setHomeLink("/staf/dashboard");
-                    setHomeLabel("Kembali ke Dashboard");
-                } else if (role === "admin") {
-                    setHomeLink("/admin/dashboard");
-                    setHomeLabel("Kembali ke Dashboard");
-                }
-            }
-        } catch (e) {
-            console.error("Error reading user role for 404 navigation:", e);
-        }
-    }, []);
+    const [homeLink] = useState("/");
+    const [homeLabel] = useState("Kembali ke Halaman Utama");
 
     return (
         <main className="fixed inset-0 z-[9999] w-screen h-screen grid place-items-center p-4 font-geist overflow-hidden bg-slate-950/80 backdrop-blur-md">
