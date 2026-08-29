@@ -343,10 +343,10 @@ export const useCreateAccount = () => {
     }
 
     const fullEmail = (formData.emailPrefix + formData.emailDomain).toLowerCase().trim();
-    const allowedDomains = ["@student.univ.ac.id", "@univ.ac.id", "@gmail.com"];
+    const allowedDomains = ["@univpancasila.ac.id", "@student.univpancasila.ac.id", "@student.univ.ac.id", "@univ.ac.id", "@gmail.com"];
     const isValidDomain = allowedDomains.some(domain => fullEmail.endsWith(domain));
     if (!isValidDomain) {
-      showToast("Email harus berakhiran @student.univ.ac.id, @univ.ac.id, atau @gmail.com", "destructive");
+      showToast("Email harus berakhiran @univpancasila.ac.id, @student.univpancasila.ac.id, @student.univ.ac.id, @univ.ac.id, atau @gmail.com", "destructive");
       return false;
     }
 
