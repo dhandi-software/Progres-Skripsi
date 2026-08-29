@@ -149,7 +149,7 @@ export const profileApi = {
 
     getProfilePhotoUrl: (photoPath: string): string => {
         if (!photoPath || photoPath === "null" || photoPath === "undefined") {
-            return "/images/avatar.svg";
+            return "https://i.pinimg.com/736x/06/22/bc/0622bca0fc32fe9df332c9354fcfc411.jpg";
         }
 
         if (
