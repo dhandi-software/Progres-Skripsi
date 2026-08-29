@@ -6,33 +6,8 @@ export default function MaintenanceRoute() {
     const location = useLocation();
     const navigate = useNavigate();
 
-    const [homeLink, setHomeLink] = useState("/");
-    const [homeLabel, setHomeLabel] = useState("Kembali ke Beranda");
-
-    useEffect(() => {
-        try {
-            const savedUser = localStorage.getItem("user");
-            if (savedUser) {
-                const parsed = JSON.parse(savedUser);
-                const role = parsed?.role?.toLowerCase();
-                if (role === "mahasiswa") {
-                    setHomeLink("/mahasiswa/dashboard");
-                    setHomeLabel("Kembali ke Dashboard");
-                } else if (role === "dosen") {
-                    setHomeLink("/dosen/dashboard");
-                    setHomeLabel("Kembali ke Dashboard");
-                } else if (role === "staf") {
-                    setHomeLink("/staf/dashboard");
-                    setHomeLabel("Kembali ke Dashboard");
-                } else if (role === "admin") {
-                    setHomeLink("/admin/dashboard");
-                    setHomeLabel("Kembali ke Dashboard");
-                }
-            }
-        } catch (e) {
-            console.error("Error reading user role for maintenance navigation:", e);
-        }
-    }, []);
+    const [homeLink] = useState("/");
+    const [homeLabel] = useState("Kembali ke Halaman Utama");
 
     return (
         <main className="relative min-h-screen w-screen overflow-hidden font-geist bg-slate-900 flex items-center justify-center p-4">
