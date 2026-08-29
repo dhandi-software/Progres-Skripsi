@@ -78,11 +78,11 @@ export default function MaintenanceRoute() {
 
                     <div className="flex flex-col gap-3">
                         <a
-                            href={homeLink}
+                            href="/"
                             className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#D25026] to-[#EA580C] px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#D25026]/30 hover:from-[#EA580C] hover:to-[#F97316] transition-all hover:-translate-y-0.5 active:translate-y-0"
                         >
                             <Home size={18} />
-                            {homeLabel}
+                            Kembali ke Halaman Utama
                         </a>
 
                         <button
