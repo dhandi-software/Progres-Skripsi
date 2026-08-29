@@ -79,18 +79,42 @@ export function EditAccountDesktop() {
                 <div className="flex flex-col gap-6">
                     {/* Email Field */}
                     <div className="flex flex-col gap-3">
-                        <label className="text-base font-semibold text-[#18181B]">
-                            Email
-                        </label>
-                        <input
-                            type="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={handleInputChange}
-                            placeholder="Email address"
-                            disabled={isLoading}
-                            className="w-full px-5 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#D25026]/10 focus:border-[#D25026] transition-all text-[#18181B] placeholder:text-[#A1A1AA] text-base disabled:opacity-50 disabled:bg-gray-50 bg-white"
-                        />
+                        <div className="flex items-center justify-between">
+                            <label className="text-base font-semibold text-[#18181B]">
+                                Email
+                            </label>
+                            <span className="text-xs text-gray-500 font-medium">Domain otomatis terpasang</span>
+                        </div>
+                        <div className="flex rounded-xl border border-gray-300 focus-within:ring-2 focus-within:ring-[#D25026]/10 focus-within:border-[#D25026] overflow-hidden bg-white shadow-sm transition-all">
+                            <input
+                                type="text"
+                                name="emailPrefix"
+                                autoComplete="off"
+                                value={formData.emailPrefix}
+                                onChange={handleInputChange}
+                                placeholder="Username / NPM / NIDN"
+                                disabled={isLoading}
+                                className="flex-1 px-5 py-3 outline-none text-[#18181B] placeholder:text-[#A1A1AA] text-base disabled:opacity-50 disabled:bg-gray-50"
+                            />
+                            <div className="bg-gray-100 border-l border-gray-200 flex items-center px-4 shrink-0">
+                                <select
+                                    name="emailDomain"
+                                    value={formData.emailDomain}
+                                    onChange={handleInputChange}
+                                    disabled={isLoading}
+                                    className="bg-transparent font-semibold text-sm text-gray-700 outline-none cursor-pointer px-1"
+                                >
+                                    <option value="@univpancasila.ac.id">@univpancasila.ac.id</option>
+                                    <option value="@student.univpancasila.ac.id">@student.univpancasila.ac.id</option>
+                                    <option value="@student.univ.ac.id">@student.univ.ac.id</option>
+                                    <option value="@univ.ac.id">@univ.ac.id</option>
+                                    <option value="@gmail.com">@gmail.com</option>
+                                </select>
+                            </div>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                            Alamat Email: <span className="font-semibold text-gray-800">{(formData.emailPrefix || "username").toLowerCase()}{formData.emailDomain}</span>
+                        </p>
                     </div>
 
                     {/* Name Field */}

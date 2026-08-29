@@ -69,14 +69,36 @@ export function EditAccountMobile() {
              <div className="h-px bg-gray-100" />
              <div className="flex flex-col gap-1.5">
                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Email Address</label>
-                 <input 
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className="w-full text-base text-gray-700 border-none p-0 focus:ring-0 placeholder:text-gray-300"
-                    placeholder="name@example.com"
-                 />
+                 <div className="flex rounded-xl border border-gray-300 focus-within:ring-2 focus-within:ring-[#D25026]/10 focus-within:border-[#D25026] overflow-hidden bg-white">
+                     <input
+                         type="text"
+                         name="emailPrefix"
+                         autoComplete="off"
+                         value={formData.emailPrefix}
+                         onChange={handleInputChange}
+                         placeholder="Username / NPM"
+                         disabled={isLoading}
+                         className="flex-1 px-3 py-2.5 outline-none text-gray-700 placeholder:text-gray-300 text-sm min-w-0"
+                     />
+                     <div className="bg-gray-100 border-l border-gray-200 flex items-center px-2 shrink-0">
+                         <select
+                             name="emailDomain"
+                             value={formData.emailDomain}
+                             onChange={handleInputChange}
+                             disabled={isLoading}
+                             className="bg-transparent font-medium text-xs text-gray-700 outline-none cursor-pointer px-1"
+                         >
+                             <option value="@univpancasila.ac.id">@univpancasila.ac.id</option>
+                             <option value="@student.univpancasila.ac.id">@student.univpancasila.ac.id</option>
+                             <option value="@student.univ.ac.id">@student.univ.ac.id</option>
+                             <option value="@univ.ac.id">@univ.ac.id</option>
+                             <option value="@gmail.com">@gmail.com</option>
+                         </select>
+                     </div>
+                 </div>
+                 <p className="text-[0.7rem] text-gray-500">
+                     Email: <span className="font-semibold text-gray-700">{(formData.emailPrefix || "username").toLowerCase()}{formData.emailDomain}</span>
+                 </p>
              </div>
          </div>
 

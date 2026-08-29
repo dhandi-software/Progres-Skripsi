@@ -317,6 +317,7 @@ export const CreateAccountDesktop = () => {
                 <input
                   type="text"
                   name="emailPrefix"
+                  autoComplete="off"
                   value={formData.emailPrefix}
                   onChange={handleInputChange}
                   placeholder={formData.role === 'mahasiswa' ? "Username / NPM (misal: budi atau 4519210001)" : "Username / NIDN (misal: dosen.budi)"}
@@ -329,24 +330,18 @@ export const CreateAccountDesktop = () => {
                     value={formData.emailDomain}
                     onChange={handleInputChange}
                     disabled={isLoading}
-                    className="bg-transparent font-semibold text-sm text-gray-700 outline-none cursor-pointer"
+                    className="bg-transparent font-semibold text-sm text-gray-700 outline-none cursor-pointer px-1"
                   >
-                    {formData.role === 'mahasiswa' ? (
-                      <>
-                        <option value="@student.univ.ac.id">@student.univ.ac.id</option>
-                        <option value="@gmail.com">@gmail.com</option>
-                      </>
-                    ) : (
-                      <>
-                        <option value="@univ.ac.id">@univ.ac.id</option>
-                        <option value="@gmail.com">@gmail.com</option>
-                      </>
-                    )}
+                    <option value="@univpancasila.ac.id">@univpancasila.ac.id</option>
+                    <option value="@student.univpancasila.ac.id">@student.univpancasila.ac.id</option>
+                    <option value="@student.univ.ac.id">@student.univ.ac.id</option>
+                    <option value="@univ.ac.id">@univ.ac.id</option>
+                    <option value="@gmail.com">@gmail.com</option>
                   </select>
                 </div>
               </div>
               <p className="text-xs text-gray-500">
-                Alamat Email Mahasiswa: <span className="font-semibold text-gray-800">{formData.emailPrefix || "username"}{formData.emailDomain}</span>
+                Alamat Email: <span className="font-semibold text-gray-800">{(formData.emailPrefix || "username").toLowerCase()}{formData.emailDomain}</span>
               </p>
             </div>
 
@@ -358,6 +353,7 @@ export const CreateAccountDesktop = () => {
                   <input
                     type={showPassword ? "text" : "password"}
                     name="password"
+                    autoComplete="new-password"
                     value={formData.password}
                     onChange={handleInputChange}
                     placeholder="Enter password"

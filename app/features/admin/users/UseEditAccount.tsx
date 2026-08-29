@@ -12,6 +12,8 @@ export const useEditAccount = () => {
     const { id } = useParams<{ id: string }>();
 
     const [formData, setFormData] = useState({
+        emailPrefix: "",
+        emailDomain: "@univpancasila.ac.id",
         email: "",
         name: "",
         password: "", // Optional for edit
@@ -54,8 +56,15 @@ export const useEditAccount = () => {
             const res = await adminApi.getUserById(userId);
             const user = res.data;
 
+            const fullEmail = user.mahasiswa?.email || user.dosen?.email || user.staf?.email || user.email || "";
+            const parts = fullEmail.split("@");
+            const emailPrefix = parts[0] ? parts[0].toLowerCase() : "";
+            const emailDomain = parts[1] ? `@${parts[1]}` : "@univpancasila.ac.id";
+
             setFormData({
-                email: user.mahasiswa?.email || user.dosen?.email || user.staf?.email || user.email || "",
+                emailPrefix,
+                emailDomain,
+                email: fullEmail,
                 name: user.nama || user.name || "",
                 password: "********", // Show placeholder password
                 role: user.role,
@@ -112,9 +121,8 @@ export const useEditAccount = () => {
             value = formatIpk(value);
         }
 
-        // Prevent spaces in email
-        if (name === "email" && value.includes(" ")) {
-            return;
+        if (name === "emailPrefix") {
+            value = value.toLowerCase().replace(/\s+/g, "").replace(/@.*/g, "");
         }
 
         setFormData((prev) => ({ ...prev, [name]: value }));
@@ -139,18 +147,19 @@ export const useEditAccount = () => {
     };
 
     const handleSubmit = async () => {
-        if (formData.email) {
-            const allowedDomains = ["@student.univ.ac.id", "@univ.ac.id", "@gmail.com"];
-            const isValidDomain = allowedDomains.some(domain => formData.email.toLowerCase().endsWith(domain));
-            if (!isValidDomain) {
-                showToast("Email harus berakhiran @student.univ.ac.id, @univ.ac.id, atau @gmail.com", "destructive");
-                return;
-            }
+        const fullEmail = `${(formData.emailPrefix || "").toLowerCase()}${formData.emailDomain || "@univpancasila.ac.id"}`;
+        const allowedDomains = ["@univpancasila.ac.id", "@student.univpancasila.ac.id", "@student.univ.ac.id", "@univ.ac.id", "@gmail.com"];
+        const isValidDomain = allowedDomains.some(domain => fullEmail.endsWith(domain));
+        if (!isValidDomain) {
+            showToast("Email harus berakhiran @univpancasila.ac.id, @student.univpancasila.ac.id, @student.univ.ac.id, @univ.ac.id, atau @gmail.com", "destructive");
+            return;
         }
+
         setIsLoading(true);
         try {
             const payload: any = {
                 ...formData,
+                email: fullEmail
             };
 
             // If empty string (user cleared it) or default placeholder, we don't update password.

@@ -19,7 +19,7 @@ export const useCreateAccount = () => {
 
   const [formData, setFormData] = useState({
     emailPrefix: "",
-    emailDomain: "@student.univ.ac.id",
+    emailDomain: "@univpancasila.ac.id",
     name: "",
     password: "",
     role: "mahasiswa", 
@@ -47,7 +47,7 @@ export const useCreateAccount = () => {
             setFormData(prev => ({ 
                 ...prev, 
                 role: roleParam,
-                emailDomain: roleParam === 'mahasiswa' ? "@student.univ.ac.id" : "@univ.ac.id",
+                emailDomain: prev.emailDomain || "@univpancasila.ac.id",
                 jabatan: roleParam === 'dosen' ? "Dosen Reguler" : prev.jabatan
             }));
         } else {
@@ -100,7 +100,7 @@ export const useCreateAccount = () => {
     }
 
     if (name === "emailPrefix") {
-        value = value.replace(/\s+/g, "").replace(/@.*/g, "");
+        value = value.toLowerCase().replace(/\s+/g, "").replace(/@.*/g, "");
     }
 
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -112,7 +112,7 @@ export const useCreateAccount = () => {
     setFormData((prev) => ({ 
         ...prev, 
         role,
-        emailDomain: role === 'mahasiswa' ? "@student.univ.ac.id" : "@univ.ac.id",
+        emailDomain: prev.emailDomain || "@univpancasila.ac.id",
         jabatan: role === 'dosen' ? "Dosen Reguler" : prev.jabatan
     }));
     // User requested to reset the excel file when switching roles

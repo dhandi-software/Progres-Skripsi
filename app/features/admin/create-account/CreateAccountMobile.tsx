@@ -306,6 +306,7 @@ export const CreateAccountMobile = () => {
             <input
               type="text"
               name="emailPrefix"
+              autoComplete="off"
               value={formData.emailPrefix}
               onChange={handleInputChange}
               placeholder={formData.role === 'mahasiswa' ? "Username / NPM" : "Username / NIDN"}
@@ -318,24 +319,18 @@ export const CreateAccountMobile = () => {
                 value={formData.emailDomain}
                 onChange={handleInputChange}
                 disabled={isLoading}
-                className="bg-transparent font-medium text-xs text-gray-700 outline-none cursor-pointer"
+                className="bg-transparent font-medium text-xs text-gray-700 outline-none cursor-pointer px-1"
               >
-                {formData.role === 'mahasiswa' ? (
-                  <>
-                    <option value="@student.univ.ac.id">@student.univ.ac.id</option>
-                    <option value="@gmail.com">@gmail.com</option>
-                  </>
-                ) : (
-                  <>
-                    <option value="@univ.ac.id">@univ.ac.id</option>
-                    <option value="@gmail.com">@gmail.com</option>
-                  </>
-                )}
+                <option value="@univpancasila.ac.id">@univpancasila.ac.id</option>
+                <option value="@student.univpancasila.ac.id">@student.univpancasila.ac.id</option>
+                <option value="@student.univ.ac.id">@student.univ.ac.id</option>
+                <option value="@univ.ac.id">@univ.ac.id</option>
+                <option value="@gmail.com">@gmail.com</option>
               </select>
             </div>
           </div>
           <p className="text-[0.7rem] text-gray-500">
-            Email: <span className="font-semibold text-gray-700">{formData.emailPrefix || "username"}{formData.emailDomain}</span>
+            Email: <span className="font-semibold text-gray-700">{(formData.emailPrefix || "username").toLowerCase()}{formData.emailDomain}</span>
           </p>
         </div>
 
@@ -347,6 +342,7 @@ export const CreateAccountMobile = () => {
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
+                autoComplete="new-password"
                 value={formData.password}
                 onChange={handleInputChange}
                 placeholder="Enter password"
