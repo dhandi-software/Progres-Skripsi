@@ -47,8 +47,10 @@ export function LoginDesktop() {
             {/* Full Screen Background */}
             <div className="absolute inset-0 z-0">
                 <img
-                    src="/images/kuning.png"
+                    src="/images/kuning.webp"
                     alt="Background"
+                    fetchPriority="high"
+                    decoding="async"
                     className="h-full w-full object-cover"
                 />
                 {/* Overlay for better contrast */}
@@ -62,26 +64,35 @@ export function LoginDesktop() {
                     style={{ width: "100%", maxWidth: "1024px", minWidth: "800px" }}
                 >
                     
-                    {/* Left Column: Branding / Visual */}
-                    <div className="hidden w-5/12 flex-col items-center justify-center bg-gradient-to-br from-[#119DA4] to-[#FDE789] p-12 lg:flex relative overflow-hidden">
-                         {/* Decorative Circles */}
-                         <div className="absolute -top-10 -left-10 w-40 h-40 bg-white/20 rounded-full blur-3xl"></div>
-                         <div className="absolute bottom-10 right-10 w-60 h-60 bg-[#119DA4]/20 rounded-full blur-3xl"></div>
+                    {/* Left Column: Glassmorphism Branding / Visual */}
+                    <div className="hidden w-5/12 flex-col items-center justify-center bg-gradient-to-br from-[#c2410c] via-[#ea580c] to-[#eab308] p-8 lg:flex relative overflow-hidden">
+                         {/* Ambient Glows behind glass */}
+                         <div className="absolute -top-16 -left-16 w-56 h-56 bg-white/30 rounded-full blur-3xl" />
+                         <div className="absolute -bottom-16 -right-16 w-64 h-64 bg-amber-300/30 rounded-full blur-3xl" />
 
-                        <div className="relative z-10 flex flex-col items-center text-center">
-                            <div className="mb-8 rounded-2xl bg-white/90 p-4 shadow-lg shadow-black/5 backdrop-blur-sm">
+                        {/* Translucent Glassmorphism Card */}
+                        <div className="relative z-10 w-full flex flex-col items-center text-center p-8 rounded-[32px] bg-white/20 backdrop-blur-2xl border border-white/40 shadow-[0_8px_32px_0_rgba(0,0,0,0.18)] transition-all">
+                            {/* Glassmorphic Logo Box */}
+                            <div className="mb-8 rounded-3xl bg-white/25 p-5 backdrop-blur-md border border-white/50 shadow-inner">
                                 <img 
-                                    src="https://upload.wikimedia.org/wikipedia/id/thumb/4/46/Logo_Universitas_Pancasila.png/250px-Logo_Universitas_Pancasila.png" 
+                                    src="/logo_up.webp" 
                                     alt="Logo Universitas Pancasila" 
-                                    className="h-32 w-auto"
+                                    className="h-28 w-auto object-contain drop-shadow-md"
                                 />
                             </div>
-                            <div className="flex flex-col gap-2 text-white">
-                                <span className="text-3xl font-bold leading-tight tracking-tight drop-shadow-sm">Sistem Informasi</span>
-                                <span className="text-xl font-semibold text-white/90 leading-tight tracking-wide drop-shadow-sm">Kerja Praktik</span>
+                            
+                            {/* Typography */}
+                            <div className="flex flex-col gap-1.5 text-white">
+                                <span className="text-3xl font-extrabold leading-tight tracking-tight text-white drop-shadow-md">
+                                    Sistem Informasi
+                                </span>
+                                <span className="text-xl font-bold text-amber-200 leading-tight tracking-wide drop-shadow-md">
+                                    Kerja Praktik
+                                </span>
                             </div>
-                            <p className="mt-6 text-sm text-white/90 w-full leading-relaxed font-medium drop-shadow-sm">
-                                Platform terintegrasi untuk pengelolaan administrasi dan monitoring kerja Praktik mahasiswa Universitas Pancasila.
+
+                            <p className="mt-6 text-xs text-white/90 leading-relaxed font-medium drop-shadow-sm max-w-[280px]">
+                                Platform terintegrasi untuk pengelolaan administrasi dan monitoring Kerja Praktik mahasiswa Universitas Pancasila.
                             </p>
                         </div>
                     </div>

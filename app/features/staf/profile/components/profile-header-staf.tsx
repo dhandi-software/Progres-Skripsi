@@ -61,7 +61,7 @@ export function ProfileHeaderStaf({ profile, onUpdate }: ProfileHeaderProps) {
             {/* Header Background */}
             <div className="h-56 md:h-80 rounded-[2.5rem] relative overflow-hidden shadow-2xl bg-gray-900 border border-white/10">
                 <img 
-                    src="/images/Banner_Universitas_Pancasila.png" 
+                    src="/images/Banner_Universitas_Pancasila.webp" 
                     alt="University Banner" 
                     className="absolute inset-0 w-full h-full object-cover opacity-60"
                 />

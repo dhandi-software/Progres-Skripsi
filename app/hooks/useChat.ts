@@ -85,7 +85,7 @@ export function useChat() {
                   
                   new Notification(title, {
                       body: message.content || (message.attachmentUrl ? "📎 Lampiran" : "Pesan baru"),
-                      icon: "/favicon.ico"
+                      icon: "/logo_up.webp"
                   });
               }
               
@@ -492,7 +492,7 @@ export function useChat() {
       attachmentType: payload.attachmentType || null,
       fileName: payload.fileName || null,
       replyToId: payload.replyToId,
-      sender: { username: "Anda", role: user.role || "dosen" } // Dummy
+      sender: { username: user.name || "Anda", role: user.role || "mahasiswa" }
     };
 
     (optimisticMessage as any).isOptimistic = true;

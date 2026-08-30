@@ -341,7 +341,7 @@ export const CreateAccountDesktop = () => {
                 </div>
               </div>
               <p className="text-xs text-gray-500">
-                Alamat Email: <span className="font-semibold text-gray-800">{(formData.emailPrefix || "username").toLowerCase()}{formData.emailDomain}</span>
+                Alamat Email: <span className="font-semibold text-gray-800">{(formData.emailPrefix || "username")}{formData.emailDomain}</span>
               </p>
             </div>
 

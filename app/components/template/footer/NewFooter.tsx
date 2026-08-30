@@ -9,7 +9,7 @@ export default function NewFooter() {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
                     <div className="flex items-center gap-3">
                         <img
-                            src="https://upload.wikimedia.org/wikipedia/id/thumb/4/46/Logo_Universitas_Pancasila.png/250px-Logo_Universitas_Pancasila.png"
+                            src="/logo_up.webp"
                             alt="Logo UP"
                             className="h-12 w-auto"
                         />

@@ -14,7 +14,7 @@ export default function MaintenanceRoute() {
             {/* Full Screen Background Image with Overlay */}
             <div className="absolute inset-0 z-0">
                 <img
-                    src="/images/kuning.png"
+                    src="/images/kuning.webp"
                     alt="Background"
                     className="h-full w-full object-cover"
                 />
@@ -33,7 +33,7 @@ export default function MaintenanceRoute() {
                     <div className="relative z-10 flex flex-col items-center text-center">
                         <div className="mb-6 rounded-2xl bg-white/95 p-4 shadow-lg backdrop-blur-sm">
                             <img 
-                                src="https://upload.wikimedia.org/wikipedia/id/thumb/4/46/Logo_Universitas_Pancasila.png/250px-Logo_Universitas_Pancasila.png" 
+                                src="/logo_up.webp" 
                                 alt="Logo Universitas Pancasila" 
                                 className="h-28 w-auto object-contain"
                             />
@@ -54,7 +54,7 @@ export default function MaintenanceRoute() {
                     <div className="mb-6 flex flex-col items-center text-center lg:hidden">
                         <div className="mb-3 rounded-2xl bg-white p-3 shadow-md border border-slate-100">
                             <img 
-                                src="https://upload.wikimedia.org/wikipedia/id/thumb/4/46/Logo_Universitas_Pancasila.png/250px-Logo_Universitas_Pancasila.png" 
+                                src="/logo_up.webp" 
                                 alt="Logo Universitas Pancasila" 
                                 className="h-14 w-auto"
                             />

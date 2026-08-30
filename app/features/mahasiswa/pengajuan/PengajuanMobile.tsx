@@ -323,7 +323,7 @@ export function PengajuanMobile() {
                             className="w-12 h-12 object-contain"
                         />
                         <img
-                            src="/images/LogoUpKebanggan.png"
+                            src="/images/LogoUpKebanggan.webp"
                             alt="Logo Fakultas"
                             className="w-12 h-12 object-contain"
                         />

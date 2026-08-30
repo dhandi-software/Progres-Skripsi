@@ -100,7 +100,7 @@ export const useCreateAccount = () => {
     }
 
     if (name === "emailPrefix") {
-        value = value.toLowerCase().replace(/\s+/g, "").replace(/@.*/g, "");
+        value = value.replace(/\s+/g, "").replace(/@.*/g, "");
     }
 
     setFormData((prev) => ({ ...prev, [name]: value }));

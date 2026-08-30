@@ -45,7 +45,7 @@ export function useProfile(userId?: string): UseProfileReturn {
         email: "",
         username: "",
         bio: "",
-        photo: "/images/avatar.svg",
+        photo: "/logo_up.webp",
         photoFile: null,
     });
     const [isEditing, setIsEditing] = useState(false);
@@ -162,7 +162,7 @@ export function useProfile(userId?: string): UseProfileReturn {
             if (response.data) {
                 const profileData = response.data;
 
-                let photoUrl = "/images/avatar.svg";
+                let photoUrl = "/logo_up.webp";
                 if (
                     profileData.photo &&
                     profileData.photo !== "null" &&
@@ -213,8 +213,8 @@ export function useProfile(userId?: string): UseProfileReturn {
 
                     let photoUrl =
                         localStorage.getItem("userPhoto") ||
-                        "/images/avatar.svg";
-                    if (!photoUrl || photoUrl === "/images/avatar.svg") {
+                        "/logo_up.webp";
+                    if (!photoUrl || photoUrl === "/logo_up.webp") {
                         if (
                             profileData.photo &&
                             profileData.photo !== "null" &&
@@ -357,7 +357,7 @@ export function useProfile(userId?: string): UseProfileReturn {
                 setProfile(updatedProfile);
 
                 // Update photo URL jika ada photo baru
-                let photoUrl = "/images/avatar.svg";
+                let photoUrl = "/logo_up.webp";
                 let photoPath = "";
 
                 if (
@@ -414,7 +414,7 @@ export function useProfile(userId?: string): UseProfileReturn {
 
     const handleCancelEdit = useCallback(() => {
         if (profile) {
-            let photoUrl = "/images/avatar.svg";
+            let photoUrl = "/logo_up.webp";
             if (
                 profile.photo &&
                 profile.photo !== "null" &&

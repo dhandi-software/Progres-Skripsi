@@ -190,15 +190,34 @@ export function CreateDownloadDesktop() {
 
                     <div className="flex-1 space-y-16">
                         {/* Judul Dokumen */}
-                        <div className="space-y-4">
-                            <label className="text-sm font-bold text-slate-500 tracking-wide ml-1">Judul Dokumen</label>
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between ml-1">
+                                <label className="text-sm font-bold text-slate-700 tracking-wide">Judul Dokumen</label>
+                                <span className={cn(
+                                    "px-3 py-1 rounded-full text-xs font-black transition-all border shadow-sm",
+                                    formData.title.length >= 150 
+                                        ? "bg-red-50 text-red-600 border-red-200 animate-pulse" 
+                                        : formData.title.length > 130 
+                                        ? "bg-amber-50 text-amber-600 border-amber-200" 
+                                        : "bg-slate-100 text-slate-700 border-slate-200"
+                                )}>
+                                    {formData.title.length} / 150 Karakter
+                                </span>
+                            </div>
                             <input 
                                 required
+                                maxLength={150}
                                 value={formData.title}
-                                onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                                onChange={e => setFormData(prev => ({ ...prev, title: e.target.value.slice(0, 150) }))}
                                 placeholder="Masukkan judul materi di sini..."
-                                className="w-full bg-slate-50 border-none rounded-3xl h-20 px-8 text-2xl font-bold text-slate-900 focus:bg-white focus:ring-4 focus:ring-slate-100 transition-all outline-none placeholder:text-slate-200"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-3xl h-20 px-8 text-2xl font-bold text-slate-900 focus:bg-white focus:ring-4 focus:ring-slate-100 transition-all outline-none placeholder:text-slate-300"
                             />
+                            <div className="flex justify-between items-center px-3 text-xs font-bold text-slate-400">
+                                <span>Maksimal 150 karakter per judul dokumen</span>
+                                <span className={formData.title.length >= 150 ? "text-red-500 font-extrabold" : "text-slate-400"}>
+                                    Sisa: {Math.max(0, 150 - formData.title.length)} Karakter
+                                </span>
+                            </div>
                         </div>
 
                         {/* Dropzone (PDF/Word) */}

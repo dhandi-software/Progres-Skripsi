@@ -1,7 +1,8 @@
+import { useNavigate } from "react-router";
 import { useState, useEffect, lazy, Suspense } from "react";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { UPLOADS_URL } from "~/api/client";
-import { BookOpen, Calendar, Clock, Loader2, CheckCircle2, FileText, Upload, Download, AlertCircle, FileStack, Eye, X, Loader2 as LoaderIcon } from "lucide-react";
+import { BookOpen, Calendar, Clock, Loader2, CheckCircle2, FileText, Upload, Download, AlertCircle, FileStack, Eye, X, ArrowLeft, Loader2 as LoaderIcon } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale/id";
 import { Toast } from "~/components/ui/toast";
@@ -98,8 +99,21 @@ export function BimbinganDesktop() {
                 const active = uniqueTasks.find((t: any) => t.status !== 'APPROVED');
                 const completed = uniqueTasks.filter((t: any) => t.status === 'APPROVED');
 
-                setActiveTask(active || null);
+                const targetTask = active || uniqueTasks[0] || null;
+                setActiveTask(targetTask);
                 setCompletedTasks(completed);
+
+                if (targetTask) {
+                    const topicTasks = tasks.filter((t: any) => t.topik === targetTask.topik).sort((a: any, b: any) => a.versi - b.versi);
+                    setHistory(topicTasks);
+
+                    const nim = targetTask.mahasiswaNim || (user as any)?.nim || user?.id || "default";
+                    bimbinganApi.getBimbinganHistory(String(nim), targetTask.topik)
+                        .then(hist => {
+                            if (hist && hist.length > 0) setHistory(hist);
+                        })
+                        .catch(err => console.error("History fetch error:", err));
+                }
             })
             .catch(err => console.error(err))
             .finally(() => setLoading(false));
@@ -127,11 +141,14 @@ export function BimbinganDesktop() {
 
     useEffect(() => {
         if (activeTask) {
-            bimbinganApi.getBimbinganHistory(activeTask.mahasiswaId, activeTask.topik)
-                .then(data => setHistory(data))
-                .catch(err => console.error(err));
+            const nim = activeTask.mahasiswaNim || activeTask.mahasiswaId || (user as any)?.nim;
+            if (nim) {
+                bimbinganApi.getBimbinganHistory(nim, activeTask.topik)
+                    .then(data => setHistory(data))
+                    .catch(err => console.error(err));
+            }
         }
-    }, [activeTask]);
+    }, [activeTask, user]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -163,23 +180,10 @@ export function BimbinganDesktop() {
         }
     };
 
+    const navigate = useNavigate();
+
     const handleOpenViewer = async (taskId: number, topik: string) => {
-        setViewingReview(true);
-        setViewingTaskTopik(topik);
-        setAnnotations([]);
-        try {
-            const data = await bimbinganApi.getAnnotations(taskId);
-            const formatted = data.map((a: any) => {
-                const pos = typeof a.posisi === 'string' ? JSON.parse(a.posisi) : a.posisi;
-                return {
-                    id: String(a.id),
-                    ...pos
-                };
-            });
-            setAnnotations(formatted);
-        } catch (error) {
-            console.error(error);
-        }
+        navigate(`/mahasiswa/bimbingan/review/${taskId}`);
     };
 
     if (loading) {
@@ -634,32 +638,6 @@ export function BimbinganDesktop() {
                             })}
                         </div>
                     )}
-                </div>
-            )}
-
-            {/* Viewer Modal */}
-            {viewingReview && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-7xl overflow-hidden flex flex-col max-h-[96vh]">
-                        <div className="p-4 border-b border-gray-100 flex items-center justify-between shrink-0">
-                            <div>
-                                <h3 className="text-lg font-bold text-gray-900">Melihat Dokumen: {viewingTaskTopik}</h3>
-                            </div>
-                            <button onClick={() => setViewingReview(false)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        <div className="bg-gray-50 flex-1 relative min-h-[500px]">
-                            <Suspense fallback={<div className="flex h-full items-center justify-center bg-gray-50"><LoaderIcon className="w-8 h-8 animate-spin text-[#119DA4]" /></div>}>
-                                <SharedPdfViewer
-                                    url={`${UPLOADS_URL}${[...completedTasks, activeTask].find(t => t?.topik === viewingTaskTopik)?.fileMahasiswa || ''}`}
-                                    initialHighlights={annotations}
-                                    readOnly={true}
-                                />
-                            </Suspense>
-                        </div>
-                    </div>
                 </div>
             )}
         </div>

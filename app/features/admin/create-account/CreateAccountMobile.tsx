@@ -330,7 +330,7 @@ export const CreateAccountMobile = () => {
             </div>
           </div>
           <p className="text-[0.7rem] text-gray-500">
-            Email: <span className="font-semibold text-gray-700">{(formData.emailPrefix || "username").toLowerCase()}{formData.emailDomain}</span>
+            Email: <span className="font-semibold text-gray-700">{(formData.emailPrefix || "username")}{formData.emailDomain}</span>
           </p>
         </div>
 

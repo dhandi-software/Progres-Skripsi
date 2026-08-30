@@ -122,7 +122,7 @@ export const profileApi = {
 
     async getProfilePhoto(filename: string): Promise<string> {
         if (!filename || filename === "null" || filename === "undefined") {
-            return "/images/avatar.svg";
+            return "/logo_up.webp";
         }
 
         try {
@@ -143,13 +143,13 @@ export const profileApi = {
                 reader.readAsDataURL(blob);
             });
         } catch (error) {
-            return "/images/avatar.svg";
+            return "/logo_up.webp";
         }
     },
 
     getProfilePhotoUrl: (photoPath: string): string => {
         if (!photoPath || photoPath === "null" || photoPath === "undefined") {
-            return "https://i.pinimg.com/736x/06/22/bc/0622bca0fc32fe9df332c9354fcfc411.jpg";
+            return "/logo_up.webp";
         }
 
         if (

@@ -227,14 +227,30 @@ export function CreateAcaraMobile() {
 
                 <div className="space-y-8">
                     <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Judul Posting</label>
+                        <div className="flex items-center justify-between ml-1">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Judul Posting</label>
+                            <span className={cn(
+                                "px-2 py-0.5 rounded-full text-[10px] font-bold transition-all border",
+                                formData.title.length >= 140
+                                    ? "bg-rose-500 text-white border-rose-600 animate-pulse shadow-sm"
+                                    : formData.title.length >= 100
+                                    ? "bg-amber-500 text-white border-amber-600 shadow-sm"
+                                    : "bg-slate-100 text-slate-600 border-slate-200"
+                            )}>
+                                {formData.title.length} / 150 Karakter
+                            </span>
+                        </div>
                         <input 
                             required
+                            maxLength={150}
                             value={formData.title}
                             onChange={(e) => setFormData({...formData, title: e.target.value})}
                             placeholder="Cth: Review Bab 1"
                             className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl h-16 px-6 text-base font-black focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all"
                         />
+                        <p className="text-[10px] text-slate-400 font-medium ml-2">
+                            Sisa: <span className={cn("font-bold", 150 - formData.title.length <= 10 ? "text-rose-500" : "text-slate-600")}>{150 - formData.title.length} Karakter</span>
+                        </p>
                     </div>
 
                     {/* Selector Tipe Postingan Premium (Mobile) */}

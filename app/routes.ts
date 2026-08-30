@@ -39,6 +39,9 @@ export default [
         ]),
     ]),
 
+    // Standalone Mahasiswa Routes
+    route("mahasiswa/bimbingan/review/:taskId", "routes/mahasiswa.bimbingan.review.tsx"),
+
     // Standalone Dosen Routes
     route("dosen/bimbingan/:mahasiswaId/review/:taskId", "routes/dosen.bimbingan.review.tsx"),
 

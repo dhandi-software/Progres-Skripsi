@@ -83,7 +83,7 @@ const menuItems = [
   },
   {
     key: "download" as MenuKey,
-    title: "Download",
+    title: "Materi & Dokumen",
     icon: Download,
     url: "/admin/download",
   },

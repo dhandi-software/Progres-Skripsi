@@ -14,7 +14,7 @@ export default function NotFoundRoute() {
             {/* Background Image */}
             <div className="absolute inset-0 z-0 opacity-30">
                 <img
-                    src="/images/kuning.png"
+                    src="/images/kuning.webp"
                     alt="Background"
                     className="h-full w-full object-cover"
                 />

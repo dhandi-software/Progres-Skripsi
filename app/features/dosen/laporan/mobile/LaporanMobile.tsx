@@ -492,68 +492,76 @@ export function LaporanMobile({ title }: { title?: string }) {
                 {laporanData.map((item, idx) => (
                     <div key={item.id} className={cn("w-full flex flex-col", idx > 0 && "page-break-before-always mt-8")}>
                         {/* Student Header */}
-                        <div className="flex flex-col items-center justify-center mb-6 border-b-2 border-black pb-4 text-center w-full">
-                            <h1 className="text-xl font-bold uppercase">Laporan Rekapitulasi Kerja Praktik Mahasiswa</h1>
-                            <p className="text-sm font-semibold">Tahun Akademik: {new Date().getFullYear()}</p>
-                            <p className="text-base font-bold mt-2">NAMA: {item.nama.toUpperCase()} | NIM: {item.nim}</p>
-                            <p className="text-sm font-semibold mt-1">Dosen Pembimbing: {item.p1_nama || "-"}</p>
-                            <p className="text-xs text-gray-700 italic max-w-[500px] mt-1">Judul KP: "{item.judulSkripsi || "-"}"</p>
+                        <div className="flex flex-col items-center justify-center mb-8 border-b-2 border-black pb-6 text-center w-full">
+                            <h1 className="text-xl font-bold uppercase tracking-tight">Laporan Rekapitulasi Kerja Praktik Mahasiswa</h1>
+                            <p className="text-sm font-semibold mt-1">Tahun Akademik: {new Date().getFullYear()}</p>
+                            <p className="text-base font-black mt-3">NAMA: {item.nama.toUpperCase()} | NIM: {item.nim}</p>
+                            <p className="text-sm font-bold mt-1">Dosen Pembimbing: {item.p1_nama || "-"}</p>
+                            <p className="text-xs text-gray-700 italic max-w-[500px] mt-1.5 leading-relaxed">Judul KP: "{item.judulSkripsi || "-"}"</p>
                         </div>
 
                         {/* Company Details */}
-                        <div className="mb-4 bg-gray-50 border border-gray-200 rounded-lg p-3 w-full">
-                            <h3 className="text-xs font-bold text-gray-800 uppercase border-b border-gray-200 pb-2 mb-2 w-full text-center">Identitas Perusahaan / Instansi Magang</h3>
-                            <div className="flex flex-col gap-2 w-full">
-                                <div className="grid grid-cols-[100px_1fr] text-[10px] w-full">
-                                    <span className="font-semibold text-gray-600">Nama Instansi</span>
+                        <div className="mb-8 bg-slate-50/50 border-2 border-black rounded-xl p-4 w-full">
+                            <h3 className="text-xs font-bold text-gray-900 uppercase border-b-2 border-black pb-2 mb-3 w-full text-center">Identitas Perusahaan / Instansi Magang</h3>
+                            <div className="flex flex-col gap-2.5 w-full text-xs leading-relaxed">
+                                <div className="grid grid-cols-[120px_1fr] w-full">
+                                    <span className="font-bold text-gray-800">Nama Instansi</span>
                                     <span className="text-gray-900">: {item.tempatKP?.namaPerusahaan || "-"}</span>
                                 </div>
-                                <div className="grid grid-cols-[100px_1fr] text-[10px] w-full">
-                                    <span className="font-semibold text-gray-600">Telepon / Fax</span>
+                                <div className="grid grid-cols-[120px_1fr] w-full">
+                                    <span className="font-bold text-gray-800">Telepon / Fax</span>
                                     <span className="text-gray-900">: {item.tempatKP?.tlpFaxPerusahaan || "-"}</span>
                                 </div>
-                                <div className="grid grid-cols-[100px_1fr] text-[10px] w-full">
-                                    <span className="font-semibold text-gray-600">Kontak Pembimbing Lapangan</span>
+                                <div className="grid grid-cols-[120px_1fr] w-full">
+                                    <span className="font-bold text-gray-800">Kontak Pembimbing</span>
                                     <span className="text-gray-900">: {item.tempatKP?.kontakPembimbing || "-"}</span>
                                 </div>
-                                <div className="grid grid-cols-[100px_1fr] text-[10px] w-full">
-                                    <span className="font-semibold text-gray-600">Alamat Instansi</span>
-                                    <span className="text-gray-900 leading-tight">: {item.tempatKP?.alamatPerusahaan || "-"}</span>
+                                <div className="grid grid-cols-[120px_1fr] w-full">
+                                    <span className="font-bold text-gray-800">Alamat Instansi</span>
+                                    <span className="text-gray-900 leading-normal">: {item.tempatKP?.alamatPerusahaan || "-"}</span>
                                 </div>
                             </div>
                         </div>
 
                         {/* I. Rekapitulasi Logbook */}
-                        <div className="mb-6 w-full">
-                            <div className="flex justify-between items-end border-b border-black pb-0.5 mb-2">
+                        <div className="mb-10 w-full">
+                            <div className="flex justify-between items-end border-b-2 border-black pb-2 mb-3">
                                 <h3 className="text-xs font-bold uppercase">I. Uraian Kegiatan Logbook Kerja Praktik</h3>
-                                <div className="text-[10px] font-bold bg-gray-100 px-2 py-0.5 border border-black rounded">
+                                <div className="text-[10px] font-bold bg-gray-100 px-3 py-1 border border-black rounded-md">
                                     Progres: {item.totalLogbook > 0 ? Math.round((item.totalLogbookApproved / item.totalLogbook) * 100) : 0}% ({item.totalLogbookApproved}/{item.totalLogbook} Disetujui)
                                 </div>
                             </div>
-                            <table className="w-full text-left border-collapse border border-black text-sm">
+                            <table className="w-full text-left border-collapse border-2 border-black text-sm">
                                 <thead>
-                                    <tr className="bg-gray-100 border-b border-black font-bold">
-                                        <th className="py-1.5 px-2 w-[40px] text-center border border-black">No</th>
-                                        <th className="py-1.5 px-2 w-[120px] border border-black">Tanggal</th>
-                                        <th className="py-1.5 px-2 border border-black">Uraian Singkat Kegiatan</th>
-                                        <th className="py-1.5 px-2 w-[110px] text-center border border-black">Paraf Dosen</th>
-                                        <th className="py-1.5 px-2 w-[110px] text-center border border-black">Paraf Pembimbing Perusahaan</th>
+                                    <tr className="bg-gray-100 border-b-2 border-black font-bold text-xs uppercase">
+                                        <th className="py-3 px-3 w-[45px] text-center border border-black">No</th>
+                                        <th className="py-3 px-3 w-[120px] border border-black">Tanggal</th>
+                                        <th className="py-3 px-4 border border-black">Uraian Singkat Kegiatan</th>
+                                        <th className="py-3 px-3 w-[120px] text-center border border-black">Paraf Dosen</th>
+                                        <th className="py-3 px-3 w-[130px] text-center border border-black">Paraf Pembimbing</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {(!item.logbooks || item.logbooks.length === 0) ? (
                                         <tr>
-                                            <td colSpan={5} className="py-4 text-center border border-black text-gray-500 italic">Belum ada catatan logbook.</td>
+                                            <td colSpan={5} className="py-6 text-center border border-black text-gray-500 italic">Belum ada catatan logbook.</td>
                                         </tr>
                                     ) : (
                                         item.logbooks.map((l, lIdx) => (
                                             <tr key={l.id} className="border-b border-black">
-                                                <td className="py-1.5 px-2 text-center border border-black">{lIdx + 1}</td>
-                                                <td className="py-1.5 px-2 border border-black">{new Date(l.tanggalPukul).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                                                <td className="py-1.5 px-2 border border-black">{l.uraian}</td>
-                                                <td className="py-1 px-2 border border-black text-center"></td>
-                                                <td className="py-1 px-2 border border-black text-center"></td>
+                                                <td className="py-3 px-3 text-center border border-black font-semibold">{lIdx + 1}</td>
+                                                <td className="py-3 px-3 border border-black font-medium text-xs">{new Date(l.tanggalPukul).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                                                <td className="py-3 px-4 border border-black leading-relaxed">{l.uraian}</td>
+                                                <td className="py-3 px-3 border border-black text-center">
+                                                    {l.catatan ? (
+                                                        <span className="inline-block px-2 py-1 text-[10px] font-bold bg-emerald-100 text-emerald-800 rounded border border-emerald-400">✔ Disetujui</span>
+                                                    ) : null}
+                                                </td>
+                                                <td className="py-3 px-3 border border-black text-center">
+                                                    {l.pembimbingParaf ? (
+                                                        <img src={l.pembimbingParaf} alt="Paraf" className="h-12 w-auto max-w-[120px] mx-auto object-contain py-1" />
+                                                    ) : null}
+                                                </td>
                                             </tr>
                                         ))
                                     )}
@@ -561,51 +569,51 @@ export function LaporanMobile({ title }: { title?: string }) {
                             </table>
                         </div>
 
-                        {/* III. Penilaian Akhir */}
-                        <div className="w-full">
-                            <h3 className="text-xs font-bold uppercase mb-2 border-b border-black pb-0.5">III. Laporan Evaluasi & Penilaian Akhir</h3>
-                            <table className="w-full text-left border-collapse border border-black text-xs">
+                        {/* II. Penilaian Akhir */}
+                        <div className="mb-6 w-full">
+                            <h3 className="text-xs font-bold uppercase mb-3 border-b-2 border-black pb-2">II. Laporan Evaluasi & Penilaian Akhir</h3>
+                            <table className="w-full text-left border-collapse border-2 border-black text-xs">
                                 <thead>
-                                    <tr className="bg-gray-100 border-b border-black font-bold">
-                                        <th className="py-2 px-2 border border-black">Nilai Pembimbing (P1)</th>
-                                        <th className="py-2 px-2 border border-black">Nilai Penguji (P2)</th>
-                                        <th className="py-2 px-2 w-[80px] text-center border border-black">Total</th>
-                                        <th className="py-2 px-2 w-[60px] text-center border border-black">Grade</th>
-                                        <th className="py-2 px-2 w-[110px] text-center border border-black">Tanggal Sidang</th>
+                                    <tr className="bg-gray-100 border-b-2 border-black font-bold uppercase">
+                                        <th className="py-3 px-3 border border-black">Nilai Pembimbing (P1)</th>
+                                        <th className="py-3 px-3 border border-black">Nilai Penguji (P2)</th>
+                                        <th className="py-3 px-2 w-[75px] text-center border border-black">Total</th>
+                                        <th className="py-3 px-2 w-[55px] text-center border border-black">Grade</th>
+                                        <th className="py-3 px-3 w-[110px] text-center border border-black">Tanggal Sidang</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr className="border-b border-black">
-                                        <td className="py-3 px-2 border border-black">
-                                            <div className="flex flex-col gap-1">
+                                        <td className="py-4 px-3 border border-black">
+                                            <div className="flex flex-col gap-1.5">
                                                 <div className="flex gap-2 font-bold text-sm">
                                                     <span>K1: {formatNilai(item.p1_k1, 0)}</span>
                                                     <span>K2: {formatNilai(item.p1_k2, 0)}</span>
                                                     <span>K3: {formatNilai(item.p1_k3, 0)}</span>
                                                 </div>
-                                                <div className="text-[10px] text-gray-700 font-medium">Dospem: {item.p1_nama || "-"}</div>
+                                                <div className="text-xs text-gray-800 font-semibold">Dospem: {item.p1_nama || "-"}</div>
                                                 <div className="font-black mt-1 text-sm text-[#D25026]">Total P1: {formatNilai(item.p1_total, 1)}</div>
                                             </div>
                                         </td>
-                                        <td className="py-3 px-2 border border-black">
-                                            <div className="flex flex-col gap-1">
+                                        <td className="py-4 px-3 border border-black">
+                                            <div className="flex flex-col gap-1.5">
                                                 <div className="flex gap-2 font-bold text-sm">
                                                     <span>K1: {formatNilai(item.p2_k1, 0)}</span>
                                                     <span>K2: {formatNilai(item.p2_k2, 0)}</span>
                                                     <span>K3: {formatNilai(item.p2_k3, 0)}</span>
                                                 </div>
-                                                <div className="text-[10px] text-gray-700 font-medium">Penguji: {item.p2_nama || "-"}</div>
+                                                <div className="text-xs text-gray-800 font-semibold">Penguji: {item.p2_nama || "-"}</div>
                                                 <div className="font-black mt-1 text-sm text-[#D25026]">Total P2: {formatNilai(item.p2_total, 1)}</div>
                                             </div>
                                         </td>
-                                        <td className="py-3 px-2 text-center border border-black font-black text-lg">{formatNilai(item.nilaiAkhir, 1)}</td>
-                                        <td className="py-3 px-2 text-center border border-black font-black text-lg">{getGrade(item.nilaiAkhir).huruf}</td>
-                                        <td className="py-3 px-2 text-center border border-black font-bold text-xs">{item.tanggalPenilaian ? format(new Date(item.tanggalPenilaian), "dd MMM yyyy", { locale: localeId }) : "-"}</td>
+                                        <td className="py-4 px-2 text-center border border-black font-black text-xl">{formatNilai(item.nilaiAkhir, 1)}</td>
+                                        <td className="py-4 px-2 text-center border border-black font-black text-xl">{getGrade(item.nilaiAkhir).huruf}</td>
+                                        <td className="py-4 px-3 text-center border border-black font-bold text-xs">{item.tanggalPenilaian ? format(new Date(item.tanggalPenilaian), "dd MMM yyyy", { locale: localeId }) : "-"}</td>
                                     </tr>
                                 </tbody>
                             </table>
                             {item.keteranganPenilaian && (
-                                <div className="mt-2 text-[10px] italic"><span className="font-semibold">Catatan Evaluasi:</span> "{item.keteranganPenilaian}"</div>
+                                <div className="mt-3 text-xs italic"><span className="font-bold">Catatan Evaluasi:</span> "{item.keteranganPenilaian}"</div>
                             )}
                         </div>
                     </div>

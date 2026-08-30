@@ -47,30 +47,42 @@ export function LoginMobile() {
              {/* Full Screen Background */}
              <div className="absolute inset-0 z-0">
                 <img
-                    src="/images/Background_Mobile.png"
+                    src="/images/Background_Mobile.webp"
                     alt="Background"
+                    fetchPriority="high"
+                    decoding="async"
                     className="h-full w-full object-cover"
                 />
             </div>
 
             <div className="relative z-10 flex min-h-screen w-full flex-col items-center justify-center px-4 py-2">
                 
-                {/* Header: Logo & Title */}
-                <div className="mb-6 flex flex-col items-center text-center">
-                    <div className="mb-4 rounded-[20px] bg-white p-4 shadow-[0_4px_20px_rgb(0,0,0,0.04)]">
-                        <img 
-                            src="https://upload.wikimedia.org/wikipedia/id/thumb/4/46/Logo_Universitas_Pancasila.png/250px-Logo_Universitas_Pancasila.png" 
-                            alt="Logo Universitas Pancasila" 
-                            className="h-14 w-auto"
-                        />
+                {/* Glassmorphism Header: Logo & Title */}
+                <div className="mb-6 w-[95%] max-w-[420px] flex flex-col items-center text-center p-6 rounded-[28px] bg-gradient-to-br from-[#c2410c] via-[#ea580c] to-[#eab308] border border-white/40 shadow-[0_12px_36px_0_rgba(0,0,0,0.22)] relative overflow-hidden transition-all">
+                    {/* Ambient Glow */}
+                    <div className="absolute -top-12 -left-12 w-40 h-40 bg-white/25 rounded-full blur-2xl" />
+                    <div className="absolute -bottom-12 -right-12 w-44 h-44 bg-amber-300/25 rounded-full blur-2xl" />
+
+                    {/* Inner Translucent Glass Card */}
+                    <div className="relative z-10 w-full flex flex-col items-center p-5 rounded-[22px] bg-white/20 backdrop-blur-2xl border border-white/40 shadow-inner">
+                        {/* Glassmorphic Logo Box */}
+                        <div className="mb-3.5 rounded-2xl bg-white/30 p-3.5 backdrop-blur-md border border-white/50 shadow-md">
+                            <img 
+                                src="/logo_up.webp" 
+                                alt="Logo Universitas Pancasila" 
+                                className="h-14 w-auto object-contain drop-shadow-md"
+                            />
+                        </div>
+
+                        <div className="flex flex-col gap-1 text-white">
+                            <h1 className="text-2xl font-extrabold tracking-tight drop-shadow-md text-white">Sistem Informasi</h1>
+                            <h2 className="text-lg font-bold text-amber-200 tracking-wide drop-shadow-md">Kerja Praktik</h2>
+                        </div>
+
+                        <p className="mt-2.5 text-xs font-medium text-white/95 max-w-[260px] leading-relaxed drop-shadow-sm">
+                            Platform terintegrasi untuk pengelolaan administrasi dan monitoring Kerja Praktik.
+                        </p>
                     </div>
-                    <div className="flex flex-col gap-1">
-                        <h1 className="text-2xl md:text-3xl font-extrabold text-[#1a1f2c] tracking-tight">Sistem Informasi</h1>
-                        <h2 className="text-xl md:text-2xl font-bold text-[#e09f00] tracking-tight">Kerja Praktik</h2>
-                    </div>
-                    <p className="mt-2 text-xs md:text-sm font-medium text-zinc-500 max-w-[280px] leading-relaxed">
-                        Platform terintegrasi untuk pengelolaan administrasi dan monitoring kerja praktik mahasiswa.
-                    </p>
                 </div>
 
                 <div 

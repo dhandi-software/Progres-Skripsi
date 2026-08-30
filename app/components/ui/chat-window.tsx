@@ -110,7 +110,7 @@ export function ChatWindow({
             initials = "Sf";
             color = "bg-[#caffbf]"; 
         } else {
-            initials = contact.username
+            initials = (contact.username || "U")
                 .split(" ")
                 .map((n) => n[0])
                 .join("")
@@ -277,8 +277,13 @@ export function ChatWindow({
                             if (showAvatarAndName && msg.sender) {
                                 const senderRole = msg.sender.role?.toLowerCase() || "";
                                 const senderUsername = msg.sender.username || "U";
-                                if (senderRole.includes("mahasiswa")) senderAvatarImage = "https://img.freepik.com/free-vector/smiling-young-man-illustration_1308-174669.jpg?semt=ais_hybrid&w=740&q=80";
-                                else if (senderRole.includes("dosen")) senderAvatarImage = "https://cdn-icons-png.flaticon.com/512/2784/2784488.png";
+                                if (senderRole.includes("mahasiswa") || senderUsername.toLowerCase().includes("mahasiswa")) {
+                                    senderAvatarImage = "https://img.freepik.com/free-vector/smiling-young-man-illustration_1308-174669.jpg?semt=ais_hybrid&w=740&q=80";
+                                } else if (senderRole.includes("dosen") || senderUsername.toLowerCase().includes("dosen")) {
+                                    senderAvatarImage = "https://cdn-icons-png.flaticon.com/512/2784/2784488.png";
+                                } else {
+                                    senderAvatarImage = "";
+                                }
                                 if (msg.sender.photo) senderAvatarImage = profileApi.getProfilePhotoUrl(msg.sender.photo);
                                 senderInitials = senderUsername.substring(0, 2).toUpperCase();
                             }

@@ -269,7 +269,7 @@ export function AppSidebar() {
       if ("Notification" in window && Notification.permission === "granted") {
         new Notification("Pengumuman Baru", {
           body: "Ada instruksi atau pengumuman baru dari dosen di timeline.",
-          icon: "/favicon.ico"
+          icon: "/logo_up.webp"
         });
       }
     });

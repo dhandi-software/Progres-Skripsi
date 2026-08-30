@@ -17,6 +17,10 @@ export default defineConfig({
   },
   build: {
     sourcemap: false, // Disable sourcemap to suppress sourcemap warnings
+    cssCodeSplit: true,
+    minify: 'esbuild',
+    target: 'es2020',
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       onwarn(warning, warn) {
         // Suppress "Module level directives cause errors when bundled" warnings
@@ -27,6 +31,15 @@ export default defineConfig({
         if (warning.message.includes('sourcemap')) return;
         warn(warning);
       },
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('recharts')) return 'vendor-charts';
+            if (id.includes('jspdf') || id.includes('html2canvas')) return 'vendor-pdf';
+            if (id.includes('pdfjs-dist') || id.includes('react-pdf')) return 'vendor-pdfviewer';
+          }
+        }
+      }
     },
   },
   ssr: {
