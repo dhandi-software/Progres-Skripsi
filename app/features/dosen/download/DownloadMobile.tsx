@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale/id";
 import { 
-    Plus, Trash2, Edit3, 
+    Plus, Trash2, Edit3, X,
     Download as DownloadIcon, File as FileIcon,
     MoreVertical, FileText, ClipboardList, Eye, ArrowLeft
 } from "lucide-react";
@@ -46,6 +46,7 @@ export function DownloadMobile({ title }: { title: string }) {
     
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [viewingItem, setViewingItem] = useState<Download | null>(null);
 
     const fetchData = async (currentPage: number) => {
         try {
@@ -120,16 +121,16 @@ export function DownloadMobile({ title }: { title: string }) {
                             
                             <div className="flex flex-col gap-2 shrink-0">
                                 <div className="flex items-center gap-2">
-                                    <a 
-                                        href={`${UPLOADS_URL}${item.fileUrl}`} 
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-[#00bcd4] active:scale-90 transition-all border border-slate-100"
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setViewingItem(item);
+                                        }}
+                                        className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-[#00bcd4] active:scale-90 transition-all border border-slate-100 cursor-pointer"
                                         title="Lihat File"
                                     >
                                         <Eye size={16} />
-                                    </a>
+                                    </button>
                                     <button 
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -260,6 +261,59 @@ export function DownloadMobile({ title }: { title: string }) {
                             >
                                 Batal
                             </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* View Only Modal Mobile */}
+            {viewingItem && (
+                <div className="fixed inset-0 z-[400] bg-slate-900/60 backdrop-blur-sm flex flex-col animate-in fade-in duration-300">
+                    <div className="bg-white flex-1 flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-300">
+                        {/* Header Modal Mobile */}
+                        <div className="flex items-center justify-between px-6 h-16 border-b border-slate-100 bg-slate-50 shrink-0">
+                            <div className="flex items-center gap-3 min-w-0 pr-2">
+                                <div className="w-8 h-8 rounded-xl bg-[#00bcd4]/10 flex items-center justify-center text-[#00bcd4] shrink-0">
+                                    <Eye size={16} />
+                                </div>
+                                <div className="min-w-0">
+                                    <h3 className="text-xs font-bold text-slate-900 truncate">{viewingItem.title}</h3>
+                                    <p className="text-[8px] font-black text-brand-primary uppercase tracking-widest">
+                                        Mode Pratinjau (Lihat Saja)
+                                    </p>
+                                </div>
+                            </div>
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => setViewingItem(null)}
+                                className="w-9 h-9 rounded-full bg-slate-200/60 text-slate-600 shrink-0 border-none"
+                            >
+                                <X size={18} />
+                            </Button>
+                        </div>
+
+                        {/* Content Preview Body Mobile */}
+                        <div className="flex-1 bg-slate-100 p-3 overflow-hidden flex items-center justify-center relative">
+                            {viewingItem.fileType === "PDF" || viewingItem.fileUrl.toLowerCase().endsWith(".pdf") ? (
+                                <iframe
+                                    src={`${UPLOADS_URL}${viewingItem.fileUrl}#toolbar=0&navpanes=0&scrollbar=1`}
+                                    className="w-full h-full rounded-2xl bg-white shadow-sm border border-slate-200"
+                                    title={viewingItem.title}
+                                />
+                            ) : viewingItem.fileUrl.match(/\.(png|jpe?g|webp|gif|svg)$/i) ? (
+                                <img 
+                                    src={`${UPLOADS_URL}${viewingItem.fileUrl}`} 
+                                    alt={viewingItem.title} 
+                                    className="max-h-full max-w-full object-contain rounded-2xl shadow-md bg-white p-2"
+                                />
+                            ) : (
+                                <iframe
+                                    src={`https://docs.google.com/viewer?url=${encodeURIComponent(UPLOADS_URL + viewingItem.fileUrl)}&embedded=true`}
+                                    className="w-full h-full rounded-2xl bg-white shadow-sm border border-slate-200"
+                                    title={viewingItem.title}
+                                />
+                            )}
                         </div>
                     </div>
                 </div>

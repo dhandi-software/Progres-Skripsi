@@ -301,7 +301,7 @@ export function LogbookDesktop({ mahasiswaId }: LogbookProps) {
                     {/* Right Side Logo */}
                     <div className="w-24 h-24 flex-shrink-0">
                          <img 
-                            src="/images/LogoUpKebanggan.png" 
+                            src="/images/LogoUpKebanggan.webp" 
                             alt="Logo Fakultas" 
                             className="w-full h-full object-contain"
                          />

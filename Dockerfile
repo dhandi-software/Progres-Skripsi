@@ -5,7 +5,7 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-ARG VITE_API_BASE_URL=http://141.11.190.106:44447
+ARG VITE_API_BASE_URL=/api
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
 COPY package.json package-lock.json ./
@@ -34,7 +34,7 @@ COPY --from=builder /app/build ./build
 COPY --from=builder /app/public ./public
 
 # Set environment variables
-ARG VITE_API_BASE_URL=http://141.11.190.106:44447
+ARG VITE_API_BASE_URL=/api
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ENV PORT=3000
 ENV HOST=0.0.0.0

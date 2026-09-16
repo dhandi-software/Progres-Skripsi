@@ -75,7 +75,7 @@ export function ProfileHeader({ profile, onUpdate }: ProfileHeaderProps) {
             {/* Header Background Cover */}
             <div className="h-48 md:h-64 rounded-3xl relative overflow-hidden bg-gray-900 border border-gray-100">
                 <img 
-                    src="/images/Banner_Universitas_Pancasila.png" 
+                    src="/images/Banner_Universitas_Pancasila.webp" 
                     alt="University Banner" 
                     className="absolute inset-0 w-full h-full object-cover opacity-70"
                 />

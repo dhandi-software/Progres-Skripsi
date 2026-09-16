@@ -161,14 +161,33 @@ export function CreateDownloadMobile() {
                 
                 <div className="space-y-6">
                     <div className="space-y-3">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Judul Dokumen</label>
+                        <div className="flex items-center justify-between ml-1">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Judul Dokumen</label>
+                            <span className={cn(
+                                "px-2.5 py-0.5 rounded-full text-[10px] font-black border",
+                                formData.title.length >= 150 
+                                    ? "bg-red-50 text-red-600 border-red-200 animate-pulse" 
+                                    : formData.title.length > 130 
+                                    ? "bg-amber-50 text-amber-600 border-amber-200" 
+                                    : "bg-slate-100 text-slate-700 border-slate-200"
+                            )}>
+                                {formData.title.length} / 150 Karakter
+                            </span>
+                        </div>
                         <input 
                             required
+                            maxLength={150}
                             value={formData.title}
-                            onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                            onChange={e => setFormData(prev => ({ ...prev, title: e.target.value.slice(0, 150) }))}
                             placeholder="Cth: Materi Minggu 1"
-                            className="w-full bg-slate-50 border-none rounded-2xl h-14 px-5 text-sm font-bold focus:bg-white focus:ring-4 focus:ring-slate-100 transition-all outline-none"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl h-14 px-5 text-sm font-bold focus:bg-white focus:ring-4 focus:ring-slate-100 transition-all outline-none"
                         />
+                        <div className="flex justify-between items-center px-2 text-[10px] font-bold text-slate-400">
+                            <span>Max 150 Karakter</span>
+                            <span className={formData.title.length >= 150 ? "text-red-500 font-extrabold" : "text-slate-400"}>
+                                Sisa: {Math.max(0, 150 - formData.title.length)} Karakter
+                            </span>
+                        </div>
                     </div>
 
                     <div className="space-y-3">

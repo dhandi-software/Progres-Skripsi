@@ -21,6 +21,8 @@ interface PenugasanPengujiViewProps {
     setConfirmModal: (modal: any) => void;
     onRefresh?: () => Promise<void> | void;
     onCancelPengujiBulk: (pembimbingId: string) => Promise<void>;
+    searchQuery?: string;
+    setSearchQuery?: (query: string) => void;
 }
 
 export function PenugasanPengujiView({
@@ -37,11 +39,15 @@ export function PenugasanPengujiView({
     onDeleteConfirm,
     setConfirmModal,
     onRefresh,
-    onCancelPengujiBulk
+    onCancelPengujiBulk,
+    searchQuery: searchQueryProp,
+    setSearchQuery: setSearchQueryProp
 }: PenugasanPengujiViewProps) {
     const [selectedPembimbingId, setSelectedPembimbingId] = useState<string | "all" | null>("all");
     const [dropdownSearch, setDropdownSearch] = useState("");
-    const [searchQuery, setSearchQuery] = useState("");
+    const [localSearchQuery, setLocalSearchQuery] = useState("");
+    const searchQuery = searchQueryProp !== undefined ? searchQueryProp : localSearchQuery;
+    const setSearchQuery = setSearchQueryProp || setLocalSearchQuery;
     const [isEditingBulk, setIsEditingBulk] = useState(false);
 
     const currentDosen = dosenList.find(d => d.nama === user?.name);
@@ -67,29 +73,12 @@ export function PenugasanPengujiView({
                 window.open(`${UPLOADS_URL}${firstStudent.suratTugasUrl}`, '_blank');
             });
         } else {
-            // Note: In PenugasanPengujiView, showToast is not directly available in props.
-            // We can alert if it's not found or import a toast hook if available.
             alert("Surat tugas belum diunggah atau tidak ditemukan.");
         }
     };
 
     return (
         <div className="flex flex-col gap-6">
-            {/* Top Toolbar / Search Panel */}
-            <div className="flex justify-end mb-2">
-                <div className="relative w-[280px]">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <Input
-                        placeholder="Cari nama, nim..."
-                        className={cn(
-                            "pl-9 bg-white border-slate-200 focus-visible:ring-brand-primary/20",
-                            isLowVision && "border-2 border-black text-black font-black text-sm h-10 placeholder-slate-700"
-                        )}
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                </div>
-            </div>
 
             {/* Drill-down and Bulk Assign Card */}
             <div className={cn(

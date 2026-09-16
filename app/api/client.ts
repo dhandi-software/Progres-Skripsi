@@ -4,15 +4,18 @@ const getEnvUrl = () => {
     if (typeof window === "undefined" && typeof process !== "undefined" && process?.env?.INTERNAL_API_URL) {
         return process.env.INTERNAL_API_URL;
     }
-    // Return empty by default to use the Vite proxy during local dev
-    return import.meta.env.VITE_API_BASE_URL || "";
+    const envBase = import.meta.env.VITE_API_BASE_URL || "";
+    if (envBase.includes("141.11.190.106")) {
+        return "/api";
+    }
+    return envBase;
 };
 
 const envUrl = getEnvUrl();
 const baseUrl = envUrl.replace(/\/$/, "");
 
 // Use '/api' prefix as requested ("tetep yang saya punya")
-export const API_URL = baseUrl.endsWith("/api") ? baseUrl : `${baseUrl}/api`;
+export const API_URL = !baseUrl || baseUrl === "/api" || baseUrl.endsWith("/api") ? (baseUrl || "/api") : `${baseUrl}/api`;
 
 // We also export the static uploads URL for static file links (strip /api suffix for static files)
 const rawUploads = baseUrl.replace(/\/api\/?$/, "");
@@ -45,9 +48,9 @@ client.interceptors.response.use(
         if (status === 401) {
             console.warn("Unauthorized request - JWT might be expired");
         }
-        if (status === 502 || status === 503 || status === 504) {
-            if (typeof window !== "undefined" && !window.location.pathname.startsWith("/502")) {
-                window.location.href = "/502";
+        if (status === 502 || status === 503 || status === 504 || !error.response) {
+            if (typeof window !== "undefined" && window.location.pathname !== "/") {
+                window.location.href = "/";
             }
         }
         return Promise.reject(error);

@@ -269,14 +269,30 @@ export function CreateAcaraDesktop() {
                     <form onSubmit={handleSubmit} className="space-y-10 max-w-full">
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
                             <div className="space-y-3">
-                                <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] italic ml-2">Judul Posting</label>
+                                <div className="flex items-center justify-between ml-2">
+                                    <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] italic">Judul Posting</label>
+                                    <span className={cn(
+                                        "px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider transition-all border",
+                                        formData.title.length >= 140
+                                            ? "bg-rose-500 text-white border-rose-600 animate-pulse shadow-sm"
+                                            : formData.title.length >= 100
+                                            ? "bg-amber-500 text-white border-amber-600 shadow-sm"
+                                            : "bg-slate-100 text-slate-600 border-slate-200"
+                                    )}>
+                                        {formData.title.length} / 150 Karakter
+                                    </span>
+                                </div>
                                 <input 
                                     required
+                                    maxLength={150}
                                     value={formData.title}
                                     onChange={(e) => setFormData({...formData, title: e.target.value})}
                                     placeholder="Cth: Review Bab 1 - Latar Belakang"
                                     className="w-full bg-slate-50 border-2 border-slate-100 rounded-[28px] h-16 px-8 text-lg font-black focus:bg-white focus:border-brand-primary transition-all outline-none shadow-sm"
                                 />
+                                <p className="text-[11px] text-slate-400 font-medium ml-4">
+                                    Sisa: <span className={cn("font-bold", 150 - formData.title.length <= 10 ? "text-rose-500" : "text-slate-600")}>{150 - formData.title.length} Karakter</span>
+                                </p>
                             </div>
                             <div className="space-y-3 relative" ref={dropdownRef}>
                                 <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] italic ml-2">Tipe Postingan</label>

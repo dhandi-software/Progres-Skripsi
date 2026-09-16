@@ -1,20 +1,20 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { bimbinganApi } from "../../../api/bimbinganApi";
+import { bimbinganApi } from "~/api/bimbinganApi";
 import { 
     Users, User, FileText, Search, GraduationCap,
     ArrowRight, Loader2, Info, BarChart3, ChevronRight,
     X, Download, Clock, CheckCircle2, FileStack, History as HistoryIcon
 } from "lucide-react";
-import { cn } from "../../../lib/utils";
-import { Button } from "../../../components/ui/button";
+import { cn } from "~/lib/utils";
+import { Button } from "~/components/ui/button";
 import { 
     AreaChart, Area, XAxis, YAxis, CartesianGrid, 
     Tooltip, ResponsiveContainer, ReferenceLine
 } from 'recharts';
-import { Label } from "../../../components/ui/label";
-import { UPLOADS_URL } from "../../../api/client";
+import { Label } from "~/components/ui/label";
+import { UPLOADS_URL } from "~/api/client";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { useAuth } from "~/hooks/useAuth";
@@ -25,361 +25,39 @@ import {
     PaginationLink,
     PaginationNext,
     PaginationPrevious,
-} from "../../../components/ui/pagination";
+} from "~/components/ui/pagination";
 
-const taskOptionsList = [
-    { label: "Bab 1: Pendahuluan", value: "Bab 1: Pendahuluan" },
-    { label: "Bab 2: Tinjauan Pustaka", value: "Bab 2: Tinjauan Pustaka" },
-    { label: "Bab 3: Metodologi", value: "Bab 3: Metodologi" },
-    { label: "Bab 4: Hasil dan Pembahasan", value: "Bab 4: Hasil dan Pembahasan" },
-    { label: "Bab 5: Kesimpulan dan Saran", value: "Bab 5: Kesimpulan dan Saran" },
-    { label: "Laporan Akhir (Finalisasi)", value: "Laporan Akhir (Finalisasi)" },
-];
-
-interface BimbinganData {
-    dosen: {
-        id: number;
-        nama: string;
-        username: string;
-        photo?: string;
-    };
-    students: any[];
-    totalStudents: number;
-    activeProgress: number; // percentage
-}
+import { useProdiBimbingan, taskOptionsList, getTopikScore } from "~/hooks/useProdiBimbingan";
+import type { BimbinganData } from "~/hooks/useProdiBimbingan";
 
 export function ProdiBimbingan() {
-    const { user } = useAuth();
-    const [data, setData] = useState<BimbinganData[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [selectedDosen, setSelectedDosen] = useState<BimbinganData | null>(null);
-    
-    // Sort & Pagination State
-    const [sortConfig, setSortConfig] = useState<{key: "nama" | "progress", direction: "asc" | "desc"}>({ key: "nama", direction: "asc" });
-    const [currentPage, setCurrentPage] = useState(1);
-    const ITEMS_PER_PAGE = 10;
-
-    // History Drill-Down State
-    const [selectedStudentForHistory, setSelectedStudentForHistory] = useState<any>(null);
-    const [history, setHistory] = useState<any[]>([]);
-    const [chartData, setChartData] = useState<any[]>([]);
-    const [isHistoryLoading, setIsHistoryLoading] = useState(false);
-    const [detailTab, setDetailTab] = useState<"target" | "riwayat" | "grafik">("target");
-
-    // Fuzzy-match topik ke skor progres — menangani berbagai format string di DB
-    const getTopikScore = (topik: string): number => {
-        if (!topik) return 0;
-        const t = topik.toLowerCase();
-        if (t.includes('laporan akhir') || t.includes('finalisasi')) return 100;
-        if (t.includes('bab 5') || t.includes('bab v') || t.includes('kesimpulan')) return 90;
-        if (t.includes('bab 4') || t.includes('bab iv') || t.includes('hasil dan pembahasan') || t.includes('hasil & pembahasan')) return 70;
-        if (t.includes('bab 3') || t.includes('bab iii') || t.includes('metodologi')) return 50;
-        if (t.includes('bab 2') || t.includes('bab ii') || t.includes('tinjauan pustaka') || t.includes('kajian pustaka')) return 30;
-        if (t.includes('bab 1') || t.includes('bab i') || t.includes('pendahuluan')) return 15;
-        return 0;
-    };
-
-    const fetchData = async () => {
-        try {
-            setIsLoading(true);
-            const response = await bimbinganApi.getAllProdiBimbingan();
-
-            const calibratedData = response?.map((dosenData: BimbinganData) => {
-                if (!dosenData.students || dosenData.students.length === 0) {
-                    return { ...dosenData, activeProgress: 0 };
-                }
-                
-                let totalScore = 0;
-                dosenData.students.forEach((student: any) => {
-                    const activeTask = student.mahasiswa?.bimbingan?.[0];
-                    if (activeTask && activeTask.topik) {
-                        let score = getTopikScore(activeTask.topik);
-                        if (activeTask.status === 'APPROVED' && score < 100) {
-                            score = Math.min(100, score + 10);
-                        }
-                        totalScore += score;
-                    }
-                });
-                
-                return {
-                    ...dosenData,
-                    activeProgress: Math.round(totalScore / dosenData.students.length)
-                };
-            }) || [];
-
-            setData(calibratedData);
-        } catch (error) {
-            console.error("Fetch Monitoring Error:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchData();
-    }, []);
-
-    const fetchHistory = async (student: any) => {
-        try {
-            setSelectedStudentForHistory(student.mahasiswa);
-            setDetailTab("target");
-            setIsHistoryLoading(true);
-            
-            const historyData = await bimbinganApi.getBimbinganByMahasiswa(student.mahasiswa.nim);
-            
-            const topicOrder: Record<string, number> = {
-                "Bab 1: Pendahuluan": 1,
-                "Bab 2: Tinjauan Pustaka": 2,
-                "Bab 3: Metodologi": 3,
-                "Bab 4: Hasil dan Pembahasan": 4,
-                "Bab 5: Kesimpulan dan Saran": 5,
-                "Laporan Akhir (Finalisasi)": 6
-            };
-
-            const sortedHistory = [...historyData].sort((a: any, b: any) => {
-                const orderA = topicOrder[a.topik] || 99;
-                const orderB = topicOrder[b.topik] || 99;
-                if (orderA !== orderB) return orderA - orderB;
-                return a.versi - b.versi;
-            });
-            
-            setHistory(sortedHistory);
-
-            // Generate Chart Data
-            const groupedByTopic = historyData.reduce((acc: any, task: any) => {
-                if (!acc[task.topik]) acc[task.topik] = [];
-                acc[task.topik].push(task);
-                return acc;
-            }, {});
-
-            const newChartData: any[] = [];
-            newChartData.push({
-                name: "Mulai",
-                score: 0,
-                fullTopic: "Mulai Bimbingan",
-                diffDays: 0,
-                isSubmitted: false,
-                statusText: "Belum Mulai"
-            });
-            
-            taskOptionsList.forEach(opt => {
-                const topicTasks = groupedByTopic[opt.value];
-                if (topicTasks) {
-                    const assignedTask = topicTasks.find((t: any) => t.status === 'ASSIGNED');
-                    const submittedTasks = topicTasks.filter((t: any) => ['SUBMITTED', 'REVISION', 'APPROVED'].includes(t.status));
-                    submittedTasks.sort((a: any, b: any) => a.versi - b.versi); 
-
-                    if (assignedTask || submittedTasks.length > 0) {
-                        const deadline = assignedTask?.jadwalBimbingan ? new Date(assignedTask.jadwalBimbingan) : null;
-                        
-                        if (submittedTasks.length > 0) {
-                            const firstSubmission = submittedTasks[0];
-                            const submittedDate = new Date(firstSubmission.tanggal);
-                            
-                            let diffDays = 0;
-                            if (deadline) {
-                                const diffTime = submittedDate.getTime() - deadline.getTime();
-                                diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                            }
-                            
-                            const isApproved = submittedTasks.some((t: any) => t.status === 'APPROVED');
-                            const baseScore = isApproved ? 100 : 50;
-
-                            let score = baseScore;
-                            if (diffDays > 0) {
-                                score = Math.max(0, baseScore - (diffDays * 10));
-                            }
-                            
-                            newChartData.push({
-                                name: opt.label.split(':')[0].replace('Laporan Akhir (Finalisasi)', 'Laporan Akhir'), 
-                                score: score,
-                                fullTopic: opt.label,
-                                diffDays: diffDays > 0 ? diffDays : 0,
-                                isSubmitted: true,
-                                isApproved: isApproved,
-                                statusText: isApproved ? "Disetujui Dosen" : "Sedang Direviu"
-                            });
-                        } else if (assignedTask) {
-                            let diffDays = 0;
-                            if (deadline) {
-                                const now = new Date();
-                                const diffTime = now.getTime() - deadline.getTime();
-                                diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                            }
-                            
-                            const baseScore = 50;
-                            let score = baseScore;
-                            if (diffDays > 0) {
-                                score = Math.max(0, baseScore - (diffDays * 10));
-                            }
-                            
-                            newChartData.push({
-                                name: opt.label.split(':')[0].replace('Laporan Akhir (Finalisasi)', 'Laporan Akhir'), 
-                                score: score,
-                                fullTopic: opt.label,
-                                diffDays: diffDays > 0 ? diffDays : 0,
-                                isSubmitted: false,
-                                isApproved: false,
-                                statusText: "Sedang Berjalan (Belum Submit)"
-                            });
-                        }
-                    } else {
-                        newChartData.push({
-                            name: opt.label.split(':')[0].replace('Laporan Akhir (Finalisasi)', 'Laporan Akhir'), 
-                            score: 0,
-                            fullTopic: opt.label,
-                            diffDays: 0,
-                            isSubmitted: false,
-                            statusText: "Belum Mulai"
-                        });
-                    }
-                } else {
-                    newChartData.push({
-                        name: opt.label.split(':')[0].replace('Laporan Akhir (Finalisasi)', 'Laporan Akhir'), 
-                        score: 0,
-                        fullTopic: opt.label,
-                        diffDays: 0,
-                        isSubmitted: false,
-                        statusText: "Belum Mulai"
-                    });
-                }
-            });
-            setChartData(newChartData);
-
-        } catch (error) {
-            console.error("Fetch History Error:", error);
-        } finally {
-            setIsHistoryLoading(false);
-        }
-    };
-
-    const filteredData = data.filter(d => 
-        d.dosen.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        d.students.some(s => s.mahasiswa.nama.toLowerCase().includes(searchQuery.toLowerCase()))
-    ).sort((a, b) => {
-        if (sortConfig.key === "nama") {
-            return sortConfig.direction === "asc" 
-                ? a.dosen.nama.localeCompare(b.dosen.nama)
-                : b.dosen.nama.localeCompare(a.dosen.nama);
-        } else {
-            return sortConfig.direction === "asc"
-                ? a.activeProgress - b.activeProgress
-                : b.activeProgress - a.activeProgress;
-        }
-    });
-
-    const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
-    const paginatedData = filteredData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-
-    const statsData = [
-        { name: 'Total Dosen', value: data.length, icon: Users, color: 'text-blue-600 bg-blue-50' },
-        { name: 'Total Mahasiswa', value: data.reduce((acc, d) => acc + d.totalStudents, 0), icon: GraduationCap, color: 'text-emerald-600 bg-emerald-50' },
-        { name: 'Rata-rata Progres', value: `${Math.round(data.reduce((acc, d) => acc + d.activeProgress, 0) / (data.length || 1))}%`, icon: BarChart3, color: 'text-amber-600 bg-amber-50' },
-    ];
-
-    const handleDownloadProgress = () => {
-        if (!selectedDosen) return;
-
-        const doc = new jsPDF();
-        
-        doc.setFontSize(16);
-        doc.text(`Laporan Monitoring Bimbingan`, 14, 20);
-        
-        doc.setFontSize(11);
-        doc.text(`Dosen Pembimbing: ${selectedDosen.dosen.nama}`, 14, 30);
-        doc.text(`Total Mahasiswa: ${selectedDosen.totalStudents}`, 14, 36);
-
-        const tableColumn = ["No", "Nama Mahasiswa", "NIM", "Topik Saat Ini", "Status"];
-        const tableRows: any[] = [];
-
-        selectedDosen.students.forEach((student, index) => {
-            const activeTask = student.mahasiswa?.bimbingan?.[0];
-            const studentData = [
-                index + 1,
-                student.mahasiswa.nama,
-                student.mahasiswa.nim,
-                activeTask?.topik || "Belum Ada Tugas",
-                activeTask?.status === 'APPROVED' ? 'Disetujui' : 
-                activeTask?.status === 'SUBMITTED' ? 'Direviu' : 
-                activeTask?.status === 'REVISION' ? 'Revisi' : 'Belum Mulai'
-            ];
-            tableRows.push(studentData);
-        });
-
-        autoTable(doc, {
-            head: [tableColumn],
-            body: tableRows,
-            startY: 45,
-            theme: 'grid',
-            headStyles: { fillColor: [15, 23, 42] } // slate-900 color
-        });
-
-        doc.save(`Laporan_Bimbingan_${selectedDosen.dosen.nama.replace(/\s+/g, '_')}.pdf`);
-    };
-
-    const handleDownloadAllProgress = () => {
-        if (!data || data.length === 0) return;
-
-        const doc = new jsPDF();
-        
-        doc.setFontSize(20);
-        doc.setTextColor(15, 23, 42); // slate-900
-        doc.text("Laporan Progres Monitoring Keseluruhan", 14, 22);
-        
-        doc.setFontSize(11);
-        doc.setTextColor(100, 116, 139); // slate-500
-        doc.text(`Total Dosen: ${data.length}`, 14, 30);
-        const totalMahasiswa = data.reduce((acc, curr) => acc + curr.totalStudents, 0);
-        doc.text(`Total Mahasiswa Bimbingan: ${totalMahasiswa}`, 14, 36);
-
-        let currentY = 45;
-
-        data.forEach((dosenData) => {
-            // Write Dosen Header
-            doc.setFontSize(12);
-            doc.setTextColor(15, 23, 42);
-            doc.text(`Dosen Pembimbing: ${dosenData.dosen.nama}`, 14, currentY);
-            
-            const tableColumn = ["No", "Nama Mahasiswa", "NIM", "Topik / Bab Saat Ini", "Status"];
-            const tableRows: any[] = [];
-
-            if (dosenData.students.length === 0) {
-                tableRows.push(["-", "Belum ada mahasiswa bimbingan", "-", "-", "-"]);
-            } else {
-                dosenData.students.forEach((student, idx) => {
-                    const activeTask = student.mahasiswa?.bimbingan?.[0];
-                    tableRows.push([
-                        (idx + 1).toString(),
-                        student.mahasiswa.nama,
-                        student.mahasiswa.nim,
-                        activeTask?.topik || "Belum Ada Tugas",
-                        activeTask?.status === 'APPROVED' ? 'Disetujui' : 
-                        activeTask?.status === 'SUBMITTED' ? 'Direviu' : 
-                        activeTask?.status === 'REVISION' ? 'Revisi' : 'Belum Mulai'
-                    ]);
-                });
-            }
-
-            autoTable(doc, {
-                head: [tableColumn],
-                body: tableRows,
-                startY: currentY + 4,
-                theme: 'grid',
-                headStyles: { fillColor: [15, 23, 42] },
-                margin: { bottom: 20 }
-            });
-
-            currentY = (doc as any).lastAutoTable.finalY + 12;
-
-            if (currentY > 270) {
-                doc.addPage();
-                currentY = 20;
-            }
-        });
-
-        doc.save(`Laporan_Monitoring_Keseluruhan.pdf`);
-    };
+    const {
+        user,
+        data,
+        isLoading,
+        searchQuery,
+        setSearchQuery,
+        selectedDosen,
+        setSelectedDosen,
+        sortConfig,
+        setSortConfig,
+        currentPage,
+        setCurrentPage,
+        selectedStudentForHistory,
+        setSelectedStudentForHistory,
+        history,
+        chartData,
+        isHistoryLoading,
+        detailTab,
+        setDetailTab,
+        fetchHistory,
+        filteredData,
+        totalPages,
+        paginatedData,
+        statsData,
+        handleDownloadProgress,
+        handleDownloadAllProgress
+    } = useProdiBimbingan();
 
     const isDosenReguler = user?.jabatan?.toLowerCase().includes("reguler");
 

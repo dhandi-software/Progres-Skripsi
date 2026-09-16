@@ -6,40 +6,15 @@ export default function MaintenanceRoute() {
     const location = useLocation();
     const navigate = useNavigate();
 
-    const [homeLink, setHomeLink] = useState("/");
-    const [homeLabel, setHomeLabel] = useState("Kembali ke Beranda");
-
-    useEffect(() => {
-        try {
-            const savedUser = localStorage.getItem("user");
-            if (savedUser) {
-                const parsed = JSON.parse(savedUser);
-                const role = parsed?.role?.toLowerCase();
-                if (role === "mahasiswa") {
-                    setHomeLink("/mahasiswa/dashboard");
-                    setHomeLabel("Kembali ke Dashboard");
-                } else if (role === "dosen") {
-                    setHomeLink("/dosen/dashboard");
-                    setHomeLabel("Kembali ke Dashboard");
-                } else if (role === "staf") {
-                    setHomeLink("/staf/dashboard");
-                    setHomeLabel("Kembali ke Dashboard");
-                } else if (role === "admin") {
-                    setHomeLink("/admin/dashboard");
-                    setHomeLabel("Kembali ke Dashboard");
-                }
-            }
-        } catch (e) {
-            console.error("Error reading user role for maintenance navigation:", e);
-        }
-    }, []);
+    const [homeLink] = useState("/");
+    const [homeLabel] = useState("Kembali ke Halaman Utama");
 
     return (
         <main className="relative min-h-screen w-screen overflow-hidden font-geist bg-slate-900 flex items-center justify-center p-4">
             {/* Full Screen Background Image with Overlay */}
             <div className="absolute inset-0 z-0">
                 <img
-                    src="/images/kuning.png"
+                    src="/images/kuning.webp"
                     alt="Background"
                     className="h-full w-full object-cover"
                 />
@@ -58,7 +33,7 @@ export default function MaintenanceRoute() {
                     <div className="relative z-10 flex flex-col items-center text-center">
                         <div className="mb-6 rounded-2xl bg-white/95 p-4 shadow-lg backdrop-blur-sm">
                             <img 
-                                src="https://upload.wikimedia.org/wikipedia/id/thumb/4/46/Logo_Universitas_Pancasila.png/250px-Logo_Universitas_Pancasila.png" 
+                                src="/logo_up.webp" 
                                 alt="Logo Universitas Pancasila" 
                                 className="h-28 w-auto object-contain"
                             />
@@ -79,7 +54,7 @@ export default function MaintenanceRoute() {
                     <div className="mb-6 flex flex-col items-center text-center lg:hidden">
                         <div className="mb-3 rounded-2xl bg-white p-3 shadow-md border border-slate-100">
                             <img 
-                                src="https://upload.wikimedia.org/wikipedia/id/thumb/4/46/Logo_Universitas_Pancasila.png/250px-Logo_Universitas_Pancasila.png" 
+                                src="/logo_up.webp" 
                                 alt="Logo Universitas Pancasila" 
                                 className="h-14 w-auto"
                             />
@@ -103,11 +78,11 @@ export default function MaintenanceRoute() {
 
                     <div className="flex flex-col gap-3">
                         <a
-                            href={homeLink}
+                            href="/"
                             className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#D25026] to-[#EA580C] px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#D25026]/30 hover:from-[#EA580C] hover:to-[#F97316] transition-all hover:-translate-y-0.5 active:translate-y-0"
                         >
                             <Home size={18} />
-                            {homeLabel}
+                            Kembali ke Halaman Utama
                         </a>
 
                         <button

@@ -18,7 +18,7 @@ export default function HeaderDesktop() {
                             className="flex items-center gap-3 shrink-0"
                         >
                             <img 
-                                src="https://upload.wikimedia.org/wikipedia/id/thumb/4/46/Logo_Universitas_Pancasila.png/250px-Logo_Universitas_Pancasila.png" 
+                                src="/logo_up.webp" 
                                 alt="Logo Universitas Pancasila" 
                                 className="h-12 w-auto"
                             />

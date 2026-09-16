@@ -13,7 +13,7 @@ import { Input } from "~/components/ui/input";
 import { format } from "date-fns";
 import { id } from "date-fns/locale/id";
 import { MonthYearFilter } from "~/components/ui/calendar";
-import { SidangPengajuanForm } from "../../dosen/sidang/SidangPengajuanForm";
+import { SidangPengajuanForm } from "~/features/dosen/sidang/SidangPengajuanForm";
 
 interface SidangItem {
     id: number;

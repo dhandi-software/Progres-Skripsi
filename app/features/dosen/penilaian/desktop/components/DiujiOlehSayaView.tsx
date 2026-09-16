@@ -13,6 +13,8 @@ interface DiujiOlehSayaViewProps {
     user: any;
     onOpenForm: (item: PenilaianItem) => void;
     onDeleteConfirm: (item: PenilaianItem) => void;
+    searchQuery?: string;
+    setSearchQuery?: (query: string) => void;
 }
 
 export function DiujiOlehSayaView({
@@ -21,14 +23,18 @@ export function DiujiOlehSayaView({
     isLowVision,
     user,
     onOpenForm,
-    onDeleteConfirm
+    onDeleteConfirm,
+    searchQuery: searchQueryProp,
+    setSearchQuery: setSearchQueryProp
 }: DiujiOlehSayaViewProps) {
-    const [searchQuery, setSearchQuery] = useState("");
+    const [localSearchQuery, setLocalSearchQuery] = useState("");
+    const searchQuery = searchQueryProp !== undefined ? searchQueryProp : localSearchQuery;
+    const setSearchQuery = setSearchQueryProp || setLocalSearchQuery;
 
-    const currentDosen = dosenList.find(d => d.nama === user?.name);
+    const currentDosen = (dosenList || []).find(d => d.nama === user?.name);
     const myDosenId = currentDosen?.id || null;
 
-    const examinedStudents = data.filter(item => item.pengujiId === myDosenId || item.pengujiNama === user?.name);
+    const examinedStudents = (data || []).filter(item => item.pengujiId === myDosenId || item.pengujiNama === user?.name);
 
     const filteredData = examinedStudents.filter(item =>
         item.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -38,21 +44,6 @@ export function DiujiOlehSayaView({
 
     return (
         <div className="flex flex-col gap-6">
-            {/* Top Toolbar / Search Panel */}
-            <div className="flex justify-end mb-2">
-                <div className="relative w-[280px]">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <Input
-                        placeholder="Cari nama, nim..."
-                        className={cn(
-                            "pl-9 bg-white border-slate-200 focus-visible:ring-brand-primary/20",
-                            isLowVision && "border-2 border-black text-black font-black text-sm h-10 placeholder-slate-700"
-                        )}
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                </div>
-            </div>
 
             {/* Read-only Examiner Mode Card */}
             <div className={cn(

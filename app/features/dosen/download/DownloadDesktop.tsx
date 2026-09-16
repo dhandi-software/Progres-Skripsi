@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale/id";
 import { 
-    FileText, Plus, Trash2, Edit3, 
+    FileText, Plus, Trash2, Edit3, X,
     Download as DownloadIcon, File as FileIcon,
     MoreVertical, ClipboardList, Eye
 } from "lucide-react";
@@ -47,6 +47,7 @@ export function DownloadDesktop({ title }: { title: string }) {
     
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [viewingItem, setViewingItem] = useState<Download | null>(null);
 
     const fetchData = async (currentPage: number) => {
         try {
@@ -150,15 +151,13 @@ export function DownloadDesktop({ title }: { title: string }) {
                                 </div>
 
                                 <div className="flex items-center gap-2 shrink-0 pr-2">
-                                    <a 
-                                        href={`${UPLOADS_URL}${item.fileUrl}`} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="p-3 text-slate-400 hover:text-[#00bcd4] hover:bg-[#00bcd4]/5 rounded-xl transition-all"
+                                    <button 
+                                        onClick={() => setViewingItem(item)}
+                                        className="p-3 text-slate-400 hover:text-[#00bcd4] hover:bg-[#00bcd4]/5 rounded-xl transition-all border-none bg-transparent cursor-pointer"
                                         title="Lihat File"
                                     >
                                         <Eye size={20} />
-                                    </a>
+                                    </button>
                                     <button 
                                         onClick={() => downloadApi.downloadFile(item.id, item.title)}
                                         className="p-3 text-slate-400 hover:text-brand-primary hover:bg-slate-50 rounded-xl transition-all border-none bg-transparent cursor-pointer"
@@ -198,10 +197,7 @@ export function DownloadDesktop({ title }: { title: string }) {
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end" className="w-48 bg-white border border-slate-100 shadow-xl rounded-2xl p-2 z-[50]">
                                                 <DropdownMenuItem 
-                                                    onClick={() => {
-                                                        const url = `${UPLOADS_URL}${item.fileUrl}`;
-                                                        window.open(url, "_blank");
-                                                    }}
+                                                    onClick={() => setViewingItem(item)}
                                                     className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 cursor-pointer text-slate-600 hover:text-[#00bcd4] transition-all font-bold text-sm"
                                                 >
                                                     <Eye size={16} />
@@ -300,6 +296,59 @@ export function DownloadDesktop({ title }: { title: string }) {
                             >
                                 Ya, Hapus
                             </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* View Only Modal (Lihat Dokumen Saja) */}
+            {viewingItem && (
+                <div className="fixed inset-0 z-[400] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-300">
+                    <div className="bg-white rounded-[32px] shadow-2xl border border-slate-100 w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
+                        {/* Header Modal */}
+                        <div className="flex items-center justify-between px-8 py-5 border-b border-slate-100 bg-slate-50/50 shrink-0">
+                            <div className="flex items-center gap-4 min-w-0 pr-4">
+                                <div className="w-10 h-10 rounded-xl bg-[#00bcd4]/10 flex items-center justify-center text-[#00bcd4] shrink-0">
+                                    <Eye size={20} />
+                                </div>
+                                <div className="min-w-0">
+                                    <h3 className="text-base font-black text-slate-900 truncate tracking-tight">{viewingItem.title}</h3>
+                                    <p className="text-[10px] font-bold text-brand-primary uppercase tracking-widest">
+                                        Mode Pratinjau Dokumen (Hanya Melihat)
+                                    </p>
+                                </div>
+                            </div>
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => setViewingItem(null)}
+                                className="w-10 h-10 rounded-full hover:bg-slate-200 text-slate-500 shrink-0 border-none bg-transparent cursor-pointer"
+                            >
+                                <X size={20} />
+                            </Button>
+                        </div>
+
+                        {/* Content Preview Body */}
+                        <div className="flex-1 bg-slate-100 p-4 md:p-6 overflow-hidden flex items-center justify-center relative">
+                            {viewingItem.fileType === "PDF" || viewingItem.fileUrl.toLowerCase().endsWith(".pdf") ? (
+                                <iframe
+                                    src={`${UPLOADS_URL}${viewingItem.fileUrl}#toolbar=0&navpanes=0&scrollbar=1`}
+                                    className="w-full h-full rounded-2xl bg-white shadow-sm border border-slate-200"
+                                    title={viewingItem.title}
+                                />
+                            ) : viewingItem.fileUrl.match(/\.(png|jpe?g|webp|gif|svg)$/i) ? (
+                                <img 
+                                    src={`${UPLOADS_URL}${viewingItem.fileUrl}`} 
+                                    alt={viewingItem.title} 
+                                    className="max-h-full max-w-full object-contain rounded-2xl shadow-md bg-white p-2"
+                                />
+                            ) : (
+                                <iframe
+                                    src={`https://docs.google.com/viewer?url=${encodeURIComponent(UPLOADS_URL + viewingItem.fileUrl)}&embedded=true`}
+                                    className="w-full h-full rounded-2xl bg-white shadow-sm border border-slate-200"
+                                    title={viewingItem.title}
+                                />
+                            )}
                         </div>
                     </div>
                 </div>

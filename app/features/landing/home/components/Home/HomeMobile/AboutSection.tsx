@@ -53,15 +53,15 @@ export function AboutSection() {
                             
                             {/* Student Image (Top Right) */}
                             <img 
-                                className="absolute right-0 top-0 w-60 h-72 object-cover rounded-2xl shadow-xl z-10 border-4 border-white transform -rotate-6" 
-                                src="/images/Student.svg" 
+                                className="absolute right-0 top-0 w-44 h-52 object-cover rounded-xl shadow-lg z-10 border-2 border-white transform -rotate-6" 
+                                src="/images/Student.webp" 
                                 alt="Mahasiswa"
                             />
                             
                             {/* Teacher Image (Bottom Left) */}
                             <img 
-                                className="absolute left-0 bottom-8 w-64 h-64 object-cover rounded-2xl shadow-2xl z-20 border-4 border-white transform -rotate-6" 
-                                src="/images/Teacher.svg" 
+                                className="absolute left-0 bottom-4 w-48 h-48 object-cover rounded-xl shadow-xl z-20 border-2 border-white transform -rotate-6" 
+                                src="/images/Teacher.webp" 
                                 alt="Dosen Pembimbing"
                             />
 

@@ -1,7 +1,7 @@
 import { useOutletContext } from "react-router";
 import type { ContextType } from "~/root";
 import { PeninjauanDesktop, PeninjauanMobile } from "~/features/dosen/pengajuan";
-import { usePeninjauan } from "~/features/dosen/pengajuan/usePeninjauan";
+import { usePeninjauan } from "~/hooks/usePeninjauan";
 import { useAuth } from "~/hooks/useAuth";
 
 export default function PeninjauanRoute() {

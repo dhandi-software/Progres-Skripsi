@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { UPLOADS_URL } from "~/api/client";
-import { BookOpen, Calendar, Clock, Loader2, CheckCircle2, ChevronLeft, FileText, Upload, Download, AlertCircle, Eye, X } from "lucide-react";
-import { Link } from "react-router";
+import { BookOpen, Calendar, Clock, Loader2, CheckCircle2, ChevronLeft, FileText, Upload, Download, AlertCircle, Eye, X, ArrowLeft } from "lucide-react";
+import { Link, useNavigate } from "react-router";
 import { lazy, Suspense } from "react";
 import { Loader2 as LoaderIcon } from "lucide-react";
 import { Toast } from "~/components/ui/toast";
@@ -98,11 +98,20 @@ export function BimbinganMobile() {
                 const active = uniqueTasks.find((t: any) => t.status !== 'APPROVED');
                 const completed = uniqueTasks.filter((t: any) => t.status === 'APPROVED');
                 
-                setActiveTask(active || null);
+                const targetTask = active || uniqueTasks[0] || null;
+                setActiveTask(targetTask);
                 setCompletedTasks(completed);
 
-                if (active) {
-                    setHistory(tasks.filter((t: any) => t.topik === active.topik).sort((a: any, b: any) => b.versi - a.versi));
+                if (targetTask) {
+                    const topicTasks = tasks.filter((t: any) => t.topik === targetTask.topik).sort((a: any, b: any) => a.versi - b.versi);
+                    setHistory(topicTasks);
+
+                    const nim = targetTask.mahasiswaNim || (user as any)?.nim || user?.id || "default";
+                    bimbinganApi.getBimbinganHistory(String(nim), targetTask.topik)
+                        .then(hist => {
+                            if (hist && hist.length > 0) setHistory(hist);
+                        })
+                        .catch(err => console.error("History fetch error:", err));
                 }
             })
             .catch(err => console.error(err))
@@ -128,6 +137,17 @@ export function BimbinganMobile() {
             socket.disconnect();
         };
     }, [user]);
+
+    useEffect(() => {
+        if (activeTask) {
+            const nim = activeTask.mahasiswaNim || activeTask.mahasiswaId || (user as any)?.nim;
+            if (nim) {
+                bimbinganApi.getBimbinganHistory(nim, activeTask.topik)
+                    .then(data => setHistory(data))
+                    .catch(err => console.error(err));
+            }
+        }
+    }, [activeTask, user]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -159,20 +179,10 @@ export function BimbinganMobile() {
         }
     };
 
+    const navigate = useNavigate();
+
     const handleOpenViewer = async (taskId: number, topik: string) => {
-        setViewingReview(true);
-        setViewingTaskTopik(topik);
-        setAnnotations([]);
-        try {
-            const data = await bimbinganApi.getAnnotations(taskId);
-            const formatted = data.map((a: any) => {
-                const pos = typeof a.posisi === 'string' ? JSON.parse(a.posisi) : a.posisi;
-                return { id: String(a.id), ...pos };
-            });
-            setAnnotations(formatted);
-        } catch (error) {
-            console.error(error);
-        }
+        navigate(`/mahasiswa/bimbingan/review/${taskId}`);
     };
 
     if (loading) {
@@ -621,33 +631,6 @@ export function BimbinganMobile() {
                 </div>
             )}
             </div>
-
-            {/* Viewer Modal */}
-            {viewingReview && (
-                <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 bg-gray-900/60 backdrop-blur-sm">
-                    <div className="bg-white rounded-t-2xl shadow-xl w-full flex flex-col h-[90vh]">
-                        <div className="p-3 border-b border-gray-100 flex items-center justify-between shrink-0">
-                            <div>
-                                <h3 className="text-sm font-bold text-gray-900">Melihat Dokumen</h3>
-                                <p className="text-[10px] text-gray-500 mt-0.5">Topik: {viewingTaskTopik}</p>
-                            </div>
-                            <button onClick={() => setViewingReview(false)} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-                        
-                        <div className="bg-gray-50 flex-1 relative min-h-[300px] overflow-hidden">
-                            <Suspense fallback={<div className="flex h-full items-center justify-center bg-gray-50"><LoaderIcon className="w-8 h-8 animate-spin text-[#119DA4]" /></div>}>
-                                <SharedPdfViewer 
-                                    url={`${UPLOADS_URL}${[...completedTasks, activeTask].find(t => t?.topik === viewingTaskTopik)?.fileMahasiswa || ''}`}
-                                    initialHighlights={annotations}
-                                    readOnly={true}
-                                />
-                            </Suspense>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

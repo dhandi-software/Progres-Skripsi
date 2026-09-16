@@ -7,7 +7,7 @@ export default function HeaderMobile() {
         <header className="sticky top-0 z-50 w-full bg-background border-b border-border-subtle px-4 h-16 flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
                  <img
-                    src="https://upload.wikimedia.org/wikipedia/id/thumb/4/46/Logo_Universitas_Pancasila.png/250px-Logo_Universitas_Pancasila.png"
+                    src="/logo_up.webp"
                     alt="Logo UP"
                     className="h-10 w-auto"
                 />

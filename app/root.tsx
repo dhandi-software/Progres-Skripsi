@@ -37,7 +37,10 @@ export const links: Route.LinksFunction = () => [
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap",
     },
-    { rel: "icon", href: "/logo_up.png" },
+    { rel: "preload", href: "/logo_up.webp", as: "image", type: "image/webp" },
+    { rel: "preload", href: "/images/Background_Mobile.webp", as: "image", type: "image/webp" },
+    { rel: "preload", href: "/images/Background.webp", as: "image", type: "image/webp" },
+    { rel: "icon", type: "image/webp", href: "/logo_up.webp" },
 ];
 
 export async function loader({ context, request }: Route.LoaderArgs) {
@@ -62,7 +65,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     content="width=device-width, initial-scale=1"
                 />
                 <title>Universitas Pancasila - Kerja Praktik</title>
-                <link rel="icon" href="/logo_up.png?v=2" type="image/png" />
+                <link rel="icon" href="/logo_up.webp" type="image/webp" />
+                <link rel="alternate icon" href="/favicon.ico" />
                 <Meta />
                 <Links />
             </head>

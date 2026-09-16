@@ -4,11 +4,11 @@ import { motion, AnimatePresence } from "motion/react";
 import { useState, useEffect } from "react";
 
 const IMAGES = [
-    { src: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=800&auto=format&fit=crop", title: "Kolaborasi Tim", subtitle: "Budaya Kerja" },
-    { src: "https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=800&auto=format&fit=crop", title: "Mentoring", subtitle: "Bimbingan Ahli" },
-    { src: "https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=800&auto=format&fit=crop", title: "Diskusi Proyek", subtitle: "Problem Solving" },
-    { src: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=800&auto=format&fit=crop", title: "Lingkungan Modern", subtitle: "Fasilitas Lengkap" },
-    { src: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=800&auto=format&fit=crop", title: "Event & Seminar", subtitle: "Knowledge Sharing" },
+    { src: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=600&auto=format&fit=crop&fm=webp", title: "Kolaborasi Tim", subtitle: "Budaya Kerja" },
+    { src: "https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=600&auto=format&fit=crop&fm=webp", title: "Mentoring", subtitle: "Bimbingan Ahli" },
+    { src: "https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=600&auto=format&fit=crop&fm=webp", title: "Diskusi Proyek", subtitle: "Problem Solving" },
+    { src: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=600&auto=format&fit=crop&fm=webp", title: "Lingkungan Modern", subtitle: "Fasilitas Lengkap" },
+    { src: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=600&auto=format&fit=crop&fm=webp", title: "Event & Seminar", subtitle: "Knowledge Sharing" },
 ];
 
 export function NewHeroSection() {
@@ -87,6 +87,8 @@ export function NewHeroSection() {
                         src={IMAGES[currentIndex].src} 
                         alt="Background" 
                         className="w-full h-full object-cover"
+                        loading="eager"
+                        decoding="async"
                     />
                     {/* Dark Overlay for Text Readability */}
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />

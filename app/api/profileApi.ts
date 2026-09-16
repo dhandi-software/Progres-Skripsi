@@ -122,7 +122,7 @@ export const profileApi = {
 
     async getProfilePhoto(filename: string): Promise<string> {
         if (!filename || filename === "null" || filename === "undefined") {
-            return "/images/avatar.svg";
+            return "/logo_up.webp";
         }
 
         try {
@@ -143,17 +143,14 @@ export const profileApi = {
                 reader.readAsDataURL(blob);
             });
         } catch (error) {
-            return "/images/avatar.svg";
+            return "/logo_up.webp";
         }
     },
 
     getProfilePhotoUrl: (photoPath: string): string => {
         if (!photoPath || photoPath === "null" || photoPath === "undefined") {
-            return "/images/avatar.svg";
+            return "/logo_up.webp";
         }
-
-        const baseUrl =
-            import.meta.env.VITE_API_BASE_URL || "http://localhost:5002";
 
         if (
             photoPath.startsWith("http://") ||
@@ -163,15 +160,13 @@ export const profileApi = {
             return photoPath;
         }
 
-        let filename: string;
-        if (photoPath.includes("/")) {
-            filename = photoPath.split("/").pop() || photoPath;
-        } else {
-            filename = photoPath;
-        }
+        const rawBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5002/api";
+        // Clean origin host by removing trailing slashes and /api suffix
+        const originUrl = rawBaseUrl.replace(/\/$/, "").replace(/\/api$/, "");
 
-        const cleanBaseUrl = baseUrl.replace(/\/$/, "");
-        return `${cleanBaseUrl}/api/pengajuan/profile/${filename}`;
+        const filename = photoPath.includes("/") ? photoPath.split("/").pop() || photoPath : photoPath;
+
+        return `${originUrl}/api/pengajuan/profile/${filename}`;
     },
 };
 
