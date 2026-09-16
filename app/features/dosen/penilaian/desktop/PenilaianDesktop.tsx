@@ -482,6 +482,8 @@ export function PenilaianDesktop({ title }: { title: string }) {
                             onDeleteConfirm={setDeleteConfirm}
                             setConfirmModal={setConfirmModal}
                             onRefresh={fetchData}
+                            searchQuery={searchQuery}
+                            setSearchQuery={setSearchQuery}
                         />
                     )}
                     {activeTab === "pembimbing" && (
@@ -492,6 +494,8 @@ export function PenilaianDesktop({ title }: { title: string }) {
                             user={user}
                             onOpenForm={openForm}
                             onDeleteConfirm={setDeleteConfirm}
+                            searchQuery={searchQuery}
+                            setSearchQuery={setSearchQuery}
                         />
                     )}
                     {activeTab === "penguji" && (
@@ -502,6 +506,8 @@ export function PenilaianDesktop({ title }: { title: string }) {
                             user={user}
                             onOpenForm={openForm}
                             onDeleteConfirm={setDeleteConfirm}
+                            searchQuery={searchQuery}
+                            setSearchQuery={setSearchQuery}
                         />
                     )}
                 </div>

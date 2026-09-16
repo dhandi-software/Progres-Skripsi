@@ -1,214 +1,30 @@
-import React, { useEffect, useState } from "react";
-import { useAuth } from "~/hooks/useAuth";
-import { bimbinganApi } from "~/api/bimbinganApi";
-import { Search, Download, Users, ClipboardList, Award, Accessibility } from "lucide-react";
+import React from "react";
+import { Search, Download } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
-
-
-interface TempatKPItem {
-    namaPerusahaan: string | null;
-    tlpFaxPerusahaan: string | null;
-    alamatPerusahaan: string | null;
-    kontakPembimbing: string | null;
-}
-
-interface LogbookItem {
-    id: number;
-    tanggalPukul: string;
-    uraian: string;
-    mahasiswaParaf: string | null;
-    pembimbingParaf: string | null;
-    catatan: string | null;
-}
-
-interface BimbinganDetailItem {
-    id: number;
-    tanggal: string;
-    topik: string;
-    catatan: string;
-    status: string;
-}
-
-interface LaporanItem {
-    id: string;
-    nama: string;
-    nim: string;
-    judulSkripsi: string;
-    totalBimbinganSelesai: number;
-    totalBimbingan: number;
-    totalLogbook: number;
-    totalLogbookApproved: number;
-    p1_k1: number | null;
-    p1_k2: number | null;
-    p1_k3: number | null;
-    p1_total: number | null;
-    p1_nama: string | null;
-    p2_k1: number | null;
-    p2_k2: number | null;
-    p2_k3: number | null;
-    p2_total: number | null;
-    p2_nama: string | null;
-    nilaiAkhir: number | null;
-    keteranganPenilaian: string | null;
-    tanggalPenilaian: string | null;
-    statusProgress: string;
-    tempatKP: TempatKPItem | null;
-    logbooks: LogbookItem[];
-    bimbingans: BimbinganDetailItem[];
-}
-
-function getGrade(nilai: number | null): { huruf: string; color: string; bg: string } {
-    if (nilai === null) return { huruf: "-", color: "text-gray-400 border-gray-200", bg: "bg-gray-100" };
-    if (nilai >= 80) return { huruf: "A", color: "text-emerald-700 border-emerald-300", bg: "bg-emerald-100" };
-    if (nilai >= 70) return { huruf: "B", color: "text-blue-700 border-blue-300", bg: "bg-blue-100" };
-    if (nilai >= 60) return { huruf: "B-", color: "text-cyan-700 border-cyan-300", bg: "bg-cyan-100" };
-    if (nilai >= 50) return { huruf: "C", color: "text-yellow-700 border-yellow-300", bg: "bg-yellow-100" };
-    if (nilai >= 40) return { huruf: "C-", color: "text-amber-700 border-amber-300", bg: "bg-amber-100" };
-    return { huruf: "D", color: "text-orange-700 border-orange-300", bg: "bg-orange-100" };
-}
-
-function formatNilai(val: number | null | undefined, fractionDigits = 0): string {
-    if (val === null || val === undefined) return "-";
-    return val.toFixed(fractionDigits);
-}
-
-function parseBimbinganCatatan(catatan: string | null | undefined): { grade: number | null; text: string } {
-    if (!catatan) return { grade: null, text: "" };
-    const match = catatan.match(/^\[NILAI:\s*(\d+)\]\s*(.*)$/s);
-    if (match) {
-        return {
-            grade: parseInt(match[1]),
-            text: match[2].trim()
-        };
-    }
-    return { grade: null, text: catatan };
-}
+import { CetakLaporanDocument } from "../components/CetakLaporanDocument";
+import { useLaporan } from "../hooks/useLaporan";
+import { getGrade, formatNilai } from "../types/laporan";
 
 export function LaporanDesktop({ title }: { title?: string }) {
-    const { user } = useAuth();
-    const [laporanData, setLaporanData] = useState<LaporanItem[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [isLowVision, setIsLowVision] = useState(false);
-    const [showDownloadToast, setShowDownloadToast] = useState(false);
-    
-    // Pagination state
-    const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 10;
+    const {
+        laporanData,
+        filteredData,
+        paginatedData,
+        isLoading,
+        searchQuery,
+        setSearchQuery,
+        isLowVision,
+        showDownloadToast,
+        currentPage,
+        setCurrentPage,
+        totalPages,
+        itemsPerPage,
+        handlePrint,
+        handleExportCSV,
+    } = useLaporan();
 
-    useEffect(() => {
-        const fetchLaporan = async () => {
-            if (!user) return;
-            try {
-                setIsLoading(true);
-                const data = await bimbinganApi.getLaporanAkhir();
-                setLaporanData(data || []);
-            } catch (error) {
-                console.error("Failed to fetch Laporan Akhir:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchLaporan();
-    }, [user]);
-
-    const handlePrint = () => {
-        setShowDownloadToast(true);
-
-        const handleAfterPrint = () => {
-            setShowDownloadToast(false);
-            window.removeEventListener("afterprint", handleAfterPrint);
-        };
-
-        window.addEventListener("afterprint", handleAfterPrint);
-
-        setTimeout(() => {
-            window.print();
-        }, 500);
-    };
-
-    const handleExportCSV = () => {
-        if (!laporanData.length) return;
-        
-        const headers = [
-            "No",
-            "Nama Mahasiswa",
-            "NIM",
-            "Judul Kerja Praktik",
-            "Bimbingan Approved",
-            "Total Bimbingan",
-            "Logbook Diisi",
-            "Logbook Disetujui",
-            "P1 Nama (Pembimbing)",
-            "P1 K1",
-            "P1 K2",
-            "P1 K3",
-            "P1 Total",
-            "P2 Nama (Penguji)",
-            "P2 K1",
-            "P2 K2",
-            "P2 K3",
-            "P2 Total",
-            "Nilai Akhir",
-            "Huruf Mutu",
-            "Status Progres"
-        ];
-
-        const rows = laporanData.map((item, index) => [
-            index + 1,
-            `"${item.nama}"`,
-            item.nim,
-            `"${item.judulSkripsi || '-'}"`,
-            item.totalBimbinganSelesai,
-            item.totalBimbingan,
-            item.totalLogbook,
-            item.totalLogbookApproved,
-            `"${item.p1_nama || '-'}"`,
-            item.p1_k1 !== null ? item.p1_k1 : "-",
-            item.p1_k2 !== null ? item.p1_k2 : "-",
-            item.p1_k3 !== null ? item.p1_k3 : "-",
-            item.p1_total !== null ? item.p1_total : "-",
-            `"${item.p2_nama || '-'}"`,
-            item.p2_k1 !== null ? item.p2_k1 : "-",
-            item.p2_k2 !== null ? item.p2_k2 : "-",
-            item.p2_k3 !== null ? item.p2_k3 : "-",
-            item.p2_total !== null ? item.p2_total : "-",
-            item.nilaiAkhir !== null ? item.nilaiAkhir : "-",
-            getGrade(item.nilaiAkhir).huruf,
-            `"${item.statusProgress}"`
-        ]);
-
-        const csvContent = "\uFEFF" + [
-            headers.join(","),
-            ...rows.map(e => e.join(","))
-        ].join("\n");
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", `Laporan_Akhir_Bimbingan_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
-
-    const filteredData = laporanData.filter(item => 
-        item.nama.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        item.nim.includes(searchQuery)
-    );
-
-    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-    const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-    // Reset to page 1 on search
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [searchQuery]);
 
 
 
@@ -613,125 +429,8 @@ export function LaporanDesktop({ title }: { title?: string }) {
             )}
 
             {/* Print Section (One page/section per student) */}
-            <div className="hidden print:block print-section w-full text-black">
-                {laporanData.map((item, idx) => (
-                    <div key={item.id} className={cn("w-full flex flex-col", idx > 0 && "page-break-before-always mt-8")}>
-                        {/* Student Header */}
-                        <div className="flex flex-col items-center justify-center mb-8 border-b-2 border-black pb-6 text-center w-full">
-                            <h1 className="text-2xl font-bold uppercase tracking-tight">Laporan Rekapitulasi Kerja Praktik Mahasiswa</h1>
-                            <p className="text-sm font-semibold mt-1">Tahun Akademik: {new Date().getFullYear()}</p>
-                            <p className="text-lg font-black mt-3">NAMA: {item.nama.toUpperCase()} | NIM: {item.nim}</p>
-                            <p className="text-sm font-bold mt-1">Dosen Pembimbing: {item.p1_nama || "-"}</p>
-                            <p className="text-xs text-gray-700 italic max-w-[600px] mt-1.5 leading-relaxed">Judul KP: "{item.judulSkripsi || "-"}"</p>
-                        </div>
+            <CetakLaporanDocument data={laporanData} />
 
-                        {/* Company Details (TempatKP) */}
-                        <div className="mb-8 p-5 border-2 border-black rounded-xl bg-slate-50/50">
-                            <h3 className="text-xs font-bold uppercase border-b-2 border-black pb-2 mb-3">Identitas Perusahaan / Instansi Magang</h3>
-                            <div className="grid grid-cols-2 gap-4 text-xs leading-relaxed">
-                                <div><span className="font-bold">Nama Perusahaan:</span> {item.tempatKP?.namaPerusahaan || "-"}</div>
-                                <div><span className="font-bold">Telepon/Fax:</span> {item.tempatKP?.tlpFaxPerusahaan || "-"}</div>
-                                <div><span className="font-bold">Alamat Perusahaan:</span> {item.tempatKP?.alamatPerusahaan || "-"}</div>
-                                <div><span className="font-bold">Kontak Pembimbing Lapangan:</span> {item.tempatKP?.kontakPembimbing || "-"}</div>
-                            </div>
-                        </div>
-
-                        {/* I. Rekapitulasi Logbook */}
-                        <div className="mb-10 w-full">
-                            <div className="flex justify-between items-end border-b-2 border-black pb-2 mb-3">
-                                <h3 className="text-xs font-bold uppercase">I. Uraian Kegiatan Logbook Kerja Praktik</h3>
-                                <div className="text-[10px] font-bold bg-gray-100 px-3 py-1 border border-black rounded-md">
-                                    Progres: {item.totalLogbook > 0 ? Math.round((item.totalLogbookApproved / item.totalLogbook) * 100) : 0}% ({item.totalLogbookApproved}/{item.totalLogbook} Disetujui)
-                                </div>
-                            </div>
-                            <table className="w-full text-left border-collapse border-2 border-black text-sm">
-                                <thead>
-                                    <tr className="bg-gray-100 border-b-2 border-black font-bold text-xs uppercase">
-                                        <th className="py-3 px-3 w-[50px] text-center border border-black">No</th>
-                                        <th className="py-3 px-3 w-[130px] border border-black">Tanggal</th>
-                                        <th className="py-3 px-4 border border-black">Uraian Singkat Kegiatan</th>
-                                        <th className="py-3 px-3 w-[130px] text-center border border-black">Paraf Dosen</th>
-                                        <th className="py-3 px-3 w-[140px] text-center border border-black">Paraf Pembimbing Perusahaan</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {(!item.logbooks || item.logbooks.length === 0) ? (
-                                        <tr>
-                                            <td colSpan={5} className="py-6 text-center border border-black text-gray-500 italic">Belum ada catatan logbook.</td>
-                                        </tr>
-                                    ) : (
-                                        item.logbooks.map((l, lIdx) => (
-                                            <tr key={l.id} className="border-b border-black">
-                                                <td className="py-3 px-3 text-center border border-black font-semibold">{lIdx + 1}</td>
-                                                <td className="py-3 px-3 border border-black font-medium text-xs">{new Date(l.tanggalPukul).toLocaleDateString("id-ID", { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                                                <td className="py-3 px-4 border border-black leading-relaxed">{l.uraian}</td>
-                                                <td className="py-3 px-3 border border-black text-center">
-                                                    {l.catatan ? (
-                                                        <span className="inline-block px-2 py-1 text-[10px] font-bold bg-emerald-100 text-emerald-800 rounded border border-emerald-400">✔ Disetujui</span>
-                                                    ) : null}
-                                                </td>
-                                                <td className="py-3 px-3 border border-black text-center">
-                                                    {l.pembimbingParaf ? (
-                                                        <img src={l.pembimbingParaf} alt="Paraf" className="h-14 md:h-16 w-auto max-w-[140px] mx-auto object-contain py-1" />
-                                                    ) : null}
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {/* II. Penilaian Akhir */}
-                        <div className="mb-6 w-full">
-                            <h3 className="text-xs font-bold uppercase mb-3 border-b-2 border-black pb-2">II. Laporan Evaluasi & Penilaian Akhir</h3>
-                            <table className="w-full text-left border-collapse border-2 border-black text-xs">
-                                <thead>
-                                    <tr className="bg-gray-100 border-b-2 border-black font-bold uppercase">
-                                        <th className="py-3 px-4 border border-black">Nilai Pembimbing (P1)</th>
-                                        <th className="py-3 px-4 border border-black">Nilai Penguji (P2)</th>
-                                        <th className="py-3 px-3 w-[85px] text-center border border-black">Total</th>
-                                        <th className="py-3 px-3 w-[65px] text-center border border-black">Grade</th>
-                                        <th className="py-3 px-3 w-[120px] text-center border border-black">Tanggal Sidang</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr className="border-b border-black">
-                                        <td className="py-4 px-4 border border-black">
-                                            <div className="flex flex-col gap-1.5">
-                                                <div className="flex gap-3 font-bold text-sm">
-                                                    <span>K1: {formatNilai(item.p1_k1, 0)}</span>
-                                                    <span>K2: {formatNilai(item.p1_k2, 0)}</span>
-                                                    <span>K3: {formatNilai(item.p1_k3, 0)}</span>
-                                                </div>
-                                                <div className="text-xs text-gray-800 font-semibold">Dospem: {item.p1_nama || "-"}</div>
-                                                <div className="font-black mt-1 text-sm text-[#D25026]">Total P1: {formatNilai(item.p1_total, 1)}</div>
-                                            </div>
-                                        </td>
-                                        <td className="py-4 px-4 border border-black">
-                                            <div className="flex flex-col gap-1.5">
-                                                <div className="flex gap-3 font-bold text-sm">
-                                                    <span>K1: {formatNilai(item.p2_k1, 0)}</span>
-                                                    <span>K2: {formatNilai(item.p2_k2, 0)}</span>
-                                                    <span>K3: {formatNilai(item.p2_k3, 0)}</span>
-                                                </div>
-                                                <div className="text-xs text-gray-800 font-semibold">Penguji: {item.p2_nama || "-"}</div>
-                                                <div className="font-black mt-1 text-sm text-[#D25026]">Total P2: {formatNilai(item.p2_total, 1)}</div>
-                                            </div>
-                                        </td>
-                                        <td className="py-4 px-3 text-center border border-black font-black text-xl">{formatNilai(item.nilaiAkhir, 1)}</td>
-                                        <td className="py-4 px-3 text-center border border-black font-black text-xl">{getGrade(item.nilaiAkhir).huruf}</td>
-                                        <td className="py-4 px-3 text-center border border-black font-bold text-xs">{item.tanggalPenilaian ? format(new Date(item.tanggalPenilaian), "dd MMM yyyy", { locale: localeId }) : "-"}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                            {item.keteranganPenilaian && (
-                                <div className="mt-3 text-xs italic"><span className="font-bold">Catatan Evaluasi:</span> "{item.keteranganPenilaian}"</div>
-                            )}
-                        </div>
-                    </div>
-                ))}
-            </div>
 
             {/* Print Footer Styles */}
             <style>{`

@@ -68,7 +68,6 @@ export function useChat() {
       const currentActive = activeContactRef.current;
       const isGroupMessage = !!message.roomId;
       
-      // Play sound and show notification if message is not from self
       if (message.senderId !== user.id) {
           const isChatOpen = 
             (isGroupMessage && currentActive?.isGroup && currentActive.realId === message.roomId) || 
@@ -78,17 +77,6 @@ export function useChat() {
           const isWindowFocused = document.hasFocus();
 
           if (!isChatOpen || !isWindowFocused) {
-              if (Notification.permission === "granted") {
-                  const title = message.isPublic 
-                      ? `Pesan Baru di Ruang Publik: ${message.sender?.username}` 
-                      : `Pesan Baru dari ${message.sender?.username}`;
-                  
-                  new Notification(title, {
-                      body: message.content || (message.attachmentUrl ? "📎 Lampiran" : "Pesan baru"),
-                      icon: "/logo_up.webp"
-                  });
-              }
-              
               // Increment Unread Count
               // Logic: If public, increment 0. If group, increment group_ID. If private, increment senderId.
               let contactIdToUpdate: string | number = message.senderId;
@@ -99,21 +87,6 @@ export function useChat() {
                   ...prev,
                   [contactIdToUpdate]: (prev[contactIdToUpdate] || 0) + 1
               }));
-              
-              // In-App Toast Notification
-              if (!isChatOpen) {
-                  const senderName = message.sender?.username || 'Seseorang';
-                  const titleStr = message.isPublic ? `Pesan di Publik dari ${senderName}` : `Pesan baru dari ${senderName}`;
-                  const previewStr = message.content || (message.attachmentUrl ? "Mengirim lampiran" : "Pesan baru");
-                  
-                  setToastProps({
-                       title: titleStr,
-                       description: previewStr,
-                       variant: "default",
-                  });
-                  // auto dismiss toast
-                  setTimeout(() => setToastProps(null), 4000);
-              }
           }
       }
 
@@ -338,12 +311,7 @@ export function useChat() {
       .finally(() => setIsLoadingHistory(false));
   }, [user, activeContact, fetchPublicMembers]);
 
-  // Request Notification Permission
-  useEffect(() => {
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
-    }
-  }, []);
+
 
 
 
