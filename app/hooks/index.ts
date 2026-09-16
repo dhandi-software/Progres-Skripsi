@@ -35,3 +35,8 @@ export { useEditAccount } from "./useEditAccount";
 export { useProdiBimbingan } from "./useProdiBimbingan";
 export { useProdiSidang } from "./useProdiSidang";
 
+// Feature Hooks - Acara
+export { useAcara } from "./useAcara";
+export { useCreateAcara } from "./useCreateAcara";
+
+

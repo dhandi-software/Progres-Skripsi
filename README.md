@@ -72,6 +72,8 @@ skripsi-fe/
 │   │   ├── usePenilaian.ts     # Dosen Penilaian Sidang
 │   │   ├── useSanksi.ts        # Dosen & Admin Sanksi Administrasi
 │   │   ├── useLaporan.ts       # Dosen Laporan Akhir
+│   │   ├── useAcara.ts         # Timeline Acara, Pengumuman & Comments
+│   │   ├── useCreateAcara.ts   # Rich Text Editor & Acara Creation/Edit
 │   │   └── useChat.ts          # Realtime Live Chat & Socket.IO
 │   ├── routes/                 # File Rute (Pages) & Route Guards
 │   └── root.tsx                # Entry point aplikasi

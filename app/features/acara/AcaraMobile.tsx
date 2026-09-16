@@ -1,20 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale/id";
 import { 
-    ClipboardList, Send, MessageSquare, 
-    ArrowLeft, Plus, Trash2, Edit3, 
-    MoreVertical, Users, 
-    Link as LinkIcon, Check
+    ClipboardList, Send, MessageSquare, ArrowLeft, Plus, Trash2, Edit3, 
+    MoreVertical, Users, Link as LinkIcon
 } from "lucide-react";
-import { useNavigate, useSearchParams, useLocation } from "react-router";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
-import { useAuth } from "~/hooks/useAuth";
-import { acaraApi } from "~/api/acaraApi";
 import { profileApi } from "~/api/profileApi";
-import type { Acara, AcaraResponse } from "~/api/acaraApi";
-import { UPLOADS_URL } from "~/api/client";
 import { Toast } from "~/components/ui/toast";
 import {
     Pagination,
@@ -30,157 +23,41 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
 } from "~/components/ui/dropdown-menu";
-import { sanitizeHtml } from "~/lib/sanitize";
+import { useAcara } from "~/hooks/useAcara";
+
 
 export function AcaraMobile({ title }: { title: string }) {
-    const { user } = useAuth();
-    const currentUserPhoto = typeof window !== "undefined" ? (localStorage.getItem("userPhoto") || user?.photo) : user?.photo;
-    const hasUserPhoto = currentUserPhoto && currentUserPhoto !== "null" && currentUserPhoto !== "undefined" && currentUserPhoto !== "/images/avatar.svg";
-    const myName = user?.name || user?.username || "?";
-    const myInitial = myName.charAt(0).toUpperCase();
-    const navigate = useNavigate();
-    const location = useLocation();
-    const routePrefix = location.pathname.startsWith("/admin") 
-        ? "/admin/acara" 
-        : location.pathname.startsWith("/staf")
-        ? "/staf/acara"
-        : "/dosen/acara";
+    const {
+        currentUserPhoto,
+        hasUserPhoto,
+        myName,
+        myInitial,
+        navigate,
+        routePrefix,
+        acaras,
+        isLoading,
+        selectedAcara,
+        newComment,
+        setNewComment,
+        toast,
+        setToast,
+        showDeleteModal,
+        setShowDeleteModal,
+        deletingId,
+        setDeletingId,
+        page,
+        setPage,
+        pagination,
+        isCopying,
+        transformContent,
+        handleAddComment,
+        handleSelectAcara,
+        handleBack,
+        handleCopyLink,
+        handleCopySpecificLink,
+        handleDelete,
+    } = useAcara();
 
-    const [acaras, setAcaras] = useState<Acara[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [selectedAcara, setSelectedAcara] = useState<Acara | null>(null);
-    const [newComment, setNewComment] = useState("");
-    const [toast, setToast] = useState<{title: string, variant: "success" | "destructive"} | null>(null);
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [deletingId, setDeletingId] = useState<number | null>(null);
-    const [page, setPage] = useState(1);
-    const [pagination, setPagination] = useState<AcaraResponse["pagination"] | null>(null);
-    const [searchParams, setSearchParams] = useSearchParams();
-    const [isCopying, setIsCopying] = useState(false);
-    
-    const fetchData = async (currentPage: number) => {
-        try {
-            setIsLoading(true);
-            const response = await acaraApi.getAcara(currentPage, 10);
-            setAcaras(response.data);
-            setPagination(response.pagination);
-        } catch (error) {
-            console.error("Fetch Acara Error:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchData(page);
-    }, [page]);
-
-    // -- LOGIKA DEEP LINKING (Lecturer Mobile) --
-    useEffect(() => {
-        const postId = searchParams.get("post");
-        if (postId && !selectedAcara) {
-            const id = parseInt(postId);
-            const localMatch = acaras.find(a => a.id === id);
-            if (localMatch) {
-                setSelectedAcara(localMatch);
-            } else if (!isLoading && acaras.length > 0) {
-                acaraApi.getAcaraById(id).then(data => {
-                    setSelectedAcara(data);
-                }).catch(err => {
-                    console.error("Gagal deep link dosen mobile:", err);
-                    setSearchParams({});
-                });
-            }
-        }
-    }, [searchParams, acaras.length, isLoading]);
-
-    const transformContent = (content: string) => {
-        if (!content) return "";
-        const baseUploads = UPLOADS_URL.replace(/\/$/, "");
-        let transformed = content
-            .replace(/src="\/uploads\//g, `src="${baseUploads}/uploads/`)
-            .replace(/href="\/uploads\//g, `href="${baseUploads}/uploads/`)
-            .replace(/<img([^>]*)src="([^">]+)"([^>]*)>/g, (match, p1, src, p2) => {
-                const updatedImg = `<img${p1}src="${src}"${p2}`.replace(/<img /g, '<img class="w-full h-auto max-h-[400px] rounded-2xl my-8 shadow-lg border border-slate-100 object-contain bg-slate-50/30 hover:scale-[1.02] transition-transform cursor-pointer" ');
-                return `<a href="${src}" target="_blank" rel="noopener noreferrer">${updatedImg}</a>`;
-            });
-        
-        // Auto-link plain text URLs
-        const parts = transformed.split(/(<[^>]+>)/g);
-        for (let i = 0; i < parts.length; i++) {
-            if (i % 2 === 0) { // Text nodes are at even indices
-                parts[i] = parts[i].replace(
-                    /(https?:\/\/[^\s<]+)/g,
-                    '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-[#00bcd4] font-bold underline">$1</a>'
-                );
-            }
-        }
-        transformed = parts.join('');
-        
-        return sanitizeHtml(transformed);
-    };
-
-    const handleAddComment = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!selectedAcara || !newComment.trim()) return;
-        try {
-            const comment = await acaraApi.addComment(selectedAcara.id, newComment);
-            
-            const updatedAcara = {
-                ...selectedAcara,
-                comments: [...selectedAcara.comments, comment]
-            };
-            setSelectedAcara(updatedAcara);
-            setNewComment("");
-
-            setAcaras(prev => prev.map(item => 
-                item.id === selectedAcara.id ? updatedAcara : item
-            ));
-        } catch (error) {
-            alert("Gagal menambah komentar.");
-        }
-    };
-
-    const handleSelectAcara = (item: Acara) => {
-        setSelectedAcara(item);
-        setSearchParams({ post: item.id.toString() });
-    };
-
-    const handleBack = () => {
-        setSelectedAcara(null);
-        setSearchParams({});
-    };
-
-    const handleCopyLink = () => {
-        const url = `${window.location.origin}${window.location.pathname}?post=${selectedAcara?.id}`;
-        navigator.clipboard.writeText(url);
-        setIsCopying(true);
-        setToast({ title: "Link berhasil disalin!", variant: "success" });
-        setTimeout(() => setIsCopying(false), 2000);
-    };
-
-    const handleCopySpecificLink = (id: number) => {
-        const url = `${window.location.origin}${window.location.pathname}?post=${id}`;
-        navigator.clipboard.writeText(url);
-        setIsCopying(true);
-        setToast({ title: "Link berhasil disalin!", variant: "success" });
-        setTimeout(() => setIsCopying(false), 2000);
-    };
-
-    const handleDelete = async () => {
-        if (!deletingId) return;
-        try {
-            await acaraApi.deleteAcara(deletingId);
-            if (selectedAcara?.id === deletingId) setSelectedAcara(null);
-            setToast({ title: "Postingan berhasil dihapus!", variant: "success" });
-            fetchData(page);
-        } catch (error) {
-            setToast({ title: "Gagal menghapus.", variant: "destructive" });
-        } finally {
-            setShowDeleteModal(false);
-            setDeletingId(null);
-        }
-    };
 
     if (selectedAcara) {
         return (
