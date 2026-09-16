@@ -237,7 +237,7 @@ export function PenilaianMobile({ title }: { title?: string }) {
             {/* ===== EDIT FORM MODAL (MOBILE) ===== */}
             {form && (
                 <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-                    <div className={cn("rounded-3xl shadow-2xl p-5 max-w-lg w-full max-h-[90vh] overflow-y-auto bg-white space-y-4", isLowVision && "border-4 border-black")}>
+                    <div className={cn("rounded-3xl shadow-2xl p-5 w-[92vw] sm:w-[480px] min-w-[280px] shrink-0 max-w-lg max-h-[90vh] overflow-y-auto bg-white space-y-4", isLowVision && "border-4 border-black")}>
                         <div className="flex justify-between items-center pb-3 border-b border-slate-100">
                             <div>
                                 <h3 className="text-sm font-extrabold text-slate-900">Form Nilai KP</h3>

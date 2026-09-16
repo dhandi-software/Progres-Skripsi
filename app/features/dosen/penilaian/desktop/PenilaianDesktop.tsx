@@ -206,36 +206,36 @@ export function PenilaianDesktop({ title }: { title: string }) {
             {form && (
                 <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
                     <div className={cn(
-                        "rounded-3xl shadow-2xl p-6 md:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200",
+                        "rounded-3xl shadow-2xl p-6 md:p-8 lg:p-10 w-full max-w-6xl lg:w-[1100px] xl:w-[1200px] min-w-[320px] md:min-w-[850px] shrink-0 max-h-[95vh] overflow-y-auto animate-in zoom-in-95 duration-200",
                         isLowVision ? "bg-white border-4 border-black text-black" : "bg-white"
                     )}>
-                        <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
+                        <div className="flex justify-between items-center mb-8 pb-5 border-b border-slate-100">
                             <div>
-                                <h2 className={cn("text-lg font-black", isLowVision ? "text-2xl text-black" : "text-slate-900")}>
+                                <h2 className={cn("text-xl md:text-2xl font-black", isLowVision ? "text-3xl text-black" : "text-slate-900")}>
                                     Form Input Penilaian Kerja Praktik
                                 </h2>
-                                <p className={cn("text-xs font-medium mt-0.5", isLowVision ? "text-base text-black font-extrabold" : "text-slate-500")}>
-                                    {form.nama} ({form.nim})
+                                <p className={cn("text-sm font-medium mt-1", isLowVision ? "text-lg text-black font-extrabold" : "text-slate-500")}>
+                                    Mahasiswa: <strong className="text-slate-900">{form.nama}</strong> ({form.nim})
                                 </p>
                             </div>
                             <button
                                 onClick={() => setForm(null)}
-                                className={cn("p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors", isLowVision && "text-black border-2 border-black")}
+                                className={cn("p-2.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors", isLowVision && "text-black border-2 border-black")}
                             >
-                                <X size={20} />
+                                <X size={24} />
                             </button>
                         </div>
 
-                        <div className="space-y-6">
+                        <div className="space-y-8">
                             {/* Pembimbing Section */}
-                            <div className={cn("p-5 rounded-2xl border", isLowVision ? "border-2 border-black bg-slate-50" : "border-slate-200/80 bg-slate-50/50")}>
-                                <h3 className={cn("text-xs font-black uppercase tracking-wider mb-4 flex items-center justify-between", isLowVision ? "text-black text-sm" : "text-slate-700")}>
+                            <div className={cn("p-6 md:p-7 rounded-2xl border", isLowVision ? "border-2 border-black bg-slate-50" : "border-slate-200/80 bg-slate-50/50")}>
+                                <h3 className={cn("text-sm font-black uppercase tracking-wider mb-5 flex items-center justify-between", isLowVision ? "text-black text-base" : "text-slate-800")}>
                                     <span>NILAI DOSEN PEMBIMBING (40%)</span>
-                                    <span className="text-[10px] text-slate-400 font-normal">K1: 35% | K2: 30% | K3: 35%</span>
+                                    <span className="text-xs text-slate-400 font-medium">K1: 35% | K2: 30% | K3: 35%</span>
                                 </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div>
-                                        <label className={cn("text-[11px] font-bold text-slate-600 block mb-1.5", isLowVision && "text-black font-black")}>
+                                        <label className={cn("text-xs font-bold text-slate-700 block mb-2", isLowVision && "text-black font-black")}>
                                             C1: Penyelesaian Tugas
                                         </label>
                                         <Input
@@ -245,11 +245,11 @@ export function PenilaianDesktop({ title }: { title: string }) {
                                             onChange={(e) => setForm({ ...form, p1_k1: e.target.value })}
                                             disabled={!canEditP1 && user?.role !== 'admin'}
                                             placeholder="0 - 100"
-                                            className={cn("h-11 rounded-xl text-xs font-bold", isLowVision && "border-2 border-black text-black font-black")}
+                                            className={cn("h-12 rounded-xl text-sm font-bold px-4", isLowVision && "border-2 border-black text-black font-black")}
                                         />
                                     </div>
                                     <div>
-                                        <label className={cn("text-[11px] font-bold text-slate-600 block mb-1.5", isLowVision && "text-black font-black")}>
+                                        <label className={cn("text-xs font-bold text-slate-700 block mb-2", isLowVision && "text-black font-black")}>
                                             C2: Sikap & Kedisiplinan
                                         </label>
                                         <Input
@@ -259,11 +259,11 @@ export function PenilaianDesktop({ title }: { title: string }) {
                                             onChange={(e) => setForm({ ...form, p1_k2: e.target.value })}
                                             disabled={!canEditP1 && user?.role !== 'admin'}
                                             placeholder="0 - 100"
-                                            className={cn("h-11 rounded-xl text-xs font-bold", isLowVision && "border-2 border-black text-black font-black")}
+                                            className={cn("h-12 rounded-xl text-sm font-bold px-4", isLowVision && "border-2 border-black text-black font-black")}
                                         />
                                     </div>
                                     <div>
-                                        <label className={cn("text-[11px] font-bold text-slate-600 block mb-1.5", isLowVision && "text-black font-black")}>
+                                        <label className={cn("text-xs font-bold text-slate-700 block mb-2", isLowVision && "text-black font-black")}>
                                             C3: Pemahaman Materi
                                         </label>
                                         <Input
@@ -273,22 +273,22 @@ export function PenilaianDesktop({ title }: { title: string }) {
                                             onChange={(e) => setForm({ ...form, p1_k3: e.target.value })}
                                             disabled={!canEditP1 && user?.role !== 'admin'}
                                             placeholder="0 - 100"
-                                            className={cn("h-11 rounded-xl text-xs font-bold", isLowVision && "border-2 border-black text-black font-black")}
+                                            className={cn("h-12 rounded-xl text-sm font-bold px-4", isLowVision && "border-2 border-black text-black font-black")}
                                         />
                                     </div>
                                 </div>
                             </div>
 
                             {/* Penguji Section */}
-                            <div className={cn("p-5 rounded-2xl border", isLowVision ? "border-2 border-black bg-slate-50" : "border-slate-200/80 bg-slate-50/50")}>
-                                <h3 className={cn("text-xs font-black uppercase tracking-wider mb-4 flex items-center justify-between", isLowVision ? "text-black text-sm" : "text-slate-700")}>
+                            <div className={cn("p-6 md:p-7 rounded-2xl border", isLowVision ? "border-2 border-black bg-slate-50" : "border-slate-200/80 bg-slate-50/50")}>
+                                <h3 className={cn("text-sm font-black uppercase tracking-wider mb-5 flex items-center justify-between", isLowVision ? "text-black text-base" : "text-slate-800")}>
                                     <span>NILAI DOSEN PENGUJI (60%)</span>
-                                    <span className="text-[10px] text-slate-400 font-normal">K1: 35% | K2: 30% | K3: 35%</span>
+                                    <span className="text-xs text-slate-400 font-medium">K1: 35% | K2: 30% | K3: 35%</span>
                                 </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div>
-                                        <label className={cn("text-[11px] font-bold text-slate-600 block mb-1.5", isLowVision && "text-black font-black")}>
-                                            C1: Penyajian Presentasi
+                                        <label className={cn("text-xs font-bold text-slate-700 block mb-2", isLowVision && "text-black font-black")}>
+                                            C1: Penyajikan Presentasi
                                         </label>
                                         <Input
                                             type="number"
@@ -297,11 +297,11 @@ export function PenilaianDesktop({ title }: { title: string }) {
                                             onChange={(e) => setForm({ ...form, p2_k1: e.target.value })}
                                             disabled={!canEditP2 && user?.role !== 'admin'}
                                             placeholder="0 - 100"
-                                            className={cn("h-11 rounded-xl text-xs font-bold", isLowVision && "border-2 border-black text-black font-black")}
+                                            className={cn("h-12 rounded-xl text-sm font-bold px-4", isLowVision && "border-2 border-black text-black font-black")}
                                         />
                                     </div>
                                     <div>
-                                        <label className={cn("text-[11px] font-bold text-slate-600 block mb-1.5", isLowVision && "text-black font-black")}>
+                                        <label className={cn("text-xs font-bold text-slate-700 block mb-2", isLowVision && "text-black font-black")}>
                                             C2: Penguasaan Materi
                                         </label>
                                         <Input
@@ -311,11 +311,11 @@ export function PenilaianDesktop({ title }: { title: string }) {
                                             onChange={(e) => setForm({ ...form, p2_k2: e.target.value })}
                                             disabled={!canEditP2 && user?.role !== 'admin'}
                                             placeholder="0 - 100"
-                                            className={cn("h-11 rounded-xl text-xs font-bold", isLowVision && "border-2 border-black text-black font-black")}
+                                            className={cn("h-12 rounded-xl text-sm font-bold px-4", isLowVision && "border-2 border-black text-black font-black")}
                                         />
                                     </div>
                                     <div>
-                                        <label className={cn("text-[11px] font-bold text-slate-600 block mb-1.5", isLowVision && "text-black font-black")}>
+                                        <label className={cn("text-xs font-bold text-slate-700 block mb-2", isLowVision && "text-black font-black")}>
                                             C3: Tanya Jawab
                                         </label>
                                         <Input
@@ -325,7 +325,7 @@ export function PenilaianDesktop({ title }: { title: string }) {
                                             onChange={(e) => setForm({ ...form, p2_k3: e.target.value })}
                                             disabled={!canEditP2 && user?.role !== 'admin'}
                                             placeholder="0 - 100"
-                                            className={cn("h-11 rounded-xl text-xs font-bold", isLowVision && "border-2 border-black text-black font-black")}
+                                            className={cn("h-12 rounded-xl text-sm font-bold px-4", isLowVision && "border-2 border-black text-black font-black")}
                                         />
                                     </div>
                                 </div>
@@ -333,40 +333,40 @@ export function PenilaianDesktop({ title }: { title: string }) {
 
                             {/* Summary & Keterangan */}
                             <div>
-                                <label className={cn("text-[11px] font-bold text-slate-600 block mb-1.5", isLowVision && "text-black font-black")}>
+                                <label className={cn("text-xs font-bold text-slate-700 block mb-2", isLowVision && "text-black font-black")}>
                                     Catatan & Evaluasi Penilaian
                                 </label>
                                 <textarea
                                     value={form.keterangan}
                                     onChange={(e) => setForm({ ...form, keterangan: e.target.value })}
-                                    rows={3}
+                                    rows={4}
                                     placeholder="Tambahkan catatan evaluasi akhir..."
-                                    className={cn("w-full p-3 rounded-xl text-xs border focus:outline-none focus:ring-2 focus:ring-brand-primary", isLowVision ? "border-2 border-black text-black font-bold" : "border-slate-200")}
+                                    className={cn("w-full p-4 rounded-xl text-sm border focus:outline-none focus:ring-2 focus:ring-brand-primary", isLowVision ? "border-2 border-black text-black font-bold" : "border-slate-200")}
                                 />
                             </div>
 
                             {/* Total Calculation Display */}
-                            <div className="bg-slate-100/70 p-4 rounded-2xl flex items-center justify-between">
-                                <span className="text-xs font-bold text-slate-600">Rata-rata Nilai Akhir:</span>
-                                <span className="text-lg font-black text-slate-900">
+                            <div className="bg-slate-100/80 p-5 rounded-2xl flex items-center justify-between">
+                                <span className="text-sm font-bold text-slate-700">Rata-rata Nilai Akhir:</span>
+                                <span className="text-2xl font-black text-slate-900">
                                     {((calcP1Total() + calcP2Total()) / 2).toFixed(2)} ({getGrade((calcP1Total() + calcP2Total()) / 2).huruf})
                                 </span>
                             </div>
                         </div>
 
-                        <div className="flex gap-3 mt-8 pt-4 border-t border-slate-100">
+                        <div className="flex gap-4 mt-10 pt-5 border-t border-slate-100">
                             <button
                                 onClick={() => setForm(null)}
-                                className={cn("flex-1 py-3 rounded-xl font-bold text-xs transition-colors", isLowVision ? "bg-slate-200 text-black border-2 border-black" : "bg-slate-100 text-slate-600 hover:bg-slate-200")}
+                                className={cn("flex-1 py-3.5 rounded-xl font-bold text-sm transition-colors", isLowVision ? "bg-slate-200 text-black border-2 border-black" : "bg-slate-100 text-slate-600 hover:bg-slate-200")}
                             >
                                 Batal
                             </button>
                             <button
                                 onClick={handleSave}
                                 disabled={isSaving}
-                                className={cn("flex-1 py-3 rounded-xl text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors", isLowVision ? "bg-black text-white hover:bg-slate-800 border-2 border-black" : "bg-[#119DA4] hover:bg-[#119DA4]/90 shadow-md")}
+                                className={cn("flex-1 py-3.5 rounded-xl text-white font-bold text-sm flex items-center justify-center gap-2 transition-colors", isLowVision ? "bg-black text-white hover:bg-slate-800 border-2 border-black" : "bg-[#119DA4] hover:bg-[#119DA4]/90 shadow-md")}
                             >
-                                <Save size={16} />
+                                <Save size={18} />
                                 {isSaving ? "Menyimpan..." : "Simpan Penilaian"}
                             </button>
                         </div>
