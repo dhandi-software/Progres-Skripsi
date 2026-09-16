@@ -1,2 +1,4 @@
-export * from "~/features/dosen/sanksi/desktop/SanksiDesktop";
-export * from "~/features/dosen/sanksi/mobile/SanksiMobile";
+export * from "~/api/types";
+export * from "~/hooks/useSanksi";
+export { SanksiDesktop } from "./desktop/SanksiDesktop";
+export { SanksiMobile } from "./mobile/SanksiMobile";

@@ -2,11 +2,11 @@ import { useState, useEffect } from "react";
 import { userApi } from "~/api/userApi";
 import { useNavigate, useSearchParams } from "react-router";
 import * as XLSX from 'xlsx';
-
-interface ToastProps {
-  title: string;
-  variant: "success" | "destructive" | "default";
-}
+import type { 
+    CreateAccountFormData, 
+    CreateAccountToastProps, 
+    CreateAccountPasswordValidation 
+} from "~/api/types";
 
 export const useCreateAccount = () => {
   const navigate = useNavigate();
@@ -23,7 +23,6 @@ export const useCreateAccount = () => {
     name: "",
     password: "",
     role: "mahasiswa", 
-    // Specific fields
     nim: "",
     tahunMasuk: "",
     sksDicapai: "",
@@ -39,7 +38,6 @@ export const useCreateAccount = () => {
 
   const [isValidRole, setIsValidRole] = useState(true);
 
-  // Sync role with URL param on mount
   useEffect(() => {
     if (roleParam) {
         if (roleParam === "mahasiswa" || roleParam === "dosen" || roleParam === "staf") {
@@ -60,7 +58,7 @@ export const useCreateAccount = () => {
 
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [toastProps, setToastProps] = useState<ToastProps | null>(null);
+  const [toastProps, setToastProps] = useState<CreateAccountToastProps | null>(null);
 
   const showToast = (
     title: string,
@@ -90,7 +88,6 @@ export const useCreateAccount = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     let { name, value } = e.target;
     
-    // Numeric validation for NIM, NIDN, NIP, SKS
     if ((name === "nim" || name === "nidn" || name === "nip" || name === "sksDicapai" || name === "sksNilaiD") && value && !/^\d*$/.test(value)) {
         return;
     }
@@ -115,7 +112,6 @@ export const useCreateAccount = () => {
         emailDomain: prev.emailDomain || "@univpancasila.ac.id",
         jabatan: role === 'dosen' ? "Dosen Reguler" : prev.jabatan
     }));
-    // User requested to reset the excel file when switching roles
     setMassData([]);
     setFileName(null);
     setRawExcelBinary(null);
@@ -135,7 +131,7 @@ export const useCreateAccount = () => {
         const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
         
         let headerRowIdx = -1;
-        let idColIdx = -1; // NIM or NIDN
+        let idColIdx = -1; 
         let namaColIdx = -1;
         let emailColIdx = -1;
         let jabatanColIdx = -1;
@@ -154,7 +150,6 @@ export const useCreateAccount = () => {
              for (let j = 0; j < row.length; j++) {
                   const cellText = String(row[j] || '').toLowerCase().trim();
                   
-                  // ID detection (NIM/NPM or NIDN/NIP)
                   if (isMahasiswa) {
                       if (cellText.includes('npm') || cellText.includes('nim') || cellText.includes('n p m') || cellText.includes('n.p.m') || cellText.includes('n.i.m') || cellText.includes('no mhs') || cellText.includes('no mahasiswa') || cellText.includes('nomor mahasiswa') || cellText === 'no') {
                           idColIdx = j;
@@ -212,24 +207,20 @@ export const useCreateAccount = () => {
 
              if (!idVal || !nama) continue; 
              
-             // Skip if it looks like header again
              if (idVal.toLowerCase() === 'nim' || idVal.toLowerCase() === 'npm' || 
                  idVal.toLowerCase() === 'nidn' || idVal.toLowerCase() === 'nip' || 
                  nama.toLowerCase() === 'nama') continue;
 
-             // Generate Email
              let email = emailColIdx !== -1 ? String(row[emailColIdx] || '').trim() : "";
              if (!email) {
                  email = isMahasiswa ? `${idVal}@student.univ.ac.id` : `${idVal}@univ.ac.id`;
              }
 
-             // Handle Jabatan for Dosen
              let jabatan = "Dosen";
              if (!isMahasiswa && jabatanColIdx !== -1) {
                  jabatan = String(row[jabatanColIdx] || '').trim() || "Dosen";
              }
 
-             // Handle Peminatan for Dosen
              let peminatan: string[] = [];
              if (!isMahasiswa && peminatanColIdx !== -1) {
                  const rawPeminatan = String(row[peminatanColIdx] || '').trim();
@@ -238,14 +229,12 @@ export const useCreateAccount = () => {
                  }
              }
 
-             // Tahun Masuk for Mahasiswa
              let tahunMasuk = "";
              if (isMahasiswa) {
                  const yearDigits = idVal.length >= 4 ? idVal.substring(2, 4) : "";
                  tahunMasuk = yearDigits ? `20${yearDigits}` : "2024";
              }
 
-             // Password Generation
              const length = 12;
              const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*";
              let generatedPassword = "";
@@ -254,7 +243,7 @@ export const useCreateAccount = () => {
              }
 
              const item: any = {
-                 nim: idVal, // using 'nim' as a generic ID field for massData state
+                 nim: idVal,
                  nama,
                  email,
                  password: generatedPassword, 
@@ -299,7 +288,6 @@ export const useCreateAccount = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Clear previous data before parsing new file
     setMassData([]);
     setFileName(file.name);
     setRawExcelBinary(null);
@@ -312,7 +300,6 @@ export const useCreateAccount = () => {
     };
     reader.readAsBinaryString(file);
     
-    // Reset the input value so the same file selection triggers onChange again
     e.target.value = "";
   };
 
@@ -495,7 +482,6 @@ export const useCreateAccount = () => {
           }
       }
 
-      // Pass toast in state so it shows up on the next page immediately
       navigate(`/admin/users?tab=${formData.role}`, {
           state: {
               toast: { title: "Account created successfully", variant: "success" }

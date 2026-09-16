@@ -11,6 +11,9 @@ export interface LogbookItem {
     uraian: string;
     mahasiswaParaf: string | null;
     pembimbingParaf: string | null;
+    dosenParaf?: string | null;
+    parafDosen?: string | null;
+    paraf?: string | null;
     catatan: string | null;
 }
 
@@ -36,6 +39,8 @@ export interface LaporanItem {
     p1_k3: number | null;
     p1_total: number | null;
     p1_nama: string | null;
+    p1_paraf?: string | null;
+    dosenParaf?: string | null;
     p2_k1: number | null;
     p2_k2: number | null;
     p2_k3: number | null;

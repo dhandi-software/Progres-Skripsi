@@ -2,7 +2,7 @@ import { ArrowLeft, ChevronDown, Eye, EyeOff, Loader2, Save } from "lucide-react
 import { cn } from "~/lib/utils";
 import { CustomSelect } from "~/components/ui/custom-select";
 import { MultipleCombobox } from "~/components/ui/Multiple-combobox";
-import { useEditAccount } from "./UseEditAccount";
+import { useEditAccount } from "~/hooks/useEditAccount";
 
 export function EditAccountMobile() {
   const {

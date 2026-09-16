@@ -87,9 +87,6 @@ export function usePeninjauan(user: User | null) {
             );
         }
 
-        // Kalau Semua Status biarkan yang sudah di acc (APPROVED) duluan didepan, lalu pending, dst.
-        // The user request: "kalau semua role biarkan yang sudah di acc duluan didepan"
-        // Urutan kustom: PENDING di depan
         if (filterStatus === "ALL") {
             const statusOrder: Record<string, number> = {
                 "PENDING": 1,
@@ -104,7 +101,6 @@ export function usePeninjauan(user: User | null) {
                 if (orderA !== orderB) {
                     return orderA - orderB;
                 }
-                // Jika status sama, ikuti sortOrder
                 if (sortOrder === "TERBARU") {
                     return b.id - a.id;
                 } else {
@@ -112,7 +108,6 @@ export function usePeninjauan(user: User | null) {
                 }
             });
         } else {
-            // Sort standard
             if (sortOrder === "TERBARU") {
                 result.sort((a, b) => b.id - a.id);
             } else {
@@ -121,8 +116,6 @@ export function usePeninjauan(user: User | null) {
         }
 
         setFilteredList(result);
-        // Do NOT reset currentPage here when using searchParams, because it will override the user's page choice if they navigate back.
-        // It's already handled by the setter functions (setSearchQuery etc reset page to 1).
     }, [searchQuery, filterStatus, sortOrder, originalList]);
 
     const totalPages = Math.ceil(filteredList.length / itemsPerPage) || 1;
@@ -199,7 +192,6 @@ export function usePeninjauan(user: User | null) {
     
           const tableRows = filteredList.map((u, index) => {
              let namaMahasiswa = u.mahasiswa.nama;
-             // Jika filter adalah "Semua", tambahkan status di bawah nama mahasiswanya.
              if (isAllStatus) {
                  const statusText = u.status === 'APPROVED' ? 'Verified' : u.status === 'REJECTED' ? 'Rejected' : 'Pending';
                  namaMahasiswa += `\n(${statusText})`;
@@ -249,7 +241,7 @@ export function usePeninjauan(user: User | null) {
               lineWidth: 0,
             },
             alternateRowStyles: {
-                fillColor: [255, 245, 240] // Very light orange/gray
+                fillColor: [255, 245, 240]
             },
             columnStyles: colStyles,
           });

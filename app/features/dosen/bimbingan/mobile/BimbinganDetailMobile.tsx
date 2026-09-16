@@ -1,266 +1,54 @@
-import { useState, useEffect } from "react";
-import { useParams, useLocation, useNavigate } from "react-router";
-import { bimbinganApi } from "~/api/bimbinganApi";
 import { UPLOADS_URL } from "~/api/client";
 import { FileText, Send, Loader2, BookOpen, ChevronLeft, AlertCircle, FileStack, Download, Eye, Clock, Trophy, Edit, Check, Users } from "lucide-react";
 import { CustomSelect } from "~/components/ui/custom-select";
 import { Toast } from "~/components/ui/toast";
 import { MonthYearFilter } from "~/components/ui/calendar";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { ProgressStats } from "../../../mahasiswa/profilemahasiswa/components/progress-stats";
-import { BadgeWall } from "../../../mahasiswa/profilemahasiswa/components/badge-wall";
+import { ProgressStats } from "~/features/mahasiswa/profilemahasiswa/components/progress-stats";
+import { BadgeWall } from "~/features/mahasiswa/profilemahasiswa/components/badge-wall";
 import { PublicProfileModal } from "~/components/profile/PublicProfileModal";
-import { useAuth } from "~/hooks/useAuth";
-import { io } from "socket.io-client";
-
-const getStatusPengajuan = (status: string) => {
-    switch (status) {
-        case 'ASSIGNED': return 'Belum Mengumpulkan';
-        case 'SUBMITTED': return 'Sudah Mengumpulkan';
-        case 'REVISION': return 'Perlu Perbaikan';
-        case 'APPROVED': return 'Selesai (ACC)';
-        default: return '-';
-    }
-};
-
-const getStatusPenilaian = (status: string) => {
-    switch (status) {
-        case 'ASSIGNED': return '-';
-        case 'SUBMITTED': return 'Menunggu Reviu';
-        case 'REVISION': return 'Perlu Revisi';
-        case 'APPROVED': return 'Disetujui';
-        default: return '-';
-    }
-};
-
-const getTimeRemaining = (deadline?: string) => {
-    if (!deadline) return { text: "-", isLate: false, isWarning: false };
-    const now = new Date();
-    const dDate = new Date(deadline);
-    dDate.setHours(23, 59, 59, 999);
-
-    const diffTime = dDate.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) return { text: `Terlambat ${Math.abs(diffDays)} hari`, isLate: true, isWarning: false };
-    if (diffDays === 0) return { text: "Hari ini", isLate: false, isWarning: true };
-    if (diffDays <= 3) return { text: `${diffDays} hari lagi`, isLate: false, isWarning: true };
-    return { text: `${diffDays} hari lagi`, isLate: false, isWarning: false };
-};
-
-const parseCatatan = (catatan: string) => {
-    if (!catatan) return { nilai: null, text: "" };
-    const match = catatan.match(/^\[NILAI:\s*(\d+)\]\s*(.*)$/s);
-    if (match) {
-        return { nilai: parseInt(match[1]), text: match[2] };
-    }
-    return { nilai: null, text: catatan };
-};
+import { useBimbinganDetail } from "~/hooks/useBimbinganDetail";
 
 export function BimbinganDetailMobile() {
-    const { id: nim } = useParams();
-    const location = useLocation();
-    const navigate = useNavigate();
-    const student = location.state?.student;
-
-    const [loading, setLoading] = useState(true);
-    const [assigningId, setAssigningId] = useState<string | null>(null);
-    const [selectedTasks, setSelectedTasks] = useState<{ [key: string]: string }>({});
-    const [selectedSchedules, setSelectedSchedules] = useState<{ [key: string]: string }>({});
-    const [toastProps, setToastProps] = useState<{ title: string, variant?: "success" | "destructive" | "default" } | null>(null);
-
-    const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
-    const [inputGrades, setInputGrades] = useState<{ [key: number]: string }>({});
-    const [savingGradeId, setSavingGradeId] = useState<number | null>(null);
-    const [profileModalOpen, setProfileModalOpen] = useState(false);
-
-    // Detail View State
-    const [activeTab, setActiveTab] = useState<"aktif" | "riwayat" | "grafik" | "portfolio">("aktif");
-    const [studentActiveTask, setStudentActiveTask] = useState<any>(null);
-    const [completedTasks, setCompletedTasks] = useState<any[]>([]);
-    const [isEditingTask, setIsEditingTask] = useState(false);
-    const [chartData, setChartData] = useState<any[]>([]);
-    const [allStudentTasks, setAllStudentTasks] = useState<any[]>([]);
-    const [history, setHistory] = useState<any[]>([]);
-    const [expandedHistoryId, setExpandedHistoryId] = useState<number | null>(null);
-
-    const showToast = (title: string, variant: "success" | "destructive" | "default" = "success") => {
-        setToastProps({ title, variant });
-    };
-
-    const { user } = useAuth();
-
-    // Real-time updates
-    useEffect(() => {
-        if (!user || !student) return;
-        const socket = io(UPLOADS_URL);
-        socket.emit("join", user.id);
-        
-        socket.on("bimbingan_submitted", () => {
-            fetchStudentTasks(student.mahasiswa.nim);
-            showToast("Mahasiswa telah mengumpulkan draf/revisi!", "success");
-        });
-
-        return () => {
-            socket.disconnect();
-        };
-    }, [user, student]);
-
-    const fetchStudentTasks = async (mahasiswaId: string) => {
-        setLoading(true);
-        try {
-            const tasks = await bimbinganApi.getBimbinganByMahasiswa(mahasiswaId);
-            setAllStudentTasks(tasks);
-            const grouped = tasks.reduce((acc: any, task: any) => {
-                if (!acc[task.topik] || task.versi > acc[task.topik].versi) {
-                    acc[task.topik] = task;
-                }
-                return acc;
-            }, {});
-            const uniqueTasks: any[] = Object.values(grouped);
-            const active = uniqueTasks.find((t: any) => t.status !== 'APPROVED');
-            const completed = uniqueTasks.filter((t: any) => t.status === 'APPROVED');
-
-            setStudentActiveTask(active || null);
-            setCompletedTasks(completed);
-
-            if (active) {
-                setHistory(tasks.filter((t: any) => t.topik === active.topik).sort((a: any, b: any) => b.versi - a.versi));
-            } else {
-                setHistory([]);
-                // Pre-fill schedule with the previous task's deadline if available
-                if (completed.length > 0 && completed[0].jadwalBimbingan) {
-                    setSelectedSchedules(prev => {
-                        if (!prev[mahasiswaId]) {
-                            return { ...prev, [mahasiswaId]: completed[0].jadwalBimbingan };
-                        }
-                        return prev;
-                    });
-                }
-            }
-
-            // Generate Chart Data for Timeliness
-            const taskOptionsList = [
-                { label: "Bab 1: Pendahuluan", value: "Bab 1: Pendahuluan" },
-                { label: "Bab 2: Tinjauan Pustaka", value: "Bab 2: Tinjauan Pustaka" },
-                { label: "Bab 3: Metodologi", value: "Bab 3: Metodologi" },
-                { label: "Bab 4: Hasil dan Pembahasan", value: "Bab 4: Hasil dan Pembahasan" },
-                { label: "Bab 5: Kesimpulan dan Saran", value: "Bab 5: Kesimpulan dan Saran" },
-                { label: "Laporan Akhir (Finalisasi)", value: "Laporan Akhir (Finalisasi)" },
-            ];
-
-            const groupedByTopic = tasks.reduce((acc: any, task: any) => {
-                if (!acc[task.topik]) acc[task.topik] = [];
-                acc[task.topik].push(task);
-                return acc;
-            }, {});
-
-            const newChartData: any[] = [];
-            newChartData.push({
-                name: "Mulai",
-                score: 0,
-                fullTopic: "Mulai Bimbingan",
-                diffDays: 0,
-                isSubmitted: false,
-                statusText: "Belum Mulai"
-            });
-
-            taskOptionsList.forEach(opt => {
-                const topicTasks = groupedByTopic[opt.value];
-                if (topicTasks) {
-                    const assignedTask = topicTasks.find((t: any) => t.status === 'ASSIGNED');
-                    const submittedTasks = topicTasks.filter((t: any) => ['SUBMITTED', 'REVISION', 'APPROVED'].includes(t.status));
-                    submittedTasks.sort((a: any, b: any) => a.versi - b.versi);
-
-                    if (assignedTask || submittedTasks.length > 0) {
-                        const deadline = assignedTask?.jadwalBimbingan ? new Date(assignedTask.jadwalBimbingan) : null;
-
-                        if (submittedTasks.length > 0) {
-                            const firstSubmission = submittedTasks[0];
-                            const submittedDate = new Date(firstSubmission.tanggal);
-
-                            let diffDays = 0;
-                            if (deadline) {
-                                const diffTime = submittedDate.getTime() - deadline.getTime();
-                                diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                            }
-
-                            const isApproved = submittedTasks.some((t: any) => t.status === 'APPROVED');
-                            const baseScore = isApproved ? 100 : 50;
-
-                            let score = baseScore;
-                            if (diffDays > 0) {
-                                score = Math.max(0, baseScore - (diffDays * 10));
-                            }
-
-                            newChartData.push({
-                                name: opt.label.split(':')[0].replace('Laporan Akhir (Finalisasi)', 'Laporan Akhir'),
-                                score: score,
-                                fullTopic: opt.label,
-                                diffDays: diffDays > 0 ? diffDays : 0,
-                                isSubmitted: true,
-                                isApproved: isApproved,
-                                statusText: isApproved ? "Disetujui Dosen" : "Sedang Direviu"
-                            });
-                        } else if (assignedTask) {
-                            let diffDays = 0;
-                            if (deadline) {
-                                const now = new Date();
-                                const diffTime = now.getTime() - deadline.getTime();
-                                diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                            }
-
-                            const baseScore = 50;
-                            let score = baseScore;
-                            if (diffDays > 0) {
-                                score = Math.max(0, baseScore - (diffDays * 10));
-                            }
-
-                            newChartData.push({
-                                name: opt.label.split(':')[0].replace('Laporan Akhir (Finalisasi)', 'Laporan Akhir'),
-                                score: score,
-                                fullTopic: opt.label,
-                                diffDays: diffDays > 0 ? diffDays : 0,
-                                isSubmitted: false,
-                                isApproved: false,
-                                statusText: "Sedang Berjalan (Belum Submit)"
-                            });
-                        }
-                    } else {
-                        newChartData.push({
-                            name: opt.label.split(':')[0].replace('Laporan Akhir (Finalisasi)', 'Laporan Akhir'),
-                            score: 0,
-                            fullTopic: opt.label,
-                            diffDays: 0,
-                            isSubmitted: false,
-                            statusText: "Belum Mulai"
-                        });
-                    }
-                } else {
-                    newChartData.push({
-                        name: opt.label.split(':')[0].replace('Laporan Akhir (Finalisasi)', 'Laporan Akhir'),
-                        score: 0,
-                        fullTopic: opt.label,
-                        diffDays: 0,
-                        isSubmitted: false,
-                        statusText: "Belum Mulai"
-                    });
-                }
-            });
-            setChartData(newChartData);
-
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        if (nim) {
-            fetchStudentTasks(nim);
-        }
-    }, [nim]);
+    const {
+        navigate,
+        selectedStudent: student,
+        studentLoading: loading,
+        toastProps,
+        setToastProps,
+        activeTab,
+        setActiveTab,
+        assigningId,
+        selectedTasks,
+        setSelectedTasks,
+        selectedSchedules,
+        setSelectedSchedules,
+        isEditingTask,
+        setIsEditingTask,
+        editingTaskId,
+        setEditingTaskId,
+        inputGrades,
+        setInputGrades,
+        savingGradeId,
+        profileModalOpen,
+        setProfileModalOpen,
+        studentActiveTask,
+        completedTasks,
+        chartData,
+        allStudentTasks,
+        history,
+        expandedHistoryId,
+        setExpandedHistoryId,
+        handleAssign,
+        handleOpenReview,
+        handleSaveGrade,
+        isAllTasksCompleted,
+        taskOptions,
+        getStatusPengajuan,
+        getStatusPenilaian,
+        getTimeRemaining,
+        parseCatatan
+    } = useBimbinganDetail();
 
     if (!student) {
         return (
@@ -276,74 +64,6 @@ export function BimbinganDetailMobile() {
             </div>
         );
     }
-
-    const handleAssign = async (mahasiswaId: string) => {
-        const task = selectedTasks[mahasiswaId];
-        const jadwal = selectedSchedules[mahasiswaId];
-        if (!task) {
-            showToast("Pilih bab dahulu", "destructive");
-            return;
-        }
-
-        setAssigningId(mahasiswaId);
-        try {
-            if (isEditingTask && studentActiveTask) {
-                await bimbinganApi.editBimbinganTask(studentActiveTask.id, task, jadwal ? new Date(jadwal) : undefined);
-                showToast("Target progres diperbarui!", "success");
-            } else {
-                await bimbinganApi.assignBimbinganTask(mahasiswaId, task, jadwal ? new Date(jadwal) : undefined);
-                showToast("Tugas diberikan!", "success");
-            }
-            setSelectedTasks(prev => { const next = { ...prev }; delete next[mahasiswaId]; return next; });
-            setSelectedSchedules(prev => { const next = { ...prev }; delete next[mahasiswaId]; return next; });
-            setIsEditingTask(false);
-            if (nim) fetchStudentTasks(nim);
-        } catch (error) {
-            console.error("Failed to assign:", error);
-            showToast(isEditingTask ? "Gagal memperbarui target" : "Gagal memberikan tugas", "destructive");
-        } finally {
-            setAssigningId(null);
-        }
-    };
-
-    const taskOptions = [
-        { label: "Bab 1: Pendahuluan", value: "Bab 1: Pendahuluan" },
-        { label: "Bab 2: Tinjauan Pustaka", value: "Bab 2: Tinjauan Pustaka" },
-        { label: "Bab 3: Metodologi", value: "Bab 3: Metodologi" },
-        { label: "Bab 4: Hasil dan Pembahasan", value: "Bab 4: Hasil dan Pembahasan" },
-        { label: "Bab 5: Kesimpulan dan Saran", value: "Bab 5: Kesimpulan dan Saran" },
-        { label: "Laporan Akhir (Finalisasi)", value: "Laporan Akhir (Finalisasi)" },
-    ];
-
-    const handleOpenReview = (task: any, isReadOnly: boolean = false) => {
-        navigate(`/dosen/bimbingan/${task.mahasiswaNim}/review/${task.id}`, { state: { isReadOnly } });
-    };
-
-    const handleSaveGrade = async (task: any) => {
-        const gradeVal = inputGrades[task.id];
-        const parsedGrade = gradeVal === "" || gradeVal === undefined ? null : parseInt(gradeVal);
-        if (parsedGrade !== null && (parsedGrade < 0 || parsedGrade > 100 || isNaN(parsedGrade))) {
-            showToast("Nilai bimbingan harus berada di rentang 0 - 100", "destructive");
-            return;
-        }
-
-        setSavingGradeId(task.id);
-        try {
-            const parsed = parseCatatan(task.catatan);
-            const newCatatan = parsedGrade !== null ? `[NILAI: ${parsedGrade}] ${parsed.text}` : parsed.text;
-            await bimbinganApi.uploadRevisiDosen(task.id, null, 'APPROVED', newCatatan);
-            showToast("Nilai berhasil disimpan!", "success");
-            setEditingTaskId(null);
-            if (nim) fetchStudentTasks(nim);
-        } catch (error) {
-            console.error(error);
-            showToast("Gagal menyimpan nilai", "destructive");
-        } finally {
-            setSavingGradeId(null);
-        }
-    };
-
-    const isAllTasksCompleted = taskOptions.every(opt => completedTasks.some(t => t.topik === opt.value));
 
     return (
         <div className="min-h-screen bg-gray-50 pb-20 font-geist relative">

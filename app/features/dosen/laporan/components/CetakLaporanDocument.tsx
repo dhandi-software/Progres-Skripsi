@@ -32,7 +32,7 @@ export function CetakLaporanDocument({ data }: CetakLaporanDocumentProps) {
         <div className="hidden print:block print-section w-full text-slate-900 bg-white font-sans">
             {data.map((item, idx) => {
                 const totalLogbook = item.totalLogbook || (item.logbooks ? item.logbooks.length : 0);
-                const totalApproved = item.totalLogbookApproved || (item.logbooks ? item.logbooks.filter(l => l.catatan || l.pembimbingParaf).length : 0);
+                const totalApproved = item.totalLogbookApproved || (item.logbooks ? item.logbooks.filter(l => l.catatan || l.pembimbingParaf || l.mahasiswaParaf || l.dosenParaf || l.parafDosen).length : 0);
                 const progressPercent = totalLogbook > 0 ? Math.round((totalApproved / totalLogbook) * 100) : 0;
 
                 return (
@@ -144,7 +144,7 @@ export function CetakLaporanDocument({ data }: CetakLaporanDocumentProps) {
                                         <th className="py-2.5 px-2 text-center border-r border-[#1E3A5F] w-[40px]">NO</th>
                                         <th className="py-2.5 px-3 text-left border-r border-[#1E3A5F] w-[110px]">TANGGAL</th>
                                         <th className="py-2.5 px-4 text-left border-r border-[#1E3A5F]">URAIAN SINGKAT KEGIATAN</th>
-                                        <th className="py-2.5 px-3 text-center border-r border-[#1E3A5F] w-[110px]">PARAF DOSEN</th>
+                                        <th className="py-2.5 px-3 text-center border-r border-[#1E3A5F] w-[130px]">PARAF DOSEN</th>
                                         <th className="py-2.5 px-3 text-center w-[140px]">PARAF PEMBIMBING PERUSAHAAN</th>
                                     </tr>
                                 </thead>
@@ -156,43 +156,44 @@ export function CetakLaporanDocument({ data }: CetakLaporanDocumentProps) {
                                             </td>
                                         </tr>
                                     ) : (
-                                        item.logbooks.map((l, lIdx) => (
-                                            <tr key={l.id} className="border-b border-slate-200">
-                                                <td className="py-3 px-2 text-center border-r border-slate-200 font-medium text-slate-600">
-                                                    {lIdx + 1}
-                                                </td>
-                                                <td className="py-3 px-3 border-r border-slate-200 font-medium text-slate-700 whitespace-nowrap">
-                                                    {new Date(l.tanggalPukul).toLocaleDateString("id-ID", {
-                                                        day: "numeric",
-                                                        month: "short",
-                                                        year: "numeric"
-                                                    })}
-                                                </td>
-                                                <td className="py-3 px-4 border-r border-slate-200 text-slate-800 leading-normal">
-                                                    {l.uraian}
-                                                </td>
-                                                <td className="py-3 px-3 border-r border-slate-200 text-center">
-                                                    {l.catatan ? (
-                                                        <span className="inline-block px-2 py-0.5 text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-300 rounded">
-                                                            ✔ Disetujui
-                                                        </span>
-                                                    ) : null}
-                                                </td>
-                                                <td className="py-3 px-3 text-center">
-                                                    {l.pembimbingParaf ? (
-                                                        <img
-                                                            src={l.pembimbingParaf}
-                                                            alt="Paraf"
-                                                            className="h-10 w-auto max-w-[120px] mx-auto object-contain"
-                                                        />
-                                                    ) : (
-                                                        <span className="text-2xl font-serif text-slate-300 select-none">
-                                                            R
-                                                        </span>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))
+                                        item.logbooks.map((l, lIdx) => {
+                                            const dosenSig = l.dosenParaf || l.parafDosen || l.mahasiswaParaf || l.paraf || item.p1_paraf || item.dosenParaf;
+                                            return (
+                                                <tr key={l.id} className="border-b border-slate-200">
+                                                    <td className="py-3 px-2 text-center border-r border-slate-200 font-medium text-slate-600">
+                                                        {lIdx + 1}
+                                                    </td>
+                                                    <td className="py-3 px-3 border-r border-slate-200 font-medium text-slate-700 whitespace-nowrap">
+                                                        {new Date(l.tanggalPukul).toLocaleDateString("id-ID", {
+                                                            day: "numeric",
+                                                            month: "short",
+                                                            year: "numeric"
+                                                        })}
+                                                    </td>
+                                                    <td className="py-3 px-4 border-r border-slate-200 text-slate-800 leading-normal">
+                                                        {l.uraian}
+                                                    </td>
+                                                    <td className="py-3 px-3 border-r border-slate-200 text-center align-middle">
+                                                        {dosenSig ? (
+                                                            <img
+                                                                src={dosenSig}
+                                                                alt="Paraf Dosen"
+                                                                className="h-12 w-auto max-w-[130px] mx-auto object-contain font-bold drop-shadow-md scale-110"
+                                                            />
+                                                        ) : null}
+                                                    </td>
+                                                    <td className="py-3 px-3 text-center align-middle">
+                                                        {l.pembimbingParaf ? (
+                                                            <img
+                                                                src={l.pembimbingParaf}
+                                                                alt="Paraf Pembimbing"
+                                                                className="h-12 w-auto max-w-[130px] mx-auto object-contain font-bold drop-shadow-md scale-110"
+                                                            />
+                                                        ) : null}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
                                     )}
                                 </tbody>
                             </table>
@@ -321,8 +322,43 @@ export function CetakLaporanDocument({ data }: CetakLaporanDocumentProps) {
                             </div>
                         </div>
 
+                        {/* SECTION 4: LEMBAR PENGESAHAN & TANDA TANGAN DOSEN PEMBIMBING */}
+                        <div className="w-full grid grid-cols-2 gap-8 mt-6 mb-2 pt-4 border-t-2 border-slate-800 text-xs">
+                            {/* Left: Pembimbing Perusahaan */}
+                            <div className="flex flex-col items-center text-center">
+                                <span className="text-slate-600 font-semibold mb-1">Pembimbing Lapangan Perusahaan,</span>
+                                <div className="h-16 flex items-center justify-center my-1">
+                                    {item.logbooks && item.logbooks.find(l => l.pembimbingParaf)?.pembimbingParaf ? (
+                                        <img
+                                            src={item.logbooks.find(l => l.pembimbingParaf)!.pembimbingParaf!}
+                                            alt="TTD Pembimbing Lapangan"
+                                            className="h-14 w-auto max-w-[150px] object-contain font-bold drop-shadow-md scale-110"
+                                        />
+                                    ) : null}
+                                </div>
+                                <span className="font-bold text-slate-900 mt-1">{item.tempatKP?.kontakPembimbing || "-"}</span>
+                                <span className="text-[10px] text-slate-500 font-medium">Pembimbing Lapangan</span>
+                            </div>
+
+                            {/* Right: Dosen Pembimbing Utama */}
+                            <div className="flex flex-col items-center text-center">
+                                <span className="text-slate-600 font-semibold mb-1">Dosen Pembimbing Utama,</span>
+                                <div className="h-16 flex items-center justify-center my-1">
+                                    {item.p1_paraf || item.dosenParaf || (item.logbooks && item.logbooks.find(l => l.dosenParaf || l.parafDosen || l.mahasiswaParaf)?.mahasiswaParaf) ? (
+                                        <img
+                                            src={item.p1_paraf || item.dosenParaf || (item.logbooks && item.logbooks.find(l => l.dosenParaf || l.parafDosen || l.mahasiswaParaf)?.mahasiswaParaf)!}
+                                            alt="TTD Dosen Pembimbing"
+                                            className="h-14 w-auto max-w-[150px] object-contain font-bold drop-shadow-md scale-110"
+                                        />
+                                    ) : null}
+                                </div>
+                                <span className="font-bold text-slate-900 mt-1">{item.p1_nama || "-"}</span>
+                                <span className="text-[10px] text-slate-500 font-medium">Dosen Pembimbing KP</span>
+                            </div>
+                        </div>
+
                         {/* Footer Section */}
-                        <div className="w-full border-t border-slate-200 mt-8 pt-3 flex justify-between items-center text-[10px] text-slate-400">
+                        <div className="w-full border-t border-slate-200 mt-6 pt-3 flex justify-between items-center text-[10px] text-slate-400">
                             <span>Dokumen resmi — Kerja Praktik Mahasiswa</span>
                             <span>TA {currentYear}</span>
                         </div>

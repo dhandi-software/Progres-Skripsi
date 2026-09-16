@@ -1,43 +1,6 @@
 import { client } from "./client";
-
-export interface SanksiAdministrasi {
-    id: number;
-    mahasiswaId?: string;
-    mahasiswaNim?: string;
-    dosenId?: string;
-    dosenNidn?: string;
-    nama: string;
-    nim: string;
-    hariSidang: string;
-    tanggalSidang: string;
-    hariTenggat: string;
-    tanggalSurat: string;
-    status?: string;
-    tenggatWaktu?: string;
-    tanggalKonfirmasi?: string;
-    denda?: number;
-    keterlambatanMinggu?: number;
-    createdAt: string;
-    updatedAt: string;
-    mahasiswa?: {
-        id: string | number;
-        nama: string;
-        nim: string;
-    };
-    dosen?: {
-        id: number;
-        nama: string;
-        nidn: string;
-    };
-}
-
-export interface SupervisedStudent {
-    id: string | number;
-    nama: string;
-    nim: string;
-    tanggalSidang?: string | null;
-    statusSidang?: string | null;
-}
+import type { SanksiAdministrasi, SupervisedStudent } from "./types";
+export type { SanksiAdministrasi, SupervisedStudent };
 
 export const sanksiApi = {
     getAllSanksi: async (search?: string, status?: string): Promise<{ data: SanksiAdministrasi[], summary: any }> => {

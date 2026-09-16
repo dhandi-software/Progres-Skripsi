@@ -1,17 +1,17 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { bimbinganApi } from "../../../api/bimbinganApi";
+import { bimbinganApi } from "~/api/bimbinganApi";
 import { 
     Users, User, FileText, Search, GraduationCap,
     ArrowRight, Loader2, Info, BarChart3, ChevronRight,
     X, Download, Clock, CheckCircle2, FileStack, History as HistoryIcon,
     Menu, Filter
 } from "lucide-react";
-import { cn } from "../../../lib/utils";
-import { Button } from "../../../components/ui/button";
-import { useSidebar } from "../../../components/ui/sidebar";
-import { UPLOADS_URL } from "../../../api/client";
+import { cn } from "~/lib/utils";
+import { Button } from "~/components/ui/button";
+import { useSidebar } from "~/components/ui/sidebar";
+import { UPLOADS_URL } from "~/api/client";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { useAuth } from "~/hooks/useAuth";
@@ -22,226 +22,38 @@ import {
     PaginationLink,
     PaginationNext,
     PaginationPrevious,
-} from "../../../components/ui/pagination";
+} from "~/components/ui/pagination";
 
-interface BimbinganData {
-    dosen: {
-        id: number;
-        nama: string;
-        username: string;
-        photo?: string;
-    };
-    students: any[];
-    totalStudents: number;
-    activeProgress: number; // percentage
-}
+import { useProdiBimbingan, taskOptionsList, getTopikScore } from "~/hooks/useProdiBimbingan";
+import type { BimbinganData } from "~/hooks/useProdiBimbingan";
 
 export function ProdiBimbinganMobile() {
     const { setOpenMobile } = useSidebar();
-    const { user } = useAuth();
-    const [data, setData] = useState<BimbinganData[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [selectedDosen, setSelectedDosen] = useState<BimbinganData | null>(null);
-    
-    // Sort & Pagination State
-    const [sortConfig, setSortConfig] = useState<{key: "nama" | "progress", direction: "asc" | "desc"}>({ key: "nama", direction: "asc" });
-    const [currentPage, setCurrentPage] = useState(1);
-    const ITEMS_PER_PAGE = 10;
-
-    // History Drill-Down State
-    const [selectedStudentForHistory, setSelectedStudentForHistory] = useState<any>(null);
-    const [history, setHistory] = useState<any[]>([]);
-    const [isHistoryLoading, setIsHistoryLoading] = useState(false);
-
-    // Fuzzy-match topik ke skor progres — menangani berbagai format string di DB
-    const getTopikScore = (topik: string): number => {
-        if (!topik) return 0;
-        const t = topik.toLowerCase();
-        if (t.includes('laporan akhir') || t.includes('finalisasi')) return 100;
-        if (t.includes('bab 5') || t.includes('bab v') || t.includes('kesimpulan')) return 90;
-        if (t.includes('bab 4') || t.includes('bab iv') || t.includes('hasil dan pembahasan') || t.includes('hasil & pembahasan')) return 70;
-        if (t.includes('bab 3') || t.includes('bab iii') || t.includes('metodologi')) return 50;
-        if (t.includes('bab 2') || t.includes('bab ii') || t.includes('tinjauan pustaka') || t.includes('kajian pustaka')) return 30;
-        if (t.includes('bab 1') || t.includes('bab i') || t.includes('pendahuluan')) return 15;
-        return 0;
-    };
-
-    const fetchData = async () => {
-        try {
-            setIsLoading(true);
-            const response = await bimbinganApi.getAllProdiBimbingan();
-
-            const calibratedData = response?.map((dosenData: BimbinganData) => {
-                if (!dosenData.students || dosenData.students.length === 0) {
-                    return { ...dosenData, activeProgress: 0 };
-                }
-                
-                let totalScore = 0;
-                dosenData.students.forEach((student: any) => {
-                    const activeTask = student.mahasiswa?.bimbingan?.[0];
-                    if (activeTask && activeTask.topik) {
-                        let score = getTopikScore(activeTask.topik);
-                        if (activeTask.status === 'APPROVED' && score < 100) {
-                            score = Math.min(100, score + 10);
-                        }
-                        totalScore += score;
-                    }
-                });
-                
-                return {
-                    ...dosenData,
-                    activeProgress: Math.round(totalScore / dosenData.students.length)
-                };
-            }) || [];
-
-            setData(calibratedData);
-        } catch (error) {
-            console.error("Fetch Monitoring Error:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchData();
-    }, []);
-
-    const fetchHistory = async (student: any) => {
-        try {
-            setSelectedStudentForHistory(student.mahasiswa);
-            setIsHistoryLoading(true);
-            const historyData = await bimbinganApi.getBimbinganByMahasiswa(student.mahasiswa.nim);
-            setHistory(historyData);
-        } catch (error) {
-            console.error("Fetch History Error:", error);
-        } finally {
-            setIsHistoryLoading(false);
-        }
-    };
-
-    const handleDownloadProgress = () => {
-        if (!selectedDosen) return;
-
-        const doc = new jsPDF();
-        
-        doc.setFontSize(20);
-        doc.setTextColor(15, 23, 42); // slate-900
-        doc.text("Laporan Progres Bimbingan", 14, 22);
-        
-        doc.setFontSize(11);
-        doc.setTextColor(100, 116, 139); // slate-500
-        doc.text(`Dosen Pembimbing: ${selectedDosen.dosen.nama}`, 14, 30);
-        doc.text(`Total Mahasiswa: ${selectedDosen.totalStudents}`, 14, 36);
-
-        const tableColumn = ["No", "Nama Mahasiswa", "NIM", "Topik / Bab Saat Ini", "Status"];
-        const tableRows: any[] = [];
-
-        selectedDosen.students.forEach((student, index) => {
-            const activeTask = student.mahasiswa?.bimbingan?.[0];
-            const studentData = [
-                index + 1,
-                student.mahasiswa.nama,
-                student.mahasiswa.nim,
-                activeTask?.topik || "Belum Ada Tugas",
-                activeTask?.status === 'APPROVED' ? 'Disetujui' : 
-                activeTask?.status === 'SUBMITTED' ? 'Direviu' : 
-                activeTask?.status === 'REVISION' ? 'Revisi' : 'Belum Mulai'
-            ];
-            tableRows.push(studentData);
-        });
-
-        autoTable(doc, {
-            head: [tableColumn],
-            body: tableRows,
-            startY: 45,
-            theme: 'grid',
-            headStyles: { fillColor: [15, 23, 42] } // slate-900 color
-        });
-
-        doc.save(`Laporan_Bimbingan_${selectedDosen.dosen.nama.replace(/\s+/g, '_')}.pdf`);
-    };
-
-    const handleDownloadAllProgress = () => {
-        if (!data || data.length === 0) return;
-
-        const doc = new jsPDF();
-        
-        doc.setFontSize(20);
-        doc.setTextColor(15, 23, 42); // slate-900
-        doc.text("Laporan Progres Monitoring Keseluruhan", 14, 22);
-        
-        doc.setFontSize(11);
-        doc.setTextColor(100, 116, 139); // slate-500
-        doc.text(`Total Dosen: ${data.length}`, 14, 30);
-        const totalMahasiswa = data.reduce((acc, curr) => acc + curr.totalStudents, 0);
-        doc.text(`Total Mahasiswa Bimbingan: ${totalMahasiswa}`, 14, 36);
-
-        let currentY = 45;
-
-        data.forEach((dosenData) => {
-            // Write Dosen Header
-            doc.setFontSize(12);
-            doc.setTextColor(15, 23, 42);
-            doc.text(`Dosen Pembimbing: ${dosenData.dosen.nama}`, 14, currentY);
-            
-            const tableColumn = ["No", "Nama Mahasiswa", "NIM", "Topik / Bab Saat Ini", "Status"];
-            const tableRows: any[] = [];
-
-            if (dosenData.students.length === 0) {
-                tableRows.push(["-", "Belum ada mahasiswa bimbingan", "-", "-", "-"]);
-            } else {
-                dosenData.students.forEach((student, idx) => {
-                    const activeTask = student.mahasiswa?.bimbingan?.[0];
-                    tableRows.push([
-                        (idx + 1).toString(),
-                        student.mahasiswa.nama,
-                        student.mahasiswa.nim,
-                        activeTask?.topik || "Belum Ada Tugas",
-                        activeTask?.status === 'APPROVED' ? 'Disetujui' : 
-                        activeTask?.status === 'SUBMITTED' ? 'Direviu' : 
-                        activeTask?.status === 'REVISION' ? 'Revisi' : 'Belum Mulai'
-                    ]);
-                });
-            }
-
-            autoTable(doc, {
-                head: [tableColumn],
-                body: tableRows,
-                startY: currentY + 4,
-                theme: 'grid',
-                headStyles: { fillColor: [15, 23, 42] },
-                margin: { bottom: 20 }
-            });
-
-            currentY = (doc as any).lastAutoTable.finalY + 12;
-
-            if (currentY > 270) {
-                doc.addPage();
-                currentY = 20;
-            }
-        });
-
-        doc.save(`Laporan_Monitoring_Keseluruhan.pdf`);
-    };
-
-    const filteredData = data.filter(d => 
-        d.dosen.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        d.students.some(s => s.mahasiswa.nama.toLowerCase().includes(searchQuery.toLowerCase()))
-    ).sort((a, b) => {
-        if (sortConfig.key === "nama") {
-            return sortConfig.direction === "asc" 
-                ? a.dosen.nama.localeCompare(b.dosen.nama)
-                : b.dosen.nama.localeCompare(a.dosen.nama);
-        } else {
-            return sortConfig.direction === "asc"
-                ? a.activeProgress - b.activeProgress
-                : b.activeProgress - a.activeProgress;
-        }
-    });
-
-    const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
-    const paginatedData = filteredData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+    const {
+        user,
+        data,
+        isLoading,
+        searchQuery,
+        setSearchQuery,
+        selectedDosen,
+        setSelectedDosen,
+        sortConfig,
+        setSortConfig,
+        currentPage,
+        setCurrentPage,
+        selectedStudentForHistory,
+        setSelectedStudentForHistory,
+        history,
+        isHistoryLoading,
+        fetchHistory,
+        filteredData,
+        totalPages,
+        paginatedData,
+        isDownloading,
+        isDownloadingAll,
+        handleDownloadProgress,
+        handleDownloadAllProgress
+    } = useProdiBimbingan();
 
     const isDosenReguler = user?.jabatan?.toLowerCase().includes("reguler");
 
@@ -296,8 +108,9 @@ export function ProdiBimbinganMobile() {
                                             Progres {sortConfig.key === 'progress' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                                         </button>
                                     </div>
-                                    <Button onClick={handleDownloadAllProgress} variant="outline" className="w-full gap-2 rounded-[16px] text-xs font-bold border-brand-primary text-brand-primary hover:bg-brand-primary/5 py-3 h-auto">
-                                        <Download size={14} /> Download Semua Data Dosen
+                                    <Button onClick={handleDownloadAllProgress} disabled={isDownloadingAll} variant="outline" className="w-full gap-2 rounded-[16px] text-xs font-bold border-brand-primary text-brand-primary hover:bg-brand-primary/5 py-3 h-auto disabled:opacity-70">
+                                        {isDownloadingAll ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                                        {isDownloadingAll ? 'Menyiapkan PDF...' : 'Download Semua Data Dosen'}
                                     </Button>
                                 </div>
 
@@ -378,8 +191,9 @@ export function ProdiBimbinganMobile() {
                                         <ChevronRight size={16} className="rotate-180" /> Kembali
                                     </button>
                                     
-                                    <Button onClick={handleDownloadProgress} size="sm" className="gap-1.5 rounded-full text-[10px] text-white font-bold bg-slate-800 shadow-sm">
-                                        <Download size={14} /> PDF
+                                    <Button onClick={handleDownloadProgress} disabled={isDownloading} size="sm" className="gap-1.5 rounded-full text-[10px] text-white font-bold bg-slate-800 shadow-sm disabled:opacity-70">
+                                        {isDownloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                                        {isDownloading ? '...' : 'PDF'}
                                     </Button>
                                 </div>
                                 
@@ -404,6 +218,7 @@ export function ProdiBimbinganMobile() {
                                                     <div>
                                                         <p className="text-sm font-black text-slate-900 leading-none mb-1 line-clamp-1">{student.mahasiswa.nama}</p>
                                                         <p className="text-[10px] font-mono text-slate-500">{student.mahasiswa.nim}</p>
+                                                        <p className="text-[10px] font-bold text-brand-primary mt-1">{student.mahasiswa?._count?.bimbingan || 0} Kali Bimbingan</p>
                                                     </div>
                                                 </div>
 

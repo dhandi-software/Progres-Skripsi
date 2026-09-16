@@ -1,6 +1,6 @@
 import React from "react";
 import { FileText } from "lucide-react";
-import { getStatusPenilaian } from "../../utils/bimbinganUtils";
+import { getStatusPenilaian } from "~/features/dosen/bimbingan/utils/bimbinganUtils";
 
 interface MobileStudentCardProps {
     pengajuan: any;

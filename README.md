@@ -49,24 +49,76 @@ Hanya menampilkan struktur folder utama yang relevan dengan sistem Kerja Praktik
 ```bash
 skripsi-fe/
 ├── app/
-│   ├── components/             # Komponen UI global (Button, Card, dll)
-│   ├── features/               # Modul fungsional aplikasi
-│   │   ├── landing/            # Fitur halaman depan (Landing Page)
-│   │   │   ├── home/           # Komponen Beranda, FAQ, Guide, Schedule
-│   │   │   ├── Article/        # Komponen Artikel/Berita
-│   │   │   └── ...
-│   │   └── ...
-│   ├── routes/                 # File Rute (Pages)
-│   │   ├── admin/              # Dashboard Admin
-│   │   ├── writer/             # Dashboard Penulis/Dosen
-│   │   ├── landing/            # Halaman Publik (Home, FAQ, Requirements)
-│   │   ├── login/              # Halaman Login
-│   │   └── ...
-│   ├── lib/
-│   │   └── utils.ts            # Fungsi utilitas global
+│   ├── api/                    # Integrasi API & Centralized Types
+│   │   ├── client.ts           # Axios Client / Base URL
+│   │   ├── types.ts            # Centralized Single Source of Truth for Types
+│   │   └── ...Api.ts           # Endpoint Services (userApi, bimbinganApi, dll)
+│   ├── components/             # Komponen UI global (Button, Card, CustomSelect, dll)
+│   ├── features/               # Pure Declarative UI Components (Desktop & Mobile)
+│   │   ├── admin/              # Dashboard Admin & Monitoring
+│   │   ├── dosen/              # Modul Dosen, Penilaian, Peninjauan, Sanksi, Prodi
+│   │   ├── mahasiswa/          # Dashboard Mahasiswa, Pengajuan, Logbook, Sidang
+│   │   ├── chat/               # Live Chat & Group Messaging
+│   │   └── landing/            # Landing Page & Publik Info
+│   ├── hooks/                  # Centralized Custom Hooks Registry (`use*.ts`)
+│   │   ├── index.ts            # Centralized Export Registry for Hooks
+│   │   ├── useAuth.ts          # Authentication State
+│   │   ├── useCreateAccount.ts # Admin Account Creation State & Validation
+│   │   ├── useEditAccount.ts   # Admin Account Editing State
+│   │   ├── useProdiBimbingan.ts# Prodi & Admin Monitoring Bimbingan & PDF Export
+│   │   ├── useProdiSidang.ts   # Prodi Sidang Monitoring
+│   │   ├── useBimbingan.ts     # Dosen & Mahasiswa Bimbingan
+│   │   ├── usePeninjauan.ts    # Dosen Peninjauan Pengajuan
+│   │   ├── usePenilaian.ts     # Dosen Penilaian Sidang
+│   │   ├── useSanksi.ts        # Dosen & Admin Sanksi Administrasi
+│   │   ├── useLaporan.ts       # Dosen Laporan Akhir
+│   │   └── useChat.ts          # Realtime Live Chat & Socket.IO
+│   ├── routes/                 # File Rute (Pages) & Route Guards
 │   └── root.tsx                # Entry point aplikasi
 └── ...
 ```
+
+---
+
+## 🏗️ Standar Arsitektur & Clean Code
+
+Aplikasi ini menerapkan prinsip **Clean Code** & **Decoupled Architecture**:
+
+### 1. 🪝 Centralized Hooks Registry (`app/hooks/`)
+Seluruh logika bisnis (*state*, *effects*, kalkulasi, fetching, validasi, dan ekspor) dipisahkan dari komponen UI dan dipusatkan dalam folder `app/hooks/`.
+- Komponen UI (seperti `ProdiBimbingan.tsx`, `MonitoringDesktop.tsx`, `CreateAccountDesktop.tsx`) bersifat deklaratif dan hanya mengonsumsi hook.
+- Seluruh hook diekspor kembali secara terpusat melalui `app/hooks/index.ts`.
+- Seluruh file mengimpor hook menggunakan **Path Alias** `~/hooks` (contoh: `import { useProdiBimbingan } from "~/hooks/useProdiBimbingan"`).
+
+### 2. 📘 Centralized Types Definition (`app/api/types.ts`)
+Seluruh tipe TypeScript (*interfaces* dan *types*) untuk DTO API, data pengguna, *form state*, *props*, dan entitas bisnis dipusatkan dalam satu file utama: `app/api/types.ts`.
+- Menghindari percampuran tipe antar folder modul.
+- Menjamin konsistensi tipe di seluruh komponen (Mahasiswa, Dosen, Admin, Prodi, dan Staf).
+
+### 3. 🖥️📱 Pemisahan Tampilan Desktop & Mobile (Decoupled Layout Rendering)
+Aplikasi ini secara konsisten memisahkan komponen antarmuka antara tampilan **Desktop** (`*Desktop.tsx`) dan **Mobile** (`*Mobile.tsx`) untuk setiap modul fitur (seperti *Laporan*, *Bimbingan*, *Penilaian*, *Peninjauan*, *Sanksi*, *Prodi*, *Acara*, dan *Create Account*).
+- **Dirender secara terpisah di tingkat Rute**: Pada file rute (`app/routes/`), aplikasi mendeteksi tipe layar (misalnya menggunakan hook media query `isMobile` / `useMediaQuery` atau layout switcher) dan secara eksplisit merender komponen yang sesuai (`LaporanDesktop` atau `LaporanMobile`).
+- **Keuntungan Utama**:
+  1. **Kode Lebih Bersih & Deklaratif**: Menghindari penggabungan class CSS responsif yang rumit (`hidden md:block flex-col md:flex-row`) dalam satu file komponen yang besar.
+  2. **Pengalaman Pengguna (UX) Maksimal**: Desain Desktop menggunakan layout tabel/grid komprehensif, sedangkan Mobile menggunakan antarmuka berbasis card-list yang dioptimalkan untuk gesture layar sentuh.
+  3. **Shared Business Logic (Single Source of Truth)**: Komponen Desktop dan Mobile **berbagi satu hook terpusat yang sama** (seperti `useLaporan()`, `useBimbingan()`, `usePenilaian()`, `useSanksi()`), sehingga seluruh *state*, fetching API, pagination, dan kalkulasi data dijamin 100% konsisten.
+
+---
+
+## 📊 Monitoring Bimbingan (Prodi & Admin Parity)
+
+Modul **Monitoring Bimbingan** digunakan oleh **Admin** dan **Ketua Program Studi (Prodi)** untuk memantau progres bimbingan mahasiswa dan dosen secara real-time.
+
+### 🌟 Fitur Utama:
+1. **Perhitungan Skor Kedisiplinan Progres**:
+   - Menghitung progres berbasis fuzzy-match topik bimbingan (Bab 1 s.d. Laporan Akhir).
+   - Memberikan bonus skor progres untuk bimbingan yang telah disetujui (`APPROVED`).
+2. **Riwayat Detail Bimbingan (Drill-Down)**:
+   - Melihat daftar mahasiswa bimbingan per dosen.
+   - Menelusuri seluruh versi draft laporan mahasiswa beserta catatan dan reviu dosen.
+3. **Ekspor Laporan PDF Formal (Landscape Format)**:
+   - Mendukung ekspor **PDF Per Dosen** maupun **PDF Keseluruhan (Semua Dosen)**.
+   - Menggunakan format tabel landscape yang rapi mencakup: *No, Bab / Topik, Status, Tanggal Reviu, Jumlah Bimbingan,* dan *Catatan Dosen*.
 
 ### 🧭 Routing
 
@@ -291,7 +343,26 @@ Menghapus sanksi administrasi dari sistem.
   {
     "message": "Sanksi Administrasi deleted successfully"
   }
-  ```
 
+
+---
+
+## 📑 Modul Laporan Akhir Bimbingan
+
+Modul Laporan Akhir Bimbingan memuat rekapitulasi data mahasiswa bimbingan yang telah disetujui judulnya, termasuk progres logbook, rincian nilai pembimbing (P1: K1, K2, K3), nilai penguji (P2: K1, K2, K3), Nilai Akhir, dan Huruf Mutu.
+
+### 📱 Arsitektur Terpisah (Desktop & Mobile Parity)
+- **Desktop Component** (`LaporanDesktop.tsx`):
+  - Tampilan tabel komprehensif dengan kolom yang disesuaikan (Nama/NIM & Nilai Dosen proporsional, Logbook ramping).
+  - Menggunakan komponen UI terstandarisasi `Button` untuk ekspor CSV & PDF.
+  - Teks nama mahasiswa dan detail nilai dirancang sedang & kontras agar nyaman dibaca.
+- **Mobile Component** (`LaporanMobile.tsx`):
+  - Tampilan card list responsif yang dioptimalkan untuk perangkat layar sentuh.
+  - Menggunakan komponen `Button` UI resmi untuk tombol ekspor dan navigasi.
+- **Shared Hook** (`useLaporan.ts`):
+  - Seluruh logika fetching data laporan, filtering pencarian, pagination, ekspor CSV, dan pencetakan PDF dipusatkan dalam satu custom hook.
+- **Cetak Laporan PDF Document** (`CetakLaporanDocument.tsx`):
+  - Dokumen khusus cetak resmi A4.
+  - Memastikan **tanda tangan dan paraf dosen pembimbing hanya tampil jika berupa image URL valid**, dan dibiarkan kosong bersih jika belum ada (tanpa font cursive buatan/palsu).
 
 

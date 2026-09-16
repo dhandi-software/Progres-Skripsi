@@ -31,10 +31,10 @@ export function DiujiOlehSayaView({
     const searchQuery = searchQueryProp !== undefined ? searchQueryProp : localSearchQuery;
     const setSearchQuery = setSearchQueryProp || setLocalSearchQuery;
 
-    const currentDosen = dosenList.find(d => d.nama === user?.name);
+    const currentDosen = (dosenList || []).find(d => d.nama === user?.name);
     const myDosenId = currentDosen?.id || null;
 
-    const examinedStudents = data.filter(item => item.pengujiId === myDosenId || item.pengujiNama === user?.name);
+    const examinedStudents = (data || []).filter(item => item.pengujiId === myDosenId || item.pengujiNama === user?.name);
 
     const filteredData = examinedStudents.filter(item =>
         item.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||

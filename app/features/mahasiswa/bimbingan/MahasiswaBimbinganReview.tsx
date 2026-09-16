@@ -233,7 +233,7 @@ export const MahasiswaBimbinganReview: React.FC = () => {
                                 download
                                 className="w-full py-2.5 bg-[#00bcd4] hover:bg-[#00acc1] text-slate-950 font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 shadow-md transition-all"
                             >
-                                <Download size={15} /> Unduh File Ber-anotasi (PDF)
+                                <Download size={15} /> Unduh File (PDF)
                             </a>
                         )}
                         <button

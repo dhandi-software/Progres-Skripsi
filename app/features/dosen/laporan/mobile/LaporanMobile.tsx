@@ -4,8 +4,9 @@ import { cn } from "~/lib/utils";
 import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { CetakLaporanDocument } from "../components/CetakLaporanDocument";
-import { useLaporan } from "../hooks/useLaporan";
-import { getGrade, formatNilai } from "../types/laporan";
+import { useLaporan } from "~/hooks/useLaporan";
+import { getGrade, formatNilai } from "~/features/dosen/penilaian/types/penilaian";
+import { Button } from "~/components/ui/button";
 
 export function LaporanMobile({ title }: { title?: string }) {
     const {
@@ -57,21 +58,22 @@ export function LaporanMobile({ title }: { title?: string }) {
                     </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-1.5 mt-1">
-                    <button 
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                    <Button 
                         onClick={handleExportCSV}
-                        className="flex flex-col items-center justify-center gap-1 p-2 rounded-lg transition-colors font-semibold text-xs shadow-sm bg-white border border-[#d1d7db] text-[#54656f] hover:bg-gray-50"
+                        variant="outline"
+                        className="flex flex-col items-center justify-center gap-1 h-auto p-2.5 rounded-lg transition-colors font-semibold text-xs shadow-sm bg-white border border-[#d1d7db] text-[#54656f] hover:bg-gray-50"
                     >
                         <Download size={16} />
                         <span>Export CSV</span>
-                    </button>
-                    <button 
+                    </Button>
+                    <Button 
                         onClick={handlePrint}
-                        className="flex flex-col items-center justify-center gap-1 p-2 rounded-lg transition-colors font-semibold text-xs shadow-sm bg-[#D25026] text-white hover:bg-[#b03d19]"
+                        className="flex flex-col items-center justify-center gap-1 h-auto p-2.5 rounded-lg transition-colors font-semibold text-xs shadow-sm bg-[#1c3a6b] text-white hover:bg-[#142b50]"
                     >
                         <Download size={16} />
                         <span>Download PDF</span>
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -137,13 +139,13 @@ export function LaporanMobile({ title }: { title?: string }) {
                             )}>
                                 <span className={cn(
                                     "font-bold",
-                                    isLowVision ? "text-base font-black text-black" : "text-slate-950"
+                                    isLowVision ? "text-lg font-black text-black" : "text-base font-bold text-slate-950"
                                 )}>
                                     {item.nama}
                                 </span>
                                 <span className={cn(
-                                    "text-xs",
-                                    isLowVision ? "text-sm font-extrabold text-black" : "text-slate-500"
+                                    "text-xs font-medium",
+                                    isLowVision ? "text-sm font-extrabold text-black" : "text-slate-600"
                                 )}>
                                     {item.nim}
                                 </span>

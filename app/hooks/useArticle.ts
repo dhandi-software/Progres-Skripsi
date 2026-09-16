@@ -37,7 +37,6 @@ export function useArticle(): UseArticleReturn {
     const fetchArticleData = async () => {
       setLoading(true);
 
-      // Fetch all data in parallel
       const results = await Promise.allSettled([
         newsApi.getArticleBySlug(slug),
         newsApi.getPublishedNews({ order: "desc", limit: 6 }),
@@ -47,7 +46,6 @@ export function useArticle(): UseArticleReturn {
 
       const newErrors: UseArticleReturn["errors"] = {};
 
-      // Article Detail
       if (results[0].status === "fulfilled") {
         setArticle(results[0].value.data);
       } else {
@@ -55,7 +53,6 @@ export function useArticle(): UseArticleReturn {
         newErrors.article = "Failed to load article";
       }
 
-      // Related News
       if (results[1].status === "fulfilled") {
         setRelatedNews(results[1].value.data);
       } else {
@@ -63,7 +60,6 @@ export function useArticle(): UseArticleReturn {
         newErrors.relatedNews = "Failed to load related news";
       }
 
-      // Videos
       if (results[2].status === "fulfilled") {
         setVideos(results[2].value.data);
       } else {
@@ -71,12 +67,10 @@ export function useArticle(): UseArticleReturn {
         newErrors.videos = "Failed to load videos";
       }
 
-      // Ads
       if (results[3].status === "fulfilled") {
         setAds(results[3].value.data || []);
       } else {
         console.error("Error fetching ads:", results[3].reason);
-        // Don't set error for ads as they are optional/secondary
       }
 
       setErrors(newErrors);

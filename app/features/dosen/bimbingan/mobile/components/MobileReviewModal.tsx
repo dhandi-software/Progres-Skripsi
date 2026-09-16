@@ -1,6 +1,6 @@
 import React, { Suspense } from "react";
 import { X, Eye, Download, FileText, Send, Loader2, FileStack } from "lucide-react";
-import { SharedPdfViewer } from "../../../../components/SharedPdfViewer.client";
+import { SharedPdfViewer } from "~/features/components/SharedPdfViewer.client";
 import { UPLOADS_URL } from "~/api/client";
 import { bimbinganApi } from "~/api/bimbinganApi";
 import { useState, useEffect } from "react";

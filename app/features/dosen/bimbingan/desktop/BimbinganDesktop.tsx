@@ -1,85 +1,23 @@
-import { useState, useEffect } from "react";
-import { bimbinganApi } from "~/api/bimbinganApi";
 import { Users, FileText, Loader2, BookOpen, Search } from "lucide-react";
 import { CustomSelect } from "~/components/ui/custom-select";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext } from "~/components/ui/pagination";
-import { useNavigate } from "react-router";
-
-import { UPLOADS_URL } from "~/api/client";
-import { useAuth } from "~/hooks/useAuth";
-import { io } from "socket.io-client";
-
-const getStatusPenilaian = (status: string) => {
-    switch (status) {
-        case 'ASSIGNED': return '-';
-        case 'SUBMITTED': return 'Menunggu Reviu';
-        case 'REVISION': return 'Perlu Revisi';
-        case 'APPROVED': return 'Disetujui';
-        default: return '-';
-    }
-};
+import { useBimbingan } from "~/hooks/useBimbingan";
 
 export function BimbinganDesktop() {
-    const { user } = useAuth();
-    const [students, setStudents] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const navigate = useNavigate();
-
-    const [searchQuery, setSearchQuery] = useState("");
-    const [statusFilter, setStatusFilter] = useState("Semua");
-
-    // List Pagination
-    const [currentPage, setCurrentPage] = useState(1);
-    const ITEMS_PER_PAGE = 5;
-
-    const totalPages = Math.ceil(students.length / ITEMS_PER_PAGE);
-    const paginatedStudents = students.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-
-    const fetchStudents = async (currentSearch = searchQuery, currentStatus = statusFilter) => {
-        try {
-            const data = await bimbinganApi.getDosenBimbinganStudents(currentSearch, currentStatus);
-            setStudents(data || []);
-        } catch (error) {
-            console.error("Failed to fetch students:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Use debounce for search query
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            fetchStudents(searchQuery, statusFilter);
-            setCurrentPage(1);
-        }, 300);
-        return () => clearTimeout(timer);
-    }, [searchQuery]);
-
-    // Fetch immediately on status change
-    useEffect(() => {
-        fetchStudents(searchQuery, statusFilter);
-        setCurrentPage(1);
-    }, [statusFilter]);
-
-    // Real-time updates
-    useEffect(() => {
-        if (!user) return;
-        const socket = io(UPLOADS_URL);
-        socket.emit("join", user.id);
-        
-        socket.on("bimbingan_submitted", () => {
-            fetchStudents(searchQuery, statusFilter);
-        });
-
-        return () => {
-            socket.disconnect();
-        };
-    }, [user, searchQuery, statusFilter]);
-
-    const handleStudentClick = (student: any) => {
-        // Navigate to detail route and pass student data as state
-        navigate(`/dosen/bimbingan/${student.mahasiswa.nim}`, { state: { student } });
-    };
+    const {
+        students,
+        loading,
+        searchQuery,
+        setSearchQuery,
+        statusFilter,
+        setStatusFilter,
+        currentPage,
+        setCurrentPage,
+        totalPages,
+        paginatedStudents,
+        handleStudentClick,
+        getStatusPenilaian
+    } = useBimbingan();
 
     if (loading) {
         return (

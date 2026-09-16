@@ -1,143 +1,49 @@
-import React, { useEffect, useState } from "react";
-import { sanksiApi, type SanksiAdministrasi, type SupervisedStudent } from "~/api/sanksiApi";
-import { Plus, Edit3, Trash2, X, Save, AlertCircle, FileText, Printer, Check, ChevronDown, User, ArrowLeft, Clock, CheckCircle2, MoreHorizontal, Eye } from "lucide-react";
+import React, { useState } from "react";
+import { Plus, Edit3, Trash2, Save, AlertCircle, FileText, Printer, Check, ChevronDown, User, ArrowLeft, Clock, CheckCircle2, Eye } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { useAuth } from "~/context/AuthContext";
-
-interface FormState {
-    id?: number;
-    mahasiswaId: string;
-    nama: string;
-    nim: string;
-    hariSidang: string;
-    tanggalSidang: string;
-    hariTenggat: string;
-    tanggalSurat: string;
-    rawTanggalSidang?: string;
-    durasiTenggat?: 1 | 2;
-}
+import { useSanksi } from "~/hooks/useSanksi";
+import type { SanksiAdministrasi, SupervisedStudent } from "~/api/types";
 
 export function SanksiMobile({ title }: { title: string }) {
-    const [sanksiList, setSanksiList] = useState<SanksiAdministrasi[]>([]);
-    const [summary, setSummary] = useState({ total: 0, menunggu: 0, telat: 0, selesai: 0 });
-    const [studentList, setStudentList] = useState<SupervisedStudent[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isSaving, setIsSaving] = useState(false);
-    const { user } = useAuth();
-    
-    // Navigation / views
+    const {
+        user,
+        sanksiList,
+        studentList,
+        isLoading,
+        isSaving,
+        form,
+        setForm,
+        isDropdownOpen,
+        setIsDropdownOpen,
+        previewItem,
+        setPreviewItem,
+        deleteConfirmId,
+        setDeleteConfirmId,
+        toast,
+        updateTenggat,
+        handleOpenCreate: hookHandleOpenCreate,
+        handleOpenEdit: hookHandleOpenEdit,
+        handleSelectStudent,
+        handleSave: hookHandleSave,
+        handleDelete: hookHandleDelete,
+        handlePrint,
+        handleKonfirmasiHardcover,
+        selectedStudent,
+        calculateWeeksLate
+    } = useSanksi();
+
     const [viewMode, setViewMode] = useState<"list" | "form" | "preview">("list");
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    
-    const [form, setForm] = useState<FormState>({
-        mahasiswaId: "",
-        nama: "",
-        nim: "",
-        hariSidang: "",
-        tanggalSidang: "",
-        hariTenggat: "",
-        tanggalSurat: ""
-    });
-    
-    const [previewItem, setPreviewItem] = useState<SanksiAdministrasi | null>(null);
-    const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
-    const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
-
-    const [searchQuery, setSearchQuery] = useState("");
-    const [statusFilter, setStatusFilter] = useState("");
-
-    const fetchData = async () => {
-        try {
-            setIsLoading(true);
-            const [sanksiRes, studentData] = await Promise.all([
-                sanksiApi.getAllSanksi(searchQuery, statusFilter),
-                sanksiApi.getSupervisedStudents()
-            ]);
-            setSanksiList(sanksiRes.data || []);
-            setSummary(sanksiRes.summary || { total: 0, menunggu: 0, telat: 0, selesai: 0 });
-            setStudentList(studentData);
-        } catch (error) {
-            showToast("error", "Gagal memuat data.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        const delayDebounceFn = setTimeout(() => {
-            fetchData();
-        }, 300);
-
-        return () => clearTimeout(delayDebounceFn);
-    }, [searchQuery, statusFilter]);
-
-    const showToast = (type: "success" | "error", msg: string) => {
-        setToast({ type, msg });
-        setTimeout(() => setToast(null), 3500);
-    };
 
     const handleOpenCreate = () => {
-        const today = new Date();
-        const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-        const dayName = days[today.getDay()];
-        const dateString = today.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
-        
-        const rawDate = today.toISOString().split("T")[0];
-        
-        setForm({
-            mahasiswaId: "",
-            nama: "",
-            nim: "",
-            hariSidang: dayName,
-            tanggalSidang: dateString,
-            hariTenggat: "Senin",
-            tanggalSurat: dateString,
-            rawTanggalSidang: rawDate,
-            durasiTenggat: 1
-        });
-        updateTenggat(rawDate, 1);
+        hookHandleOpenCreate();
         setViewMode("form");
-    };
-
-    const updateTenggat = (dateStr: string, durasi: 1 | 2) => {
-        if (!dateStr) return;
-        const dateObj = new Date(dateStr);
-        if (isNaN(dateObj.getTime())) return;
-
-        const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-        const hariSidang = days[dateObj.getDay()];
-        const tanggalSidang = dateObj.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
-        
-        const tenggatObj = new Date(dateStr);
-        tenggatObj.setDate(tenggatObj.getDate() + (durasi * 7));
-        const hariTenggat = `${days[tenggatObj.getDay()]}, ${tenggatObj.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}`;
-        
-        setForm(prev => ({
-            ...prev,
-            rawTanggalSidang: dateStr,
-            durasiTenggat: durasi,
-            hariSidang,
-            tanggalSidang,
-            hariTenggat
-        }));
     };
 
     const handleOpenEdit = (item: SanksiAdministrasi, e: React.MouseEvent) => {
         e.stopPropagation();
-        setForm({
-            id: item.id,
-            mahasiswaId: String(item.mahasiswaId),
-            nama: item.nama,
-            nim: item.nim,
-            hariSidang: item.hariSidang,
-            tanggalSidang: item.tanggalSidang,
-            hariTenggat: item.hariTenggat,
-            tanggalSurat: item.tanggalSurat,
-            rawTanggalSidang: "",
-            durasiTenggat: 1
-        });
+        hookHandleOpenEdit(item);
         setViewMode("form");
     };
 
@@ -146,75 +52,10 @@ export function SanksiMobile({ title }: { title: string }) {
         setViewMode("preview");
     };
 
-    const handleSelectStudent = (student: SupervisedStudent) => {
-        if (student.statusSidang !== 'TERJADWAL' || !student.tanggalSidang) {
-            setForm(prev => ({
-                ...prev,
-                mahasiswaId: String(student.id),
-                nama: student.nama,
-                nim: student.nim,
-                rawTanggalSidang: "",
-                tanggalSidang: "Tanggal sidang belum dijadwalkan"
-            }));
-            setIsDropdownOpen(false);
-            return;
-        }
-
-        let rawDate = new Date().toISOString().split("T")[0];
-        const sidDate = new Date(student.tanggalSidang);
-        if (!isNaN(sidDate.getTime())) {
-            rawDate = sidDate.toISOString().split("T")[0];
-        }
-
-        setForm(prev => ({
-            ...prev,
-            mahasiswaId: String(student.id),
-            nama: student.nama,
-            nim: student.nim,
-            rawTanggalSidang: rawDate
-        }));
-        
-        updateTenggat(rawDate, form.durasiTenggat || 1);
-        setIsDropdownOpen(false);
-    };
-
     const handleSave = async () => {
-        if (!form.mahasiswaId || !form.nama || !form.nim) {
-            showToast("error", "Pilih mahasiswa dan lengkapi data.");
-            return;
-        }
-
-        if (!form.rawTanggalSidang || form.tanggalSidang === "Tanggal sidang belum dijadwalkan") {
-            showToast("error", "Sidang belum dijadwalkan. Sanksi administrasi tidak dapat diterbitkan.");
-            return;
-        }
-
-        try {
-            setIsSaving(true);
-            const payload = {
-                mahasiswaId: form.mahasiswaId,
-                nama: form.nama,
-                nim: form.nim,
-                hariSidang: form.hariSidang,
-                tanggalSidang: form.tanggalSidang,
-                hariTenggat: form.hariTenggat,
-                tanggalSurat: form.tanggalSurat
-            };
-
-            if (form.id) {
-                await sanksiApi.updateSanksi(form.id, payload);
-                showToast("success", "Sanksi diperbarui!");
-            } else {
-                await sanksiApi.createSanksi(payload);
-                showToast("success", "Sanksi diterbitkan!");
-            }
+        const success = await hookHandleSave();
+        if (success) {
             setViewMode("list");
-            fetchData();
-        } catch (error: any) {
-            const msg = error.response?.data?.error || "Gagal menyimpan sanksi.";
-            showToast("error", msg);
-        } finally {
-            setIsSaving(false);
         }
     };
 
@@ -224,44 +65,10 @@ export function SanksiMobile({ title }: { title: string }) {
     };
 
     const confirmDelete = async () => {
-        if (!deleteConfirmId) return;
-        try {
-            await sanksiApi.deleteSanksi(deleteConfirmId);
-            showToast("success", "Sanksi dihapus.");
-            setDeleteConfirmId(null);
-            fetchData();
-        } catch (error) {
-            showToast("error", "Gagal menghapus sanksi.");
+        if (deleteConfirmId) {
+            await hookHandleDelete(deleteConfirmId);
         }
     };
-
-    const handleKonfirmasiHardcover = async (id: number, e: React.MouseEvent) => {
-        e.stopPropagation();
-        try {
-            await sanksiApi.konfirmasiSanksi(id);
-            showToast("success", "Hardcover telah dikonfirmasi.");
-            fetchData();
-        } catch (error: any) {
-            const msg = error.response?.data?.message || error.response?.data?.error || "Gagal memperbarui status hardcover.";
-            showToast("error", msg);
-        }
-    };
-
-    const handlePrint = () => {
-        window.print();
-    };
-
-    const calculateWeeksLate = (tenggat?: string) => {
-        if (!tenggat) return 0;
-        const now = new Date();
-        const tglTenggat = new Date(tenggat);
-        if (now <= tglTenggat) return 0;
-        const diffMs = now.getTime() - tglTenggat.getTime();
-        const diffDays = diffMs / (1000 * 60 * 60 * 24);
-        return Math.ceil(diffDays / 7);
-    };
-
-    const selectedStudent = studentList.find(s => String(s.id) === form.mahasiswaId);
 
     return (
         <div className="flex flex-col min-h-full bg-slate-50 p-4 font-sans print:p-0 print:bg-white">
@@ -373,7 +180,7 @@ export function SanksiMobile({ title }: { title: string }) {
                                     <div className="flex flex-col gap-2 items-end">
                                         {(user?.role?.toUpperCase() === 'STAF' || user?.role?.toUpperCase() === 'ADMIN') && item.status !== 'Selesai/Lunas' && (
                                             <button
-                                                onClick={(e) => handleKonfirmasiHardcover(item.id, e)}
+                                                onClick={(e) => { e.stopPropagation(); handleKonfirmasiHardcover(item.id); }}
                                                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-emerald-200 text-emerald-600 bg-emerald-50/50 hover:bg-emerald-50 font-semibold text-[11px] transition-colors"
                                             >
                                                 <CheckCircle2 size={14} /> Konfirmasi Hardcover

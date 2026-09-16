@@ -16,9 +16,8 @@ export const useEditAccount = () => {
         emailDomain: "@univpancasila.ac.id",
         email: "",
         name: "",
-        password: "", // Optional for edit
+        password: "",
         role: "mahasiswa",
-        // Specific fields
         nim: "",
         tahunMasuk: "",
         sksDicapai: "",
@@ -66,7 +65,7 @@ export const useEditAccount = () => {
                 emailDomain,
                 email: fullEmail,
                 name: user.nama || user.name || "",
-                password: "********", // Show placeholder password
+                password: "********",
                 role: user.role,
                 nim: user.nim || user.mahasiswa?.nim || "",
                 tahunMasuk: user.tahunMasuk || user.mahasiswa?.tahunMasuk || "",
@@ -108,7 +107,6 @@ export const useEditAccount = () => {
     ) => {
         let { name, value } = e.target;
 
-        // Numeric validation for NIM, NIDN, and SKS
         if (
             (name === "nim" || name === "nidn" || name === "sksDicapai" || name === "sksNilaiD") &&
             value &&
@@ -128,7 +126,6 @@ export const useEditAccount = () => {
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
-
     const generatePassword = () => {
         const length = 12;
         const charset =
@@ -138,7 +135,6 @@ export const useEditAccount = () => {
             retVal += charset.charAt(Math.floor(Math.random() * n));
         }
         setFormData((prev) => ({ ...prev, password: retVal }));
-        // Ensure visibility is on so user can see what was generated
         setShowPassword(true);
     };
 
@@ -162,7 +158,6 @@ export const useEditAccount = () => {
                 email: fullEmail
             };
 
-            // If empty string (user cleared it) or default placeholder, we don't update password.
             if (!formData.password || formData.password === "********") {
                 delete payload.password;
             }

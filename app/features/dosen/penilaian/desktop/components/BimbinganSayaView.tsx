@@ -33,10 +33,10 @@ export function BimbinganSayaView({
     const [dropdownSearch, setDropdownSearch] = useState("");
     const [isEditingPenguji, setIsEditingPenguji] = useState(false);
 
-    const currentDosen = dosenList.find(d => d.nama === user?.name);
+    const currentDosen = (dosenList || []).find(d => d.nama === user?.name);
     const myDosenId = currentDosen?.id || null;
 
-    const supervisedStudents = data.filter(item => item.pembimbingId === myDosenId || item.pembimbingNama === user?.name);
+    const supervisedStudents = (data || []).filter(item => item.pembimbingId === myDosenId || item.pembimbingNama === user?.name);
     const activePenguji = supervisedStudents.find(s => s.pengujiNama && s.pengujiNama !== "-")?.pengujiNama || "Belum Ditugaskan";
 
     const filteredData = supervisedStudents.filter(item =>

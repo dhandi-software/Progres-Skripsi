@@ -3,7 +3,7 @@ import { ArrowLeft, ChevronDown, Eye, EyeOff, Save } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { CustomSelect } from "~/components/ui/custom-select";
 import { MultipleCombobox } from "~/components/ui/Multiple-combobox";
-import { useEditAccount } from "./UseEditAccount";
+import { useEditAccount } from "~/hooks/useEditAccount";
 
 export function EditAccountDesktop() {
     const {

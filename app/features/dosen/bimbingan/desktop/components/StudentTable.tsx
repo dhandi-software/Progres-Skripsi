@@ -8,7 +8,7 @@ import {
     PaginationNext, 
     PaginationPrevious 
 } from "~/components/ui/pagination";
-import { getStatusPenilaian } from "../../utils/bimbinganUtils";
+import { getStatusPenilaian } from "~/features/dosen/bimbingan/utils/bimbinganUtils";
 
 interface StudentTableProps {
     students: any[];

@@ -1,2 +1,4 @@
-export * from "~/features/dosen/penilaian/desktop/PenilaianDesktop";
-export * from "~/features/dosen/penilaian/mobile/PenilaianMobile";
+export * from "~/api/types";
+export * from "~/hooks/usePenilaian";
+export { PenilaianDesktop } from "./desktop/PenilaianDesktop";
+export { PenilaianMobile } from "./mobile/PenilaianMobile";

@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "~/hooks/useAuth";
 import { bimbinganApi } from "~/api/bimbinganApi";
-import { getGrade, type LaporanItem } from "../types/laporan";
-
+import { getGrade, type LaporanItem } from "~/features/dosen/laporan/types/laporan";
 
 export function useLaporan() {
     const { user } = useAuth();

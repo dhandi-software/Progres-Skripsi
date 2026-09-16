@@ -44,7 +44,6 @@ export function useHome(): UseHomeReturn {
     const fetchAllData = async () => {
       setLoading(true);
 
-      // Fetch all data in parallel
       const results = await Promise.allSettled([
         newsApi.getHeadlineNews(),
         newsApi.getPublishedNews({ order: "desc", limit: 6 }),
@@ -83,7 +82,6 @@ export function useHome(): UseHomeReturn {
 
       const newErrors: UseHomeReturn["errors"] = {};
 
-      // Headline News
       if (results[0].status === "fulfilled") {
         setHeadlineNews(results[0].value.data || []);
       } else {
@@ -91,7 +89,6 @@ export function useHome(): UseHomeReturn {
         newErrors.headlineNews = "Failed to load headline news";
       }
 
-      // Latest News
       if (results[1].status === "fulfilled") {
         setLatestNews(results[1].value.data);
       } else {
@@ -99,7 +96,6 @@ export function useHome(): UseHomeReturn {
         newErrors.latestNews = "Failed to load latest news";
       }
 
-      // Trending Videos
       if (results[2].status === "fulfilled") {
         setTrendingVideos(results[2].value.data);
       } else {
@@ -107,7 +103,6 @@ export function useHome(): UseHomeReturn {
         newErrors.trendingVideos = "Failed to load videos";
       }
 
-      // Nickel News
       if (results[3].status === "fulfilled") {
         setNickelNews(results[3].value.data);
       } else {
@@ -115,7 +110,6 @@ export function useHome(): UseHomeReturn {
         newErrors.nickelNews = "Failed to load nickel news";
       }
 
-      // Mining News
       if (results[4].status === "fulfilled") {
         setMiningNews(results[4].value.data);
       } else {
@@ -123,7 +117,6 @@ export function useHome(): UseHomeReturn {
         newErrors.miningNews = "Failed to load mining news";
       }
 
-      // Market Investment News
       if (results[5].status === "fulfilled") {
         setMarketNews(results[5].value.data);
       } else {
@@ -134,7 +127,6 @@ export function useHome(): UseHomeReturn {
         newErrors.marketNews = "Failed to load market investment news";
       }
 
-      // Technology News
       if (results[6].status === "fulfilled") {
         setTechnologyNews(results[6].value.data);
       } else {
@@ -145,7 +137,6 @@ export function useHome(): UseHomeReturn {
         newErrors.technologyNews = "Failed to load technology news";
       }
 
-      // Trending News
       if (results[7].status === "fulfilled") {
         setTrendingNews(results[7].value.data);
       } else {
@@ -153,7 +144,6 @@ export function useHome(): UseHomeReturn {
         newErrors.trendingNews = "Failed to load trending news";
       }
 
-      // Exclusive Interview News
       if (results[8].status === "fulfilled") {
         setExclusiveInterviewNews(results[8].value.data);
       } else {
