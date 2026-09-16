@@ -15,6 +15,8 @@ import {
   User,
   BookOpen,
   Contact,
+  FileWarning,
+  FileSpreadsheet,
 } from "lucide-react";
 import { Outlet, useRouteLoaderData } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
@@ -129,16 +131,17 @@ const menuItems = [
   {
     key: "laporan" as MenuKey,
     title: "Laporan",
-    icon: FileText,
+    icon: FileSpreadsheet,
     url: "/dosen/laporan",
   },
 
   {
     key: "sanksi" as MenuKey,
     title: "Sanksi Administrasi",
-    icon: ClipboardList,
+    icon: FileWarning,
     url: "/dosen/sanksi",
   },
+
   {
     key: "profile" as MenuKey,
     title: "Profil Saya",

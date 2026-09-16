@@ -10,6 +10,7 @@ import {
   Download,
   ClipboardList,
   Contact,
+  FileWarning,
 } from "lucide-react";
 import { Outlet, useRouteLoaderData } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
@@ -88,9 +89,10 @@ const menuItems = [
   {
     key: "sanksi" as MenuKey,
     title: "Sanksi Administrasi",
-    icon: ClipboardList,
+    icon: FileWarning,
     url: "/staf/sanksi",
   },
+
   {
     key: "profile" as MenuKey,
     title: "Profil Saya",

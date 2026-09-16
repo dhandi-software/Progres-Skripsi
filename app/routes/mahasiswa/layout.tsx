@@ -11,7 +11,8 @@ import {
   Trophy,
   BookOpen,
   Contact,
-  Clock
+  Clock,
+  FileWarning
 } from "lucide-react";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
 import { RoleGuard } from "~/routes/RoleGuard";
@@ -120,9 +121,10 @@ const menuItems = [
   {
     key: "sanksi" as MenuKey,
     title: "Sanksi Administrasi",
-    icon: FileText,
+    icon: FileWarning,
     url: "/mahasiswa/sanksi",
   },
+
   {
     key: "profilemahasiswa" as MenuKey,
     title: "Profil Mahasiswa",

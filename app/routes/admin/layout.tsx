@@ -11,6 +11,10 @@ import {
   ClipboardList,
   Download,
   Contact,
+  Award,
+  FileWarning,
+  FileSpreadsheet,
+  Megaphone,
 } from "lucide-react";
 import { Outlet, useRouteLoaderData, isRouteErrorResponse, useRouteError } from "react-router";
 import { ProtectedRoute } from "~/routes/ProtectedRoute";
@@ -72,7 +76,7 @@ const menuItems = [
   {
     key: "acara" as MenuKey,
     title: "Pengumuman",
-    icon: ClipboardList,
+    icon: Megaphone,
     url: "/admin/acara",
   },
   {
@@ -96,22 +100,23 @@ const menuItems = [
   {
     key: "penilaian" as MenuKey,
     title: "Penilaian Evaluasi",
-    icon: FileText,
+    icon: Award,
     url: "/admin/penilaian",
   },
   {
     key: "sanksi" as MenuKey,
     title: "Sanksi Administrasi",
-    icon: ClipboardList,
+    icon: FileWarning,
     url: "/admin/sanksi",
   },
   {
     key: "laporan" as MenuKey,
     title: "Laporan Bimbingan",
-    icon: FileText,
+    icon: FileSpreadsheet,
     url: "/admin/laporan",
   },
 ];
+
 
 export function AppSidebar() {
   const location = useLocation();
