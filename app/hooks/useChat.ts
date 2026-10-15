@@ -17,6 +17,7 @@ export function useChat() {
   const [unreadCounts, setUnreadCounts] = useState<Record<string | number, number>>({});
   const [toastProps, setToastProps] = useState<{title: string, variant: 'default'|'destructive', description?: string} | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const isSendingRef = useRef(false);
   const [publicMembers, setPublicMembers] = useState<any[]>([]);
 
   const fetchPublicMembers = useCallback(async () => {
@@ -91,9 +92,12 @@ export function useChat() {
 
           if (message.senderId === user.id) {
               const tempIdx = prev.findIndex(m => 
-                  (m as any).isOptimistic === true && 
-                  (m.content === message.content || (!m.content && !message.content)) &&
-                  (m.attachmentUrl === message.attachmentUrl || m.fileName === message.fileName)
+                  Boolean((m as any).isOptimistic) && 
+                  (
+                      (message.fileName && m.fileName === message.fileName) ||
+                      (message.attachmentUrl && m.attachmentUrl === message.attachmentUrl) ||
+                      (m.content === message.content || (!m.content && !message.content))
+                  )
               );
 
               if (tempIdx !== -1) {
@@ -180,9 +184,12 @@ export function useChat() {
                     if (prev.find(m => m.id === message.id)) return prev;
 
                     const tempIdx = prev.findIndex(m => 
-                        (m as any).isOptimistic === true && 
-                        (m.content === message.content || (!m.content && !message.content)) &&
-                        (m.attachmentUrl === message.attachmentUrl || m.fileName === message.fileName)
+                        Boolean((m as any).isOptimistic) && 
+                        (
+                            (message.fileName && m.fileName === message.fileName) ||
+                            (message.attachmentUrl && m.attachmentUrl === message.attachmentUrl) ||
+                            (m.content === message.content || (!m.content && !message.content))
+                        )
                     );
 
                     if (tempIdx !== -1) {
@@ -342,7 +349,7 @@ export function useChat() {
   }, [socket, user]);
 
   const sendMessage = useCallback(async (content: string, file?: File, replyToId?: number) => {
-    if (!user || !activeContact || !socket || isSending) return;
+    if (!user || !activeContact || !socket || isSendingRef.current) return;
     
     if (file && file.size > 5 * 1024 * 1024) {
         setToastProps({
@@ -367,6 +374,7 @@ export function useChat() {
         }
     }
 
+    isSendingRef.current = true;
     setIsSending(true);
     try {
       let attachmentUrl = null;
@@ -432,9 +440,10 @@ export function useChat() {
     } catch (error) {
         console.error("SendMessage Error:", error);
     } finally {
+        isSendingRef.current = false;
         setIsSending(false);
     }
-  }, [user, activeContact, socket, isSending]);
+  }, [user, activeContact, socket]);
 
   const markAsRead = useCallback((targetId: number | string, isGroup?: boolean) => {
       if (!socket || !user) return;

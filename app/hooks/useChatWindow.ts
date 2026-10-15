@@ -25,6 +25,7 @@ export function useChatWindow({
     
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const isUploadingRef = useRef(false);
 
     const canAttachFiles = () => {
         if (!currentUser || !activeContact) return false;
@@ -108,12 +109,17 @@ export function useChatWindow({
         setReplyingTo(null);
     };
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (isSending) return;
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (isSending || isUploadingRef.current) return;
         const file = e.target.files?.[0];
         if (file) {
-            onSendMessage("", file);
-            if (fileInputRef.current) fileInputRef.current.value = "";
+            isUploadingRef.current = true;
+            try {
+                await onSendMessage("", file);
+            } finally {
+                isUploadingRef.current = false;
+                if (fileInputRef.current) fileInputRef.current.value = "";
+            }
             setReplyingTo(null);
         }
     };

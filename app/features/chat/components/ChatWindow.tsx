@@ -1,5 +1,5 @@
 import React from "react";
-import { UPLOADS_URL } from "~/api/client";
+import { UPLOADS_URL, getFileUrl } from "~/api/client";
 import Avatar, { AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "~/components/ui/sheet";
 import { Button } from "~/components/ui/button";
@@ -13,6 +13,7 @@ import { DeleteMessageDialog } from "./DeleteMessageDialog";
 import { RemoveMemberDialog } from "./RemoveMemberDialog";
 import { DeleteGroupDialog } from "./DeleteGroupDialog";
 import { PublicProfileModal } from "~/components/profile/PublicProfileModal";
+import { profileApi } from "~/api/profileApi";
 
 export function ChatWindow(props: ChatWindowProps) {
     const {
@@ -270,14 +271,14 @@ export function ChatWindow(props: ChatWindowProps) {
                                                 <div className="mb-2">
                                                     {msg.attachmentType === 'image' ? (
                                                         <img 
-                                                            src={profileApi.getProfilePhotoUrl(msg.attachmentUrl)} 
-                                                            alt="Attachment" 
+                                                            src={getFileUrl(msg.attachmentUrl)} 
+                                                            alt={msg.fileName || "Attachment"} 
                                                             className="max-w-full max-h-60 rounded-lg object-cover cursor-pointer"
-                                                            onClick={() => window.open(profileApi.getProfilePhotoUrl(msg.attachmentUrl!), '_blank')}
+                                                            onClick={() => window.open(getFileUrl(msg.attachmentUrl!), '_blank')}
                                                         />
                                                     ) : (
                                                         <a 
-                                                            href={profileApi.getProfilePhotoUrl(msg.attachmentUrl)} 
+                                                            href={getFileUrl(msg.attachmentUrl)} 
                                                             target="_blank" 
                                                             rel="noopener noreferrer"
                                                             className={cn("flex items-center gap-2 p-2 rounded-lg text-xs font-semibold underline", isMe ? "text-white hover:text-white/90" : "text-blue-600 hover:text-blue-800")}
@@ -343,10 +344,15 @@ export function ChatWindow(props: ChatWindowProps) {
                     <>
                         <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
                         <Button 
+                            type="button"
                             variant="ghost" 
                             size="icon" 
                             className="text-[#54656f] hover:bg-[#e9edef] rounded-full shrink-0"
-                            onClick={() => fileInputRef.current?.click()}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                fileInputRef.current?.click();
+                            }}
                             disabled={isSending}
                         >
                             <Paperclip size={20} />
@@ -458,7 +464,7 @@ export function ChatWindow(props: ChatWindowProps) {
                                         {currentUser?.role?.toUpperCase() === "ADMIN" && m.id !== currentUser.id && (
                                             <div className="flex items-center gap-1">
                                                 {m.isBannedFromPublic ? (
-                                                    <Button size="sm" variant="outline" className="h-7 text-[10px] font-bold border-emerald-300 text-emerald-600 hover:bg-emerald-50" onClick={() => onUnbanFromPublic?.(m.id)}>
+                                                    <Button size="sm" variant="outline" className="h-7 text-[10px] font-bold border-emerald-300 text-emerald-600 hover:bg-emerald-50" onClick={() => onUnbanPublic?.(m.id)}>
                                                         Unban
                                                     </Button>
                                                 ) : (
@@ -515,8 +521,10 @@ export function ChatWindow(props: ChatWindowProps) {
             {selectedPublicUserId && (
                 <PublicProfileModal
                     userId={selectedPublicUserId}
-                    isOpen={!!selectedPublicUserId}
-                    onClose={() => setSelectedPublicUserId(null)}
+                    open={!!selectedPublicUserId}
+                    onOpenChange={(open) => {
+                        if (!open) setSelectedPublicUserId(null);
+                    }}
                 />
             )}
         </div>
